@@ -12,30 +12,68 @@
 
 % frequencies
 Fs = 500000;
-Fmin = 5000;
-Fmax = 115000;
+Fmin = 100;
+Fmax = 100000;
 stimdur = 500;
-Fsine = 10000;
-corr_frange = [5000 110000];
+corr_frange = [5000 100000];
 
 MIN_DB = -120;
 
 CALLPATH = '~/Work/Data/Audio/BatCalls';
 callname = 'app1.wav';
 
+
+%% load xfer function data
+load('TDT3972_5V_MicNoScreen_cal.mat', '-MAT', 'caldata');
+
+% pull out freq and magnitude (SPL) data
+F = caldata.freq;
+H = caldata.mag(1, :);
+% plot
+figure(1)
+subplot(211)
+plot(F*0.001, H, '.-')
+xlabel('Frequency (kHz)')
+ylabel('dB SPL')
+title('System Transfer Function')
+
+% normalize to peak of xfer function
+% find peak, peak index
+hpeak = max(H)
+
+% normalize by finding deviation from peak
+Hnorm = hpeak - H;
+
+% plot
+subplot(212)
+plot(F*0.001, Hnorm, '.-')
+xlabel('Frequency (kHz)')
+ylabel('dB SPL')
+title('Compensation Function')
+
 %% synthesize test noise from min(F) to max(F)
 s = synmononoise_fft(stimdur, Fs, Fmin, Fmax, 1, 0);
 s = normalize(s);
 % s = synmonosine(stimdur, Fs, Fsine, 1, 0);
-tvec = 1000 * (0:(length(s)-1)) ./ Fs;
+% plot spectrum of s
+[fraw, magraw] = daqdbfft(s, Fs, length(s));
 figure(2)
-subplot(211)
+tvec = 1000 * (0:(length(s)-1)) ./ Fs;
+subplot(221)
 plot(tvec, s)
-title('test signal')
+title('Test signal')
 xlabel('time (milliseconds)')
 ylabel('V')
 
-% get fft of test noise
+subplot(222)
+plot(0.001*fraw, magraw);
+title('Test Signal Spectrum')
+xlabel('freq (kHz)')
+ylabel('dB')
+ylim([-120 -40])
+
+
+%% get fft of test noise
 
 % length of signal
 Nsignal = length(s);
@@ -61,42 +99,7 @@ clear tmp;
 % This is an evenly spaced frequency vector with Nunique points.
 % scaled by the Nyquist frequency (Fn ==1/2 sample freq.)
 f = (Fs/2)*linspace(0, 1, NFFT/2);
-% plot spectrum
-figure(2)
-subplot(212)
-plot(0.001*f, SdBmag);
-title('Test Signal Spectrum')
-xlabel('freq (kHz)')
-ylabel('dB')
 
-
-%% load xfer function data
-load('TDT3972_5V_MicNoScreen_cal.mat', '-MAT', 'caldata');
-
-% pull out freq and magnitude (SPL) data
-F = caldata.freq;
-H = caldata.mag(1, :);
-% plot
-figure(1)
-subplot(211)
-plot(F*0.001, H, '.-')
-xlabel('Frequency (kHz)')
-ylabel('dB SPL')
-title('xfer function')
-
-% normalize to peak of xfer function
-% find peak, peak index
-[hpeak, hpeak_ind] = max(H)
-% get freq at peak
-fpeak = F(hpeak_ind);
-% normalize by finding deviation from peak
-Hnorm = hpeak - H;
-% plot
-subplot(212)
-plot(F*0.001, Hnorm, '.-')
-xlabel('Frequency (kHz)')
-ylabel('normalized dB SPL')
-title('Normalized Xfer')
 
 %% apply correction (BOOST method)
 % 
@@ -133,10 +136,10 @@ if ~isempty(sub4indices)
 end
 
 % plot spectrum
-figure(4)
+figure(3)
 subplot(211)
 plot(0.001*f, SdBadj)
-title('Compensated Signal Spectrum')
+title('Compensated Signal Spectrum (dB)')
 xlabel('freq (kHz)')
 ylabel('dB')
 
@@ -145,7 +148,7 @@ Sadj = invdb(SdBadj);
 % and plot
 subplot(212)
 plot(0.001*f, Sadj)
-title('Compensated Signal Spectrum')
+title('Compensated Signal Spectrum (linear)')
 xlabel('freq (kHz)')
 ylabel('arbitrary values')
 
@@ -157,14 +160,20 @@ Sadj = Nsignal * Sadj ./ 2;
 sadj = normalize(sadj(1:Nsignal));
 
 % plot compensated signal
-[f2, mag2] = daqdbfft(sadj, Fs, length(sadj));
-figure(5)
-subplot(311)
-plot(s)
-subplot(312)
-plot(sadj);
-subplot(313)
-plot(0.001*f2(2:end), mag2(2:end))
+[fadj, magadj] = daqdbfft(sadj, Fs, length(sadj));
+figure(2)
+subplot(223)
+plot(tvec, sadj)
+title('Compensated Signal')
+xlabel('time (milliseconds)')
+ylabel('V')
+
+subplot(224)
+plot(0.001*fadj, magadj);
+title('Compensated Signal Spectrum')
+xlabel('freq (kHz)')
+ylabel('dB')
+ylim([-120 -40])
 
 
 
@@ -173,7 +182,7 @@ plot(0.001*f2(2:end), mag2(2:end))
 
 % load signal
 [b, Fs, nbits, opts] = wavread(fullfile(CALLPATH, callname));
-b = b';
+b = normalize(b)';
 b = sin2array(b, 1, Fs);
 % get fft of test signal
 % length of signal
@@ -200,15 +209,6 @@ clear tmp;
 % This is an evenly spaced frequency vector with Nunique points.
 % scaled by the Nyquist frequency (Fn ==1/2 sample freq.)
 f = (Fs/2)*linspace(0, 1, NFFT/2);
-% plot spectrum
-figure(6)
-subplot(221)
-plot(b);
-subplot(223)
-plot(0.001*f, BdBmag);
-title('Call Spectrum')
-xlabel('freq (kHz)')
-ylabel('dB')
 
 
 % apply correction (BOOST method)
@@ -246,13 +246,24 @@ badj = normalize(badj(1:Nsignal));
 [f2, bmag2] = daqdbfft(badj, Fs, length(badj));
 
 figure(6)
+
+
+% plot raw signal
+figure(6)
+subplot(221)
+plot(b);
 subplot(222)
+plot(0.001*f, BdBmag);
+title('Call Spectrum')
+xlabel('freq (kHz)')
+ylabel('dB')
+ylim([-150 -45])
+
+subplot(223)
 plot(badj)
 title('compensated signal')
 subplot(224)
 plot(0.001*f2, bmag2);
 title('Compensated Spectrum')
 xlabel('freq (kHz)')
-
-
-
+ylim([-150 -45])
