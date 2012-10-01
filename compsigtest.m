@@ -58,7 +58,7 @@ ylim([-120 -40])
 xlim([0 0.001*Fs/2])
 
 %% use compensate signal to compensate
-[sadj, Sfull, Hnorm, foutadj] = compensate_signal(s, caldata, Fs, corr_frange);
+[sadj, Sfull, Hnorm, foutadj] = compensate_signal(s, caldata.freq, caldata.mag(1, :), Fs, corr_frange);
 
 % plot compensated signal
 [fadj, magadj] = daqdbfft(sadj, Fs, length(sadj));
@@ -79,7 +79,7 @@ xlim([0 0.001*Fs/2])
 
 
 
-%% test signal
+%% test with real signal
 
 
 % load signal
@@ -88,7 +88,7 @@ b = normalize(b)';
 b = sin2array(b, 1, Fs);
 
 % apply correction (BOOST method)
-[badj, Bfull, Hnorm, foutadj] = compensate_signal(b, caldata, Fs, corr_frange);
+[badj, Bfull, Hnorm, foutadj] = compensate_signal(b,  caldata.freq, caldata.mag(1, :), Fs, corr_frange);
 
 % plot call and spectrum
 [fraw, magraw] = daqdbfft(b, Fs, length(b));
@@ -110,13 +110,51 @@ xlim([0 0.001*Fs/2])
 [fadj, magadj] = daqdbfft(badj, Fs, length(badj));
 subplot(223)
 plot(tvec, badj)
-title('Compensated Call')
+title('Compensated Call BOOST')
 xlabel('time (milliseconds)')
 ylabel('V')
 
 subplot(224)
 plot(0.001*fadj, magadj);
-title('Compensated Call Spectrum')
+title('Compensated Call Spectrum BOOST')
+xlabel('freq (kHz)')
+ylabel('dB')
+ylim([-140 -40])
+xlim([0 0.001*Fs/2])
+
+%% test atten method
+
+% apply correction (BOOST method)
+[aadj, Afull, Hnorm, foutadj] = compensate_signal(b,  caldata.freq, caldata.mag(1, :), Fs, corr_frange, 'ATTEN');
+
+figure(4)
+% plot call and spectrum
+[fraw, magraw] = daqdbfft(b, Fs, length(b));
+
+tvec = 1000 * (0:(length(b)-1)) ./ Fs;
+subplot(221)
+plot(tvec, b)
+title('Call')
+ylabel('V')
+
+subplot(222)
+plot(0.001*fraw, magraw);
+title('Call Spectrum')
+ylabel('dB')
+ylim([-140 -40])
+xlim([0 0.001*Fs/2])
+
+% plot compensated signal
+[fadj, magadj] = daqdbfft(aadj, Fs, length(aadj));
+subplot(223)
+plot(tvec, aadj)
+title('Compensated Call ATTEN')
+xlabel('time (milliseconds)')
+ylabel('V')
+
+subplot(224)
+plot(0.001*fadj, magadj);
+title('Compensated Call Spectrum ATTEN')
 xlabel('freq (kHz)')
 ylabel('dB')
 ylim([-140 -40])
