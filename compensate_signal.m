@@ -100,7 +100,6 @@ if nvararg
 	end		% END WHILE aindex
 end		% END IF nvararg
 
-COMPMETHOD
 
 %------------------------------------------------------------------------
 %------------------------------------------------------------------------
@@ -211,7 +210,7 @@ end
 % apply correction using ATTEN method
 %------------------------------------------------------------------------
 %------------------------------------------------------------------------
-% procedure:	find additive compensation values for frequency range 
+% procedure:	find subtractive compensation values for frequency range 
 %					for which there are calibration data and apply to FFT, 
 %					then iFFT to get corrected version
 %------------------------------------------------------------------------
@@ -252,6 +251,12 @@ if strcmpi(COMPMETHOD, 'ATTEN')
 	sadj = sadj(1:Nsignal);
 end
 
+
+%------------------------------------------------------------------------
+%------------------------------------------------------------------------
+% normalize output if desired
+%------------------------------------------------------------------------
+%------------------------------------------------------------------------
 if NORMALIZE
 	sadj = normalize(sadj);
 end
