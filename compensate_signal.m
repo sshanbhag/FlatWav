@@ -251,6 +251,54 @@ if strcmpi(COMPMETHOD, 'ATTEN')
 	sadj = sadj(1:Nsignal);
 end
 
+%------------------------------------------------------------------------
+%------------------------------------------------------------------------
+% apply correction using COMPRESS method
+%------------------------------------------------------------------------
+%------------------------------------------------------------------------
+% procedure:	find subtractive compensation values for frequency range 
+%					for which there are calibration data and apply to FFT, 
+%					then iFFT to get corrected version
+%------------------------------------------------------------------------
+%------------------------------------------------------------------------
+if strcmpi(COMPMETHOD, 'COMPRESS')
+	
+	% find max and min in magnitude spectrum
+	maxmag = max(calmag);
+	minmag = min(calmag);
+	% compute middle value
+	midmag = (maxmag - minmag) / 2;
+	% normalize by finding deviation from peak
+	Magnorm = minmag - calmag;
+	
+	% interpolate to get the correction values (in dB!)
+	corr_vals = interp1(calfreq, Magnorm, corr_f);
+
+	% create adjusted magnitude vector from Smag (in dB)
+	SdBadj = SdBmag;
+	% apply correction
+	SdBadj(valid_indices) = SdBadj(valid_indices) + corr_vals;
+
+	% set freqs below LOWCUT to MINDB
+	if LOWCUT > 0
+		lowcutindices = find(f < LOWCUT);
+		if ~isempty(lowcutindices)
+			SdBadj(lowcutindices) = MIN_DB * ones(size(SdBadj(lowcutindices)));
+		end
+	end
+
+	% convert back to linear scale...
+	Sadj = invdb(SdBadj);
+
+	% scale for length of signal and divide by 2 to scale for conversion to 
+	% full FFT before inverse FFT
+	Sadj = Nsignal * Sadj ./ 2;
+
+	% create compensated time domain signal from spectrum
+	[sadj, Sfull] = synverse(Sadj, Sphase, 'DC', 'no');
+	% return only 1:Nsignal points
+	sadj = sadj(1:Nsignal);
+end
 
 %------------------------------------------------------------------------
 %------------------------------------------------------------------------
