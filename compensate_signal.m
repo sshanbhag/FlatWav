@@ -261,15 +261,20 @@ end
 %					then iFFT to get corrected version
 %------------------------------------------------------------------------
 %------------------------------------------------------------------------
+% some assumptions:
+% 					magnitude values are in ACTUAL, dB SPL range.  
+% 						¡this algorithm blows up for negative magnitudes!
+%------------------------------------------------------------------------
+%------------------------------------------------------------------------
 if strcmpi(COMPMETHOD, 'COMPRESS')
 	
 	% find max and min in magnitude spectrum
 	maxmag = max(calmag);
 	minmag = min(calmag);
 	% compute middle value
-	midmag = (maxmag - minmag) / 2;
+	midmag = ((maxmag - minmag) / 2) + minmag;
 	% normalize by finding deviation from peak
-	Magnorm = minmag - calmag;
+	Magnorm = midmag - calmag;
 	
 	% interpolate to get the correction values (in dB!)
 	corr_vals = interp1(calfreq, Magnorm, corr_f);

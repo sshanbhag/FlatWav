@@ -81,7 +81,6 @@ xlim([0 0.001*Fs/2])
 
 %% test with real signal
 
-
 % load signal
 [b, Fs, nbits, opts] = wavread(fullfile(CALLPATH, callname));
 b = normalize(b)';
