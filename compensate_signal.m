@@ -7,7 +7,17 @@ function [sadj, Sfull, Magnorm, f] = compensate_signal(s, calfreq, calmag, Fs, c
 % 
 %------------------------------------------------------------------------
 % Input Arguments:
-% 	Input		input info
+% 	
+% 
+% 	Options:
+% 		Method
+% 		
+% 		Normalize
+% 		
+% 		Lowcut
+% 		
+% 		Level (only applicable for COMPRESS method!)
+% 		
 % 
 % Output Arguments:
 % 	Output	output info
@@ -24,6 +34,8 @@ function [sadj, Sfull, Magnorm, f] = compensate_signal(s, calfreq, calmag, Fs, c
 %
 % Revisions:
 %	1 Oct 2012 (SJS): working on method # 2
+%	8 Oct 2012 (SJS): implemented COMPRESS method
+%	9 Oct 2012 (SJS): added LEVEL option to specify target level
 %------------------------------------------------------------------------
 % TO DO:
 %------------------------------------------------------------------------
@@ -33,7 +45,9 @@ function [sadj, Sfull, Magnorm, f] = compensate_signal(s, calfreq, calmag, Fs, c
 % define some constants
 %------------------------------------------------------------------------
 %------------------------------------------------------------------------
+% arbitrary minimum dB value
 MIN_DB = -120;
+% need to have a small, but non-zero value when taking log, so set that here
 ZERO_VAL = 1e-17;
 
 %------------------------------------------------------------------------
@@ -41,9 +55,15 @@ ZERO_VAL = 1e-17;
 % define defaults for settings
 %------------------------------------------------------------------------
 %------------------------------------------------------------------------
+% default method
 COMPMETHOD = 'BOOST';
+% default low frequency cutoff.  4 kHz is used to protect speakers!
 LOWCUT = 4000;
+% normalize
 NORMALIZE = 0;
+% level sets target flattening level; if 0 (default), will set from cal data 
+% depending on method
+LEVEL = 0;
 
 %------------------------------------------------------------------------
 %------------------------------------------------------------------------
@@ -87,13 +107,32 @@ if nvararg
 				
 			% set normalization of output signal
 			case 'NORMALIZE'
-				if strcmpi(varargin{aindex + 1}, 'ON')
+				nval = varargin{aindex + 1};
+				if strcmpi(nval, 'ON')
 					NORMALIZE = 1;
+				elseif isnumeric(nval)
+					NORMALIZE = nval;
 				else
 					NORMALIZE = 0;
 				end
 				aindex = aindex + 2;
-			
+				clear nval;
+				
+			% set level
+			case 'LEVEL'
+				lval = varargin{aindex + 1};
+				if isnumeric(lval)
+					if lval <= 0
+						error('%s: LEVEL value must be greater than zero!', mfilename);
+					else
+						LEVEL = lval;
+					end
+				else
+					error('%s: invalid LEVEL value (%s)', mfilename, lval);
+				end
+				aindex = aindex + 1;
+				clear lval;
+				
 			otherwise
 				error('%s: Unknown option %s', mfilename, varargin{aindex});
 		end		% END SWITCH
@@ -103,7 +142,7 @@ end		% END IF nvararg
 
 %------------------------------------------------------------------------
 %------------------------------------------------------------------------
-% get spectrum of signal, s
+% get spectrum of raw signal
 %------------------------------------------------------------------------
 %------------------------------------------------------------------------
 % length of signal
@@ -167,7 +206,6 @@ corr_f = f(valid_indices);
 %					then iFFT to get corrected version
 %------------------------------------------------------------------------
 %------------------------------------------------------------------------
-
 if strcmpi(COMPMETHOD, 'BOOST')
 	% normalize to peak of xfer function
 	% find peak magnitude
@@ -268,13 +306,19 @@ end
 %------------------------------------------------------------------------
 if strcmpi(COMPMETHOD, 'COMPRESS')
 	
-	% find max and min in magnitude spectrum
-	maxmag = max(calmag);
-	minmag = min(calmag);
-	% compute middle value
-	midmag = ((maxmag - minmag) / 2) + minmag;
-	% normalize by finding deviation from peak
-	Magnorm = midmag - calmag;
+	% check if LEVEL was specified
+	if LEVEL
+		% normalize by finding deviation from peak
+		Magnorm = LEVEL - calmag;
+	else
+		% find max and min in magnitude spectrum
+		maxmag = max(calmag);
+		minmag = min(calmag);
+		% compute middle value
+		midmag = ((maxmag - minmag) / 2) + minmag;
+		% normalize by finding deviation from peak
+		Magnorm = midmag - calmag;
+	end
 	
 	% interpolate to get the correction values (in dB!)
 	corr_vals = interp1(calfreq, Magnorm, corr_f);
@@ -311,6 +355,6 @@ end
 %------------------------------------------------------------------------
 %------------------------------------------------------------------------
 if NORMALIZE
-	sadj = normalize(sadj);
+	sadj = NORMALIZE * normalize(sadj);
 end
 
