@@ -68,31 +68,37 @@ handles.output = hObject;
 guidata(hObject, handles);
 
 
-
 % define some things
 handles.SignalMode = 'SYNTH';
 update_ui_val(handles.SynthSignalButton, 1);
 update_ui_val(handles.WavSignalButton, 0);
 
-FlatWav_definesynthcell;
-handles.SynthTypes = synthTypes;
-handles.SynthText = synthText;
-handles.SynthParam = synthParam;
-handles.SynthDefaultVals = synthDefaultVals;
-handles.Tone = tonedefault;
-handles.Noise = noisedefault;
-handles.Sweep = sweepdefault;
+% initialize S synth parameter structure
+handles.S = FlatWav_buildS;
+guidata(hObject, handles);
 
-handles.SynthCtrlHandles = synthCtrlHandles;
-handles.SynthTextHandles = synthTextHandles;
+% initialize tone, noise, sweep structs
+typenum = 1;
+handles.Tone.type = handles.S.Types{typenum};
+for n = 1:handles.S.Nparam(typenum);
+	handles.Tone.(handles.S.Param{typenum}{n}) = handles.S.DefaultVals{typenum}(n);
+end
+typenum = 2;
+handles.Noise.type = handles.S.Types{typenum};
+for n = 1:handles.S.Nparam(typenum);
+	handles.Noise.(handles.S.Param{typenum}{n}) = handles.S.DefaultVals{typenum}(n);
+end
+typenum = 3;
+handles.Sweep.type = handles.S.Types{typenum};
+for n = 1:handles.S.Nparam(typenum);
+	handles.Sweep.(handles.S.Param{typenum}{n}) = handles.S.DefaultVals{typenum}(n);
+end
+
+
+% set current synth object to Noise
 handles.synth = handles.Noise;
-handles.Fs = Fs;
 handles.SynthIndex = 2;
-handles.SynthType = synthTypes{handles.SynthIndex};
-
-handles.MaxSynthParam = MaxSynthParam;
-handles.SynthCtrlTags = ctrlTags;
-handles.SynthTextTags = textTags;
+handles.SynthType = handles.S.Types{handles.SynthIndex};
 
 guidata(hObject, handles);
 
@@ -162,17 +168,17 @@ function UpdateCtrl_Callback(hObject, eventdata, handles)
 			
 			switch synth.type
 				case 'tone'
-					raw = synmonosine(synth.dur, handles.Fs, synth.freq, synth.amp, 0);
+					raw = synmonosine(synth.dur, handles.S.Fs, synth.freq, synth.amp, 0);
 					
 				case 'noise'
-					raw = synmononoise_fft(synth.dur, handles.Fs, synth.fmin, synth.fmax, synth.amp, 0);
+					raw = synmononoise_fft(synth.dur, handles.S.Fs, synth.fmin, synth.fmax, synth.amp, 0);
 					
 				case 'sweep'
-					raw = synsweep(synth.dur, handles.Fs, synth.fmin, synth.fmax, synth.amp, 0);
+					raw = synsweep(synth.dur, handles.S.Fs, synth.fmin, synth.fmax, synth.amp, 0);
 			end
 	end
 	handles.raw = raw;
-	[handles.fraw, handles.magraw, handles.phiraw] = daqdbfullfft(handles.raw, handles.Fs, length(handles.raw));
+	[handles.fraw, handles.magraw, handles.phiraw] = daqdbfullfft(handles.raw, handles.S.Fs, length(handles.raw));
 	guidata(hObject, handles);
 	updatePlots(hObject, handles);
 	guidata(hObject, handles);
@@ -184,7 +190,7 @@ function updatePlots(hObject, handles)
 	freqlim = [0 12];
 
 	axes(handles.RawSignalAxes)
-	tvec = 1000 * (0:(length(handles.raw)-1)) ./ handles.Fs;
+	tvec = 1000 * (0:(length(handles.raw)-1)) ./ handles.S.Fs;
 	plot(tvec, handles.raw)
 	title('Raw Signal')
 	ylabel('V')
@@ -199,8 +205,6 @@ function updatePlots(hObject, handles)
 	xlim(freqlim);
 
 	guidata(hObject, handles);
-
-
 %------------------------------------------------------------------------------
 
 
@@ -253,7 +257,7 @@ function SynthTypeCtrl_Callback(hObject, eventdata, handles)
 			handles.synth = handles.Sweep;
 	end
 	handles.SynthIndex = newVal;
-	handles.SynthType = handles.SynthTypes{handles.SynthIndex};
+	handles.SynthType = handles.S.Types{handles.SynthIndex};
 
 	guidata(hObject, handles);
 	updateGuiFromSynth(hObject, handles);
@@ -264,9 +268,9 @@ function SynthTypeCtrl_Callback(hObject, eventdata, handles)
 function FsCtrl_Callback(hObject, eventdata, handles)
 	Fs = read_ui_str(handles.FsCtrl, 'n');
 	if between(Fs, 1, 1e6)
-		handles.synth.Fs = Fs;
+		handles.S.Fs = Fs;
 	else
-		update_ui_str(handles.FsCtrl, handles.synth.Fs);
+		update_ui_str(handles.FsCtrl, handles.S.Fs);
 		disp('Bad sample rate')
 	end
 	guidata(hObject, handles);
@@ -276,8 +280,8 @@ function FsCtrl_Callback(hObject, eventdata, handles)
 function SynthCtrl_Callback(hObject, eventdata, handles)
 	% get the tag of the selected object
 	tag = get(hObject, 'Tag');
-	tagnum = find(strcmpi(tag, handles.SynthCtrlTags));
-	param = handles.SynthParam{handles.SynthIndex}{tagnum};
+	tagnum = find(strcmpi(tag, handles.S.CtrlTags));
+	param = handles.S.Param{handles.SynthIndex}{tagnum};
 	handles.synth.(param) = read_ui_str(hObject, 'n');
 %------------------------------------------------------------------------------
 
@@ -297,13 +301,13 @@ function FilenameCtrl_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
 function updateGuiFromSynth(hObject, handles)
 	sindx = handles.SynthIndex;
-	Nsynthparam = length(handles.SynthText{sindx});
+	Nsynthparam = handles.S.Nparam(sindx);
 	
 	for n = 1:Nsynthparam
-		update_ui_str(handles.(handles.SynthTextHandles{sindx}{n}), handles.SynthText{sindx}{n});
-		update_ui_str(handles.(handles.SynthCtrlHandles{sindx}{n}), handles.synth.(handles.SynthParam{sindx}{n}));
-		show_uictrl(handles.(handles.SynthTextHandles{sindx}{n}));
-		show_uictrl(handles.(handles.SynthCtrlHandles{sindx}{n}));
+		update_ui_str(handles.(handles.S.TextHandles{sindx}{n}), handles.SynthText{sindx}{n});
+		update_ui_str(handles.(handles.S.CtrlHandles{sindx}{n}), handles.synth.(handles.SynthParam{sindx}{n}));
+		show_uictrl(handles.(handles.S.TextHandles{sindx}{n}));
+		show_uictrl(handles.(handles.S.CtrlHandles{sindx}{n}));
 	end
 	if handles.MaxSynthParam > length(handles.SynthText{sindx})
 		for n = (Nsynthparam+1):handles.MaxSynthParam
