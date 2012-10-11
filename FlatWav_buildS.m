@@ -33,11 +33,11 @@ function S = FlatWav_buildS
 S.Fs = 44100;
 
 % Max possible # of synt parameters on GUI
-S.MaxShParam = 6;
+S.MaxNParam = 6;
 % generate tag names for the GUI elements.  
 %	Text tags are of format 'p[1-6]Text'
 %	Ctrl tags are of format 'p[1-6]Ctrl'
-for n = 1:S.MaxShParam
+for n = 1:S.MaxNParam
 	S.CtrlTags{n} = sprintf('p%dCtrl', n);
 	S.TextTags{n} = sprintf('p%dText', n);
 end
@@ -47,9 +47,9 @@ S.Ntypes = 3;
 % names of signal types
 S.Types = {'tone', 'noise', 'sweep'};
 % Gui Text label values
-S.Text =	{	{'Dur', 'Freq', 'Amp', 'RampTime'}; ...
-							{'Dur', 'Fmin', 'Fmax', 'Amp', 'RampTime'}; ...
-							{'Dur', 'Fmin', 'Fmax', 'Amp', 'RampTime'}; ...
+S.Text =	{	{'Dur (ms)', 'Freq (Hz)', 'Amp (Vpk)', 'RampTime (ms)'}; ...
+				{'Dur (ms)', 'Fmin (Hz)', 'Fmax (Hz)', 'Amp (Vpk)', 'RampTime (ms)'}; ...
+				{'Dur (ms)', 'Fmin (Hz)', 'Fmax (Hz)', 'Amp (Vpk)', 'RampTime (ms)'}; ...
 					};
 % synth struct parameter names associated with labels/controls
 % (stimulus parameters)

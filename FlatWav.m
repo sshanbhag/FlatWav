@@ -304,21 +304,18 @@ function updateGuiFromSynth(hObject, handles)
 	Nsynthparam = handles.S.Nparam(sindx);
 	
 	for n = 1:Nsynthparam
-		update_ui_str(handles.(handles.S.TextHandles{sindx}{n}), handles.SynthText{sindx}{n});
-		update_ui_str(handles.(handles.S.CtrlHandles{sindx}{n}), handles.synth.(handles.SynthParam{sindx}{n}));
+		update_ui_str(handles.(handles.S.TextTags{sindx}{n}), [handles.S.Text{sindx}{n} ':']);
+		update_ui_str(handles.(handles.S.CtrlTagss{sindx}{n}), handles.synth.(handles.S.Param{sindx}{n}));
 		show_uictrl(handles.(handles.S.TextHandles{sindx}{n}));
 		show_uictrl(handles.(handles.S.CtrlHandles{sindx}{n}));
 	end
-	if handles.MaxSynthParam > length(handles.SynthText{sindx})
-		for n = (Nsynthparam+1):handles.MaxSynthParam
-			synthCtrlTag = sprintf('p%dCtrl', n);
-			synthTextTag = sprintf('p%dText', n);
-			hide_uictrl(handles.(synthCtrlTag));
-			hide_uictrl(handles.(synthTextTag));
+	if handles.S.MaxNParam > Nsynthparam
+		for n = (Nsynthparam+1):handles.S.MaxNParam
+			hide_uictrl(handles.(handles.S.CtrlTags{n}));
+			hide_uictrl(handles.(handles.S.TextTags{n}));
 		end
 	end
-
-	update_ui_str(handles.FsCtrl, handles.Fs);
+	update_ui_str(handles.FsCtrl, handles.S.Fs);
 	update_ui_val(handles.SynthTypeCtrl, handles.SynthIndex);
 	
 %------------------------------------------------------------------------------
@@ -328,10 +325,9 @@ function updateGuiFromSynth(hObject, handles)
 function updateSynthFromGui(hObject, handles)
 	sindx = read_ui_val(handles.SynthTypeCtrl);
 	handles.SynthIndex = sindx;
-	handles.synth.type = handles.SynthTypes{sindx};
-	Nsynthparam = length(handles.SynthText{sindx});
-	for n = 1:Nsynthparam
-		handles.synth.(handles.SynthParam{sindx}{n}) = read_ui_str(handles.(handles.SynthCtrlHandles{sindx}{n}), 'n');
+	handles.synth.type = handles.S.Types{sindx};
+	for n = 1:handles.S.Nparam(sindx);
+		handles.synth.(handles.S.Param{sindx}{n}) = read_ui_str(handles.(handles.S.CtrlTags{n}), 'n');
 	end
 	handles.synth
 	guidata(hObject, handles);
