@@ -22,7 +22,7 @@ function varargout = FlatWav(varargin)
 
 % Edit the above text to modify the response to help FlatWav
 
-% Last Modified by GUIDE v2.5 12-Oct-2012 12:33:56
+% Last Modified by GUIDE v2.5 12-Oct-2012 17:17:49
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -126,6 +126,13 @@ if strcmpi(handles.LowCut, 'off')
 	disable_ui(handles.LowCutFreqText);
 	disable_ui(handles.LowCutFreqCtrl);
 end
+guidata(hObject, handles);
+
+%--------------------------------------------------
+% spectrum settings
+%--------------------------------------------------
+handles.SpectrumWindow = 1024;
+update_ui_str(handles.SpectrumWindowCtrl, handles.SpectrumWindow);
 guidata(hObject, handles);
 
 %--------------------------------------------------
@@ -254,40 +261,36 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 
 %------------------------------------------------------------------------------
 function WavSignalButton_Callback(hObject, eventdata, handles)
-	newVal = read_ui_val(hObject);
-	if newVal == 1
-		%--------------------------------------------------
-		% user selected the Wav signal type
-		%--------------------------------------------------
-		% set signal mode to WAV
-		handles.SignalMode = 'WAV';
-		% make sure synth signal button is deselected
-		update_ui_val(handles.SynthSignalButton, 0);
-		% check if wavdata has been loaded/initialized
-		if ~isempty(handles.wavdata.raw)
-			% if so, copy raw signal and Fs to main handles 
-			handles.raw = handles.wavdata.raw;
-			handles.S.Fs = handles.wavdata.Fs;
-		else
-			% otherwise set handles.raw to empty
-			handles.raw = [];
-		end
-% 	else
-% 		update_ui_val(handles.WavSignalButton, 1);
+	%--------------------------------------------------
+	% user selected the Wav signal type
+	%--------------------------------------------------
+	% set signal mode to WAV
+	handles.SignalMode = 'WAV';
+	% make sure synth signal button is deselected
+	update_ui_val(handles.SynthSignalButton, 0);
+	% check if wavdata has been loaded/initialized
+	if ~isempty(handles.wavdata.raw)
+		% if so, copy raw signal and Fs to main handles 
+		handles.raw = handles.wavdata.raw;
+		handles.S.Fs = handles.wavdata.Fs;
+	else
+		% otherwise set handles.raw to empty
+		handles.raw = [];
 	end
+	update_ui_val(handles.WavSignalButton, 1);
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
 function SynthSignalButton_Callback(hObject, eventdata, handles)
-	newVal = read_ui_val(hObject);
-	if newVal == 1
-		handles.SignalMode = 'SYNTH';
-		update_ui_val(handles.WavSignalButton, 0);
-	else
-		update_ui_val(handles.SynthSignalButton, 1);
-	end
+	%--------------------------------------------------
+	% user selected the SYNTH signal type
+	%--------------------------------------------------
+	handles.SignalMode = 'SYNTH';
+	update_ui_val(handles.WavSignalButton, 0);
+	update_ui_val(handles.SynthSignalButton, 1);
 	guidata(hObject, handles);
+	updateGuiFromSynth(hObject, handles);
 %------------------------------------------------------------------------------
 
 
@@ -362,11 +365,17 @@ function TargetSPLCtrl_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
 function PlaySignalCtrl_Callback(hObject, eventdata, handles)
 	if (handles.S.Fs == 44100)  && ~isempty(handles.raw) && ~isempty(handles.adj)
-		disp('RAW:')
+		disable_ui(hObject);
+		update_ui_str(hObject, 'RAW');
+		pause(0.5);
 		sound(handles.raw, handles.S.Fs);
 		pause(2);
-		disp('ADJ:')
+		update_ui_str(hObject, 'ADJ');
+		pause(0.5);
 		sound(handles.adj, handles.S.Fs);
+		pause(1);
+		enable_ui(hObject);
+		update_ui_str(hObject, 'Play');
 	end
 %------------------------------------------------------------------------------
 
@@ -403,10 +412,48 @@ function LowCutFreqCtrl_Callback(hObject, eventdata, handles)
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
 
+%------------------------------------------------------------------------------
+function SaveSoundCtrl_Callback(hObject, eventdata, handles)
+	% use the menu item callback
+	SaveAdjSignalMenuItem_Callback(hObject, eventdata, handles);
+%------------------------------------------------------------------------------
 
+%------------------------------------------------------------------------------
+function LoadCalCtrl_Callback(hObject, eventdata, handles)
+	% use the menu item callback
+	LoadCalMenuItem_Callback(hObject, eventdata, handles)
+%------------------------------------------------------------------------------
 
-		
+%------------------------------------------------------------------------------
+function SpectrumWindowCtrl_Callback(hObject, eventdata, handles)
+	newVal = read_ui_str(handles.SpectrumWindowCtrl, 'n');
+	if ~isnumeric(newVal)
+		update_ui_str(handles.SpectrumWindowCtrl, handles.SpectrumWindow);
+		warning('Spectrum Window size must be a number!')
+	elseif ~between(newVal, 2, 1e6)
+		update_ui_str(handles.SpectrumWindowCtrl, handles.SpectrumWindow);
+		warning('Spectrum Window size must be between 2 and 1e6!')
+	else
+		handles.SpectrumWindow = newVal;
+	end
+	guidata(hObject, handles);
+%------------------------------------------------------------------------------
 
+%------------------------------------------------------------------------------
+function CorrFminCtrl_Callback(hObject, eventdata, handles)
+	newVal = read_ui_str(hObject, 'n');
+	% NEED CHECKS!
+	handles.CorrFrange(1) = newVal;
+	guidata(hObject, handles);
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function CorrFmaxCtrl_Callback(hObject, eventdata, handles)
+	newVal = read_ui_str(hObject, 'n');
+	% NEED CHECKS!
+	handles.CorrFrange(2) = newVal;
+	guidata(hObject, handles);
+%------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
@@ -438,7 +485,6 @@ function updateGuiFromSynth(hObject, handles)
 	
 %------------------------------------------------------------------------------
 
-
 %------------------------------------------------------------------------------
 function updateSynthFromGui(hObject, handles)
 	sindx = read_ui_val(handles.SynthTypeCtrl);
@@ -455,6 +501,7 @@ function updatePlots(hObject, handles)
 	dblim = [-120 0];
 	freqlim = 0.001*[0 handles.S.Fs/2];
 
+	% update raw plots
 	axes(handles.RawSignalAxes)
 	tvec = 1000 * (0:(length(handles.raw)-1)) ./ handles.S.Fs;
 	plot(tvec, handles.raw)
@@ -473,7 +520,21 @@ function updatePlots(hObject, handles)
 	title('Phase (rad)')
 	xlim(freqlim);
 	set(handles.RawPhaseAxes, 'XTickLabel', []);
-
+	
+	axes(handles.RawSpectrumAxes)
+	[S, F, T, P] = spectrogram(	handles.raw, ...
+											handles.SpectrumWindow, ...
+											floor(0.95*handles.SpectrumWindow), ...
+											512, ...
+											handles.S.Fs	);
+	surf(1000*T, 0.001*F, 20*log10(P), 'edgecolor', 'none');
+	ylim(freqlim);
+	axis tight;
+	view(0, 90);
+	title('Spectrogram (time vs. Freq (kHz) vs. dB')
+	set(handles.RawSpectrumAxes, 'XTickLabel', []);
+	
+	% Update adj plots
 	axes(handles.AdjSignalAxes)
 	tvec = 1000 * (0:(length(handles.adj)-1)) ./ handles.S.Fs;
 	plot(tvec, handles.adj)
@@ -489,6 +550,19 @@ function updatePlots(hObject, handles)
 	plot(0.001*handles.fadj, unwrap(handles.phiadj));
 	xlim(freqlim);
 	xlabel('freq (kHz)');
+
+	axes(handles.AdjSpectrumAxes)
+	[S, F, T, P] = spectrogram(	handles.adj, ...
+											handles.SpectrumWindow, ...
+											floor(0.95*handles.SpectrumWindow), ...
+											512, ...
+											handles.S.Fs	);
+	surf(1000*T, 0.001*F, 20*log10(P), 'edgecolor', 'none');
+	ylim(freqlim);
+	axis tight;
+	view(0, 90);
+	xlabel('Time (ms)')
+	
 	
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
@@ -521,10 +595,6 @@ function loadWavFile(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
-function FlatWavMenu_Callback(hObject, eventdata, handles)
-%------------------------------------------------------------------------------
-
-%------------------------------------------------------------------------------
 function CloseMenuItem_Callback(hObject, eventdata, handles)
 	selection = questdlg(['Close ' get(handles.figure1,'Name') '?'],...
 								['Close ' get(handles.figure1,'Name') '...'],...
@@ -554,7 +624,6 @@ function PrintMenuItem_Callback(hObject, eventdata, handles)
 	printdlg(handles.figure1)
 %-------------------------------------------------------------------------
 
-
 %-------------------------------------------------------------------------
 function SaveFigureMenuItem_Callback(hObject, eventdata, handles)
 	[figfile, figpath] = uiputfile('*.fig','Save plot and figure in .fig file...');
@@ -564,8 +633,6 @@ function SaveFigureMenuItem_Callback(hObject, eventdata, handles)
 	end
 %-------------------------------------------------------------------------
 
-
-%-------------------------------------------------------------------------
 %-------------------------------------------------------------------------
 function IndividualPlotMenuItem_Callback(hObject, eventdata, handles)
 	% create new figure
@@ -592,34 +659,91 @@ function IndividualPlotMenuItem_Callback(hObject, eventdata, handles)
 		tstr = plotStrings{plotVal};
 	end
 	
-	
 	title(tstr, 'Interpreter', 'none')
 %-------------------------------------------------------------------------
-%-------------------------------------------------------------------------
 
-%-------------------------------------------------------------------------
-%-------------------------------------------------------------------------
-function CalMenu_Callback(hObject, eventdata, handles)
-%-------------------------------------------------------------------------
-%-------------------------------------------------------------------------
-
-
-%-------------------------------------------------------------------------
-%-------------------------------------------------------------------------
-function WavMenu_Callback(hObject, eventdata, handles)
-%-------------------------------------------------------------------------
-%-------------------------------------------------------------------------
-
-
-%-------------------------------------------------------------------------
 %-------------------------------------------------------------------------
 function LoadWavMenuItem_Callback(hObject, eventdata, handles)
 	loadWavFile(hObject, eventdata, handles);
 %-------------------------------------------------------------------------
+
+%-------------------------------------------------------------------------
+function SaveAdjSignalMenuItem_Callback(hObject, eventdata, handles)
+	if isempty(handles.adj)
+		warning('%s: adj vector is empty!  aborting save', mfilename);
+		return
+	end
+	
+	[adjfile, adjpath] = uiputfile(	'*.wav', ...
+												'Save adj signal to wav file...');
+	if adjfile ~=0
+		datafile = fullfile(adjpath, adjfile);
+		peakval = max(handles.adj);
+		if peakval >= 1
+			fprintf('!!!!!!!!!!!!!!!!\nPoints in adj are >= 1\nFile will be normalized\n');
+			wavwrite(0.9*normalize(handles.adj), handles.S.Fs, datafile);
+			peakfile = [datafile(1:(end-4)) '_PeakVal.txt'];
+			save(peakfile, peakval, '-ascii');
+		else
+			wavwrite(handles.adj, handles.S.Fs, datafile);
+		end
+	end
 %-------------------------------------------------------------------------
 
+%-------------------------------------------------------------------------
+function SaveRawSignalMenuItem_Callback(hObject, eventdata, handles)
+	if isempty(handles.raw)
+		warning('%s: raw vector is empty!  aborting save', mfilename);
+		return
+	end
+	
+	[rawfile, rawpath] = uiputfile(	'*.wav', ...
+												'Save raw signal to wav file...');
+	if rawfile ~=0
+		datafile = fullfile(rawpath, rawfile);
+		peakval = max(handles.raw);
+		if peakval >= 1
+			fprintf('!!!!!!!!!!!!!!!!\nPoints in raw are >= 1\nFile will be normalized\n');
+			wavwrite(0.9*normalize(handles.raw), handles.S.Fs, datafile);
+			peakfile = [datafile(1:(end-4)) '_PeakVal.txt'];
+			save(peakfile, peakval, '-ascii');
+		else
+			wavwrite(handles.raw, handles.S.Fs, datafile);
+		end
+	end
+%-------------------------------------------------------------------------
 
+%-------------------------------------------------------------------------
+function SaveAllSignalsMenuItem_Callback(hObject, eventdata, handles)
+	[matfile, matpath] = uiputfile(	'*.mat', ...
+												'Save signals to mat file...');
+	if matfile ~= 0
+		raw = handles.raw;
+		adj = handles.adj;
+		S = handles.S;
+		if strcmpi(handles.SignalMode, 'WAV')
+			wavdata = handles.wavdata;
+			save(fullfile(matpath, matfile), 'raw', 'adj', 'S', 'wavdata', '-MAT');
+			clear raw adj S wavdata;
+		else
+			synth = handles.synth;
+			save(fullfile(matpath, matfile), 'raw', 'adj', 'Fs', 'synth', '-MAT');
+			clear raw adj S synth;
+		end
+	end
+%-------------------------------------------------------------------------
 
+%-------------------------------------------------------------------------
+function FlatCalMenuItem_Callback(hObject, eventdata, handles)
+%--------------------------------------------------
+% fake cal data
+%--------------------------------------------------
+	handles.cal = fake_caldata('freqs', [1:10:(handles.S.Fs / 2)]);
+	handles.cal.mag = 90 * handles.cal.mag;
+	guidata(hObject, handles);
+	plot(handles.CalibrationAxes, 0.001*handles.cal.freq, handles.cal.mag(1, :), '.-');
+	ylim([0 100]);
+%-------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
@@ -681,6 +805,21 @@ function LowCutFreqCtrl_CreateFcn(hObject, eventdata, handles)
 	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
+function SpectrumWindowCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function CorrFminCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function CorrFmaxCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
+
+
+
