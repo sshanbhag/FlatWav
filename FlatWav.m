@@ -22,7 +22,7 @@ function varargout = FlatWav(varargin)
 
 % Edit the above text to modify the response to help FlatWav
 
-% Last Modified by GUIDE v2.5 11-Oct-2012 20:22:08
+% Last Modified by GUIDE v2.5 12-Oct-2012 12:33:56
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -67,16 +67,16 @@ handles.output = hObject;
 % Update handles structure
 guidata(hObject, handles);
 
-
-% define some things
+%--------------------------------------------------
+% SYNTH SETTINGS
+%--------------------------------------------------
+% set output signal to synth (vs. wav) and update GUI
 handles.SignalMode = 'SYNTH';
 update_ui_val(handles.SynthSignalButton, 1);
 update_ui_val(handles.WavSignalButton, 0);
-
 % initialize S synth parameter structure
 handles.S = FlatWav_buildS;
 guidata(hObject, handles);
-
 % initialize tone, noise, sweep structs
 typenum = 1;
 handles.Tone.type = handles.S.Types{typenum};
@@ -98,19 +98,28 @@ handles.synth = handles.Noise;
 handles.SynthIndex = 2;
 handles.SynthType = handles.S.Types{handles.SynthIndex};
 
+%--------------------------------------------------
+% update GUI and synth
+%--------------------------------------------------
 guidata(hObject, handles);
 updateGuiFromSynth(hObject, handles)
 guidata(hObject, handles);
 updateSynthFromGui(hObject, handles);
 guidata(hObject, handles);
 
-% set compensation method
+%--------------------------------------------------
+% COMPENSATION SETTINGS
+%--------------------------------------------------
 % reset string
 set(handles.CompMethodCtrl, 'string', 'none|atten|boost|compress');
+% set compensation method to 1 ('atten')
 handles.CompMethod = 1;
 update_ui_val(handles.CompMethodCtrl, handles.CompMethod);
+% set correction freq range (in Hz)
 handles.CorrFrange = [10 10000];
+% default normalize status
 handles.Normalize = 'on';
+% default LowCut options
 handles.LowCut = 'off';
 handles.LowCutFreq = read_ui_str(handles.LowCutFreqCtrl, 'n');
 if strcmpi(handles.LowCut, 'off')
@@ -119,29 +128,30 @@ if strcmpi(handles.LowCut, 'off')
 end
 guidata(hObject, handles);
 
+%--------------------------------------------------
 % set initial state for sounds
+%--------------------------------------------------
+% wavdata struct holds information about wav file.
+% create blank wavdata struct, update gui
+handles.wavdata = struct(	'datafile', [], 'raw', [], 'fs', [], ...
+									'nbits', [], 'opts', []);
+update_ui_str(handles.FilenameCtrl, '');
+update_ui_str(handles.WaveInfoCtrl, 'no wav loaded');
+% create empty raw and adj vectors
 handles.raw = [];
 handles.adj = [];
 guidata(hObject, handles);
 
+%--------------------------------------------------
 % fake cal data
+%--------------------------------------------------
 handles.cal = fake_caldata('freqs', [1:10:(handles.S.Fs / 2)]);
 handles.cal.mag = 90 * handles.cal.mag;
 guidata(hObject, handles);
 plot(handles.CalibrationAxes, 0.001*handles.cal.freq, handles.cal.mag(1, :), '.-');
 ylim([0 100]);
 
-handles.wavdata = [];
-guidata(hObject, handles);
-
-% This sets up the initial plot - only do when we are invisible
-% so window can get raised using FlatWav.
-% if strcmp(get(hObject,'Visible'),'off')
-%     plot();
-% end
-
-% UIWAIT makes FlatWav wait for user response (see UIRESUME)
-% uiwait(handles.figure1);
+%------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
@@ -246,12 +256,24 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 function WavSignalButton_Callback(hObject, eventdata, handles)
 	newVal = read_ui_val(hObject);
 	if newVal == 1
+		%--------------------------------------------------
+		% user selected the Wav signal type
+		%--------------------------------------------------
+		% set signal mode to WAV
 		handles.SignalMode = 'WAV';
+		% make sure synth signal button is deselected
 		update_ui_val(handles.SynthSignalButton, 0);
-		handles.raw = handles.wavdata.raw;
-		handles.S.Fs = handles.wavdata.Fs;
-	else
-		update_ui_val(handles.WavSignalButton, 1);
+		% check if wavdata has been loaded/initialized
+		if ~isempty(handles.wavdata.raw)
+			% if so, copy raw signal and Fs to main handles 
+			handles.raw = handles.wavdata.raw;
+			handles.S.Fs = handles.wavdata.Fs;
+		else
+			% otherwise set handles.raw to empty
+			handles.raw = [];
+		end
+% 	else
+% 		update_ui_val(handles.WavSignalButton, 1);
 	end
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
@@ -324,6 +346,9 @@ function SynthCtrl_Callback(hObject, eventdata, handles)
 
 %------------------------------------------------------------------------------
 function FilenameCtrl_Callback(hObject, eventdata, handles)
+	loadWavFile(hObject, eventdata, handles);
+%-------------------------------------------------------------------------
+
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
@@ -468,6 +493,25 @@ function updatePlots(hObject, handles)
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
 
+%-------------------------------------------------------------------------
+function loadWavFile(hObject, eventdata, handles)
+	[wavfile, wavpath] = uigetfile( '*.wav', ...
+												'Load wav file...');
+	if wavfile ~=0
+		wavdata.datafile = fullfile(wavpath, wavfile);
+		[wavdata.raw, wavdata.fs, wavdata.nbits, wavdata.opts] = wavread(wavdata.datafile);
+		handles.wavdata = wavdata;
+		update_ui_str(handles.FilenameCtrl, wavdata.datafile);
+		clear wavdata;
+	else
+		handles.wavdata = struct(	'datafile', [], 'raw', [], 'fs', [], ...
+											'nbits', [], 'opts', []);
+		update_ui_str(handles.FilenameCtrl, '');
+		update_ui_str(handles.WaveInfoCtrl, 'no wav loaded');
+	end
+	guidata(hObject, handles);
+%-------------------------------------------------------------------------
+
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
@@ -479,7 +523,6 @@ function updatePlots(hObject, handles)
 %------------------------------------------------------------------------------
 function FlatWavMenu_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
-
 
 %------------------------------------------------------------------------------
 function CloseMenuItem_Callback(hObject, eventdata, handles)
@@ -554,22 +597,27 @@ function IndividualPlotMenuItem_Callback(hObject, eventdata, handles)
 %-------------------------------------------------------------------------
 %-------------------------------------------------------------------------
 
+%-------------------------------------------------------------------------
+%-------------------------------------------------------------------------
 function CalMenu_Callback(hObject, eventdata, handles)
+%-------------------------------------------------------------------------
+%-------------------------------------------------------------------------
 
 
+%-------------------------------------------------------------------------
+%-------------------------------------------------------------------------
 function WavMenu_Callback(hObject, eventdata, handles)
+%-------------------------------------------------------------------------
+%-------------------------------------------------------------------------
 
 
+%-------------------------------------------------------------------------
+%-------------------------------------------------------------------------
 function LoadWavMenuItem_Callback(hObject, eventdata, handles)
-	[wavfile, wavpath] = uigetfile( '*.wav', ...
-												'Load wav file...');
-	if wavfile ~=0
-		datafile = fullfile(wavpath, wavfile);
-		[wavdata.raw, wavdata.fs, wavdata.nbits, wavdata.opts] = wavread(datafile);
-		handles.wavdata = wavdata;
-		clear wavdata;
-	end
-	guidata(hObject, handles);
+	loadWavFile(hObject, eventdata, handles);
+%-------------------------------------------------------------------------
+%-------------------------------------------------------------------------
+
 
 
 
@@ -636,4 +684,3 @@ function LowCutFreqCtrl_CreateFcn(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
-
