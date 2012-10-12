@@ -1,35 +1,35 @@
-function varargout = FlatWav(varargin)
-% FLATWAV MATLAB code for FlatWav.fig
-%      FLATWAV, by itself, creates a new FLATWAV or raises the existing
+function varargout = temp(varargin)
+% TEMP MATLAB code for temp.fig
+%      TEMP, by itself, creates a new TEMP or raises the existing
 %      singleton*.
 %
-%      H = FLATWAV returns the handle to a new FLATWAV or the handle to
+%      H = TEMP returns the handle to a new TEMP or the handle to
 %      the existing singleton*.
 %
-%      FLATWAV('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in FLATWAV.M with the given input arguments.
+%      TEMP('CALLBACK',hObject,eventData,handles,...) calls the local
+%      function named CALLBACK in TEMP.M with the given input arguments.
 %
-%      FLATWAV('Property','Value',...) creates a new FLATWAV or raises the
+%      TEMP('Property','Value',...) creates a new TEMP or raises the
 %      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before FlatWav_OpeningFcn gets called.  An
+%      applied to the GUI before temp_OpeningFcn gets called.  An
 %      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to FlatWav_OpeningFcn via varargin.
+%      stop.  All inputs are passed to temp_OpeningFcn via varargin.
 %
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
 %      instance to run (singleton)".
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Edit the above text to modify the response to help FlatWav
+% Edit the above text to modify the response to help temp
 
-% Last Modified by GUIDE v2.5 11-Oct-2012 20:22:08
+% Last Modified by GUIDE v2.5 11-Oct-2012 18:53:45
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @FlatWav_OpeningFcn, ...
-                   'gui_OutputFcn',  @FlatWav_OutputFcn, ...
+                   'gui_OpeningFcn', @temp_OpeningFcn, ...
+                   'gui_OutputFcn',  @temp_OutputFcn, ...
                    'gui_LayoutFcn',  [] , ...
                    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
@@ -52,16 +52,16 @@ end
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
-% --- Executes just before FlatWav is made visible.
+% --- Executes just before temp is made visible.
 %------------------------------------------------------------------------------
-function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
+function temp_OpeningFcn(hObject, eventdata, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to FlatWav (see VARARGIN)
+% varargin   command line arguments to temp (see VARARGIN)
 
-% Choose default command line output for FlatWav
+% Choose default command line output for temp
 handles.output = hObject;
 
 % Update handles structure
@@ -105,49 +105,26 @@ updateSynthFromGui(hObject, handles);
 guidata(hObject, handles);
 
 % set compensation method
-% reset string
-set(handles.CompMethodCtrl, 'string', 'none|atten|boost|compress');
 handles.CompMethod = 1;
+% update_ui_str(handles.CompMethodCtrl, {'none'; 'atten'; 'boost'; 'compress'});
 update_ui_val(handles.CompMethodCtrl, handles.CompMethod);
-handles.CorrFrange = [10 10000];
-handles.Normalize = 'on';
-handles.LowCut = 'off';
-handles.LowCutFreq = read_ui_str(handles.LowCutFreqCtrl, 'n');
-if strcmpi(handles.LowCut, 'off')
-	disable_ui(handles.LowCutFreqText);
-	disable_ui(handles.LowCutFreqCtrl);
-end
 guidata(hObject, handles);
-
-% set initial state for sounds
-handles.raw = [];
-handles.adj = [];
-guidata(hObject, handles);
-
-% fake cal data
-handles.cal = fake_caldata('freqs', [1:10:(handles.S.Fs / 2)]);
-handles.cal.mag = 90 * handles.cal.mag;
-guidata(hObject, handles);
-plot(handles.CalibrationAxes, 0.001*handles.cal.freq, handles.cal.mag(1, :), '.-');
-ylim([0 100]);
-
-handles.wavdata = [];
-guidata(hObject, handles);
+update_
 
 % This sets up the initial plot - only do when we are invisible
-% so window can get raised using FlatWav.
+% so window can get raised using temp.
 % if strcmp(get(hObject,'Visible'),'off')
 %     plot();
 % end
 
-% UIWAIT makes FlatWav wait for user response (see UIRESUME)
+% UIWAIT makes temp wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
 % --- Outputs from this function are returned to the command line.
 %------------------------------------------------------------------------------
-function varargout = FlatWav_OutputFcn(hObject, eventdata, handles)
+function varargout = temp_OutputFcn(hObject, eventdata, handles)
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -172,9 +149,10 @@ function CompMethodCtrl_Callback(hObject, eventdata, handles)
 
 
 %------------------------------------------------------------------------------
-% --- Executes on button press in UpdateSignalCtrl.
+% --- Executes on button press in UpdateCtrl.
 %------------------------------------------------------------------------------
-function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
+function UpdateCtrl_Callback(hObject, eventdata, handles)
+
 	% get mode
 	
 	switch handles.SignalMode
@@ -204,40 +182,11 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 	end
 	% apply ramp
 	raw = sin2array(raw, synth.ramp, handles.S.Fs);
-	% store in handles;
+
+	max(raw)
 	handles.raw = raw;
-	% take fft of raw data
-	[handles.fraw, handles.magraw, handles.phiraw] = daqdbfullfft(raw, handles.S.Fs, length(raw));
+	[handles.fraw, handles.magraw, handles.phiraw] = daqdbfullfft(handles.raw, handles.S.Fs, length(handles.raw));
 	guidata(hObject, handles);
-
-	% apply compensation
-	switch handles.CompMethod
-		case 1
-			method = 'ATTEN';
-		case 2
-			method = 'BOOST'
-		case 3
-			method = 'COMPRESS'
-	end
-	if strcmp(handles.LowCut, 'off')
-		lowcut = 'off';
-	else
-		lowcut = handles.LowCutFreq;
-	end
-	adj = compensate_signal(	raw, ...
-										handles.cal.freq, ...
-										handles.cal.mag(1, :), ...
-										handles.S.Fs, ...
-										handles.CorrFrange, ...
-										'Method', method, ...
-										'Normalize', handles.Normalize, ...
-										'Lowcut', lowcut	);
-	% store in handles;
-	handles.adj = adj;
-	% take fft of adj data
-	[handles.fadj, handles.magadj, handles.phiadj] = daqdbfullfft(adj, handles.S.Fs, length(adj));
-	guidata(hObject, handles);
-
 	updatePlots(hObject, handles);
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
@@ -248,8 +197,6 @@ function WavSignalButton_Callback(hObject, eventdata, handles)
 	if newVal == 1
 		handles.SignalMode = 'WAV';
 		update_ui_val(handles.SynthSignalButton, 0);
-		handles.raw = handles.wavdata.raw;
-		handles.S.Fs = handles.wavdata.Fs;
 	else
 		update_ui_val(handles.WavSignalButton, 1);
 	end
@@ -326,62 +273,6 @@ function SynthCtrl_Callback(hObject, eventdata, handles)
 function FilenameCtrl_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
 
-%------------------------------------------------------------------------------
-function TargetSPLCtrl_Callback(hObject, eventdata, handles)
-	newVal = read_ui_str(handles.TargetSPLCtrl, 'n');
-	% should perform some checks, forget for now
-	handles.TargetSPL = newVal;
-	guidata(hObject, handles);
-%------------------------------------------------------------------------------
-
-%------------------------------------------------------------------------------
-function PlaySignalCtrl_Callback(hObject, eventdata, handles)
-	if (handles.S.Fs == 44100)  && ~isempty(handles.raw) && ~isempty(handles.adj)
-		disp('RAW:')
-		sound(handles.raw, handles.S.Fs);
-		pause(2);
-		disp('ADJ:')
-		sound(handles.adj, handles.S.Fs);
-	end
-%------------------------------------------------------------------------------
-
-%------------------------------------------------------------------------------
-function NormalizeCtrl_Callback(hObject, eventdata, handles)
-	newVal = read_ui_val(handles.NormalizeCtrl);
-	if newVal
-		handles.Normalize = 'on';
-	else
-		handles.Normalize = 'off';
-	end
-	guidata(hObject, handles);
-%------------------------------------------------------------------------------
-
-%------------------------------------------------------------------------------
-function LowCutCtrl_Callback(hObject, eventdata, handles)
-	newVal = read_ui_val(hObject);
-	if newVal
-		enable_ui(handles.LowCutFreqText);
-		enable_ui(handles.LowCutFreqCtrl);
-		handles.LowCut = 'on';
-		handles.LowCutFreq = read_ui_str(handles.LowCutFreqCtrl, 'n');
-	else
-		disable_ui(handles.LowCutFreqText);
-		disable_ui(handles.LowCutFreqCtrl);
-		handles.LowCut = 'off';
-	end
-	guidata(hObject, handles);
-%------------------------------------------------------------------------------
-
-%------------------------------------------------------------------------------
-function LowCutFreqCtrl_Callback(hObject, eventdata, handles)
-	handles.LowCutFreq = read_ui_str(hObject, 'n');
-	guidata(hObject, handles);
-%------------------------------------------------------------------------------
-
-
-
-		
-
 
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
@@ -433,38 +324,18 @@ function updatePlots(hObject, handles)
 	axes(handles.RawSignalAxes)
 	tvec = 1000 * (0:(length(handles.raw)-1)) ./ handles.S.Fs;
 	plot(tvec, handles.raw)
-	title('Signal (V)')
-	set(handles.RawSignalAxes, 'XTickLabel', []);
+	title('Raw Signal')
+	ylabel('V')
+	guidata(hObject, handles);
 	
 	axes(handles.RawMagAxes)
 	plot(0.001*handles.fraw, handles.magraw);
-	title('Magnitude (dB)')
+	title('Raw Signal Magnitude')
+	xlabel('freq (kHz)')
+	ylabel('dB')
 	ylim(dblim);
 	xlim(freqlim);
-	set(handles.RawMagAxes, 'XTickLabel', []);
-	
-	axes(handles.RawPhaseAxes)
-	plot(0.001*handles.fraw, unwrap(handles.phiraw));
-	title('Phase (rad)')
-	xlim(freqlim);
-	set(handles.RawPhaseAxes, 'XTickLabel', []);
 
-	axes(handles.AdjSignalAxes)
-	tvec = 1000 * (0:(length(handles.adj)-1)) ./ handles.S.Fs;
-	plot(tvec, handles.adj)
-	xlabel('time (ms)')
-	
-	axes(handles.AdjMagAxes)
-	plot(0.001*handles.fadj, handles.magadj);
-	ylim(dblim);
-	xlim(freqlim);
-	xlabel('freq (kHz)');
-	
-	axes(handles.AdjPhaseAxes)
-	plot(0.001*handles.fadj, unwrap(handles.phiadj));
-	xlim(freqlim);
-	xlabel('freq (kHz)');
-	
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
 
@@ -477,9 +348,21 @@ function updatePlots(hObject, handles)
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
-function FlatWavMenu_Callback(hObject, eventdata, handles)
+function FileMenu_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
 
+%------------------------------------------------------------------------------
+function OpenMenuItem_Callback(hObject, eventdata, handles)
+	file = uigetfile('*.fig');
+	if ~isequal(file, 0)
+		 open(file);
+	end
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function PrintMenuItem_Callback(hObject, eventdata, handles)
+	printdlg(handles.figure1)
+%------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
 function CloseMenuItem_Callback(hObject, eventdata, handles)
@@ -493,96 +376,12 @@ function CloseMenuItem_Callback(hObject, eventdata, handles)
 	delete(handles.figure1)
 %------------------------------------------------------------------------------
 
-%-------------------------------------------------------------------------
-function LoadCalMenuItem_Callback(hObject, eventdata, handles)
-	[calfile, calpath] = uigetfile( {'*.cal'; '*_cal.mat'}, ...
-												'Load headphone calibration data from file...');
-	if calfile ~=0
-		datafile = fullfile(calpath, calfile);	
-		handles.cal = load_headphone_cal(datafile);
-		plot(handles.CalibrationAxes, 0.001*handles.cal.freq, handles.cal.mag(1, :), '.-');
-		ylim([0 100]);
-	end
-	guidata(hObject, handles);
-%-------------------------------------------------------------------------
-
-%-------------------------------------------------------------------------
-function PrintMenuItem_Callback(hObject, eventdata, handles)
-	printdlg(handles.figure1)
-%-------------------------------------------------------------------------
-
-
-%-------------------------------------------------------------------------
-function SaveFigureMenuItem_Callback(hObject, eventdata, handles)
-	[figfile, figpath] = uiputfile('*.fig','Save plot and figure in .fig file...');
-	if figfile ~=0
-		figfile = fullfile(figpath, figfile);
-		saveas(handles.axes1, figfile, 'fig');
-	end
-%-------------------------------------------------------------------------
-
-
-%-------------------------------------------------------------------------
-%-------------------------------------------------------------------------
-function IndividualPlotMenuItem_Callback(hObject, eventdata, handles)
-	% create new figure
-	figure	
-	% copy 
-	a = axes;
-	ax2ax(handles.axes1, a)
-	plotStrings = read_ui_str(handles.PlotMenu);
-	plotVal = read_ui_val(handles.PlotMenu);
-	
-	if isfield(handles.caldata, 'settings')
-		if isfield(handles.caldata.settings, 'calfile')
-			[pname, fname, ~] = fileparts(handles.caldata.settings.calfile);
-		else
-			fname = {};
-		end
-	else
-		fname = {};
-	end	
-
-	if ~isempty(fname)
-		tstr = {plotStrings{plotVal}, fname};
-	else
-		tstr = plotStrings{plotVal};
-	end
-	
-	
-	title(tstr, 'Interpreter', 'none')
-%-------------------------------------------------------------------------
-%-------------------------------------------------------------------------
-
-function CalMenu_Callback(hObject, eventdata, handles)
-
-
-function WavMenu_Callback(hObject, eventdata, handles)
-
-
-function LoadWavMenuItem_Callback(hObject, eventdata, handles)
-	[wavfile, wavpath] = uigetfile( '*.wav', ...
-												'Load wav file...');
-	if wavfile ~=0
-		datafile = fullfile(wavpath, wavfile);
-		[wavdata.raw, wavdata.fs, wavdata.nbits, wavdata.opts] = wavread(datafile);
-		handles.wavdata = wavdata;
-		clear wavdata;
-	end
-	guidata(hObject, handles);
-
-
-
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
-
-
-%------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
 %% Executes during object creation, after setting all properties.
 %------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+
 %------------------------------------------------------------------------------
 function CompMethodCtrl_CreateFcn(hObject, eventdata, handles)
 	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
@@ -625,15 +424,3 @@ function p6Ctrl_CreateFcn(hObject, eventdata, handles)
 	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
-function TargetSPLCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-		 set(hObject,'BackgroundColor','white');
-	end
-function LowCutFreqCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-		 set(hObject,'BackgroundColor','white');
-	end
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
-
