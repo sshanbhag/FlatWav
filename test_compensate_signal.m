@@ -11,17 +11,11 @@
 
 
 % frequencies
-Fs = 44100;
-Fmin = 4000;
-Fmax = 10000;
+Fs = 500000;
+Fmin = 100;
+Fmax = 100000;
 stimdur = 250;
-corr_frange = [4000 10000];
-% hi pass filter Fc
-InputHPFc = 20;
-InputLPFc = 20000;
-forder = 5;
-
-SweepDuration = 500;
+corr_frange = [5000 100000];
 
 MIN_DB = -120;
 
@@ -64,7 +58,7 @@ ylim([-120 -40])
 xlim([0 0.001*Fs/2])
 
 %% use compensate signal to compensate
-[sadj, Sfull, Hnorm, foutadj] = compensate_signal(s, caldata.freq, caldata.mag(1, :), Fs, corr_frange, 'Method', 'BOOST', 'Normalize', 'on', 'Lowcut', 'off');
+[sadj, Sfull, Hnorm, foutadj] = compensate_signal(s, caldata.freq, caldata.mag(1, :), Fs, corr_frange);
 
 % plot compensated signal
 [fadj, magadj] = daqdbfft(sadj, Fs, length(sadj));
@@ -82,48 +76,6 @@ xlabel('freq (kHz)')
 ylabel('dB')
 ylim([-120 -40])
 xlim([0 0.001*Fs/2])
-
-%% initialize NI hardware
-
-iodev = ni_ioinit('Dev1', SweepDuration, Fs, 5);
-
-pause(1)
-
-%------------------------------------------------------------------------
-%------------------------------------------------------------------------
-%% Define a bandpass filter for processing the data
-%------------------------------------------------------------------------
-%------------------------------------------------------------------------
-% Nyquist frequency
-fnyq = iodev.Fs / 2;
-% passband definition
-fband = [InputHPFc InputLPFc] ./ fnyq;
-% filter coefficients using a butterworth bandpass filter
-[fcoeffb, fcoeffa] =	butter(forder, fband, 'bandpass');
-
-SweepPoints = ms2samples(SweepDuration, iodev.Fs);
-
-%% play/record raw signal
-s = sin2array(s, 1, iodev.Fs);
-stemp = [s; zeros(size(s))];
-[rawresp, indx] = nidaq_calibration_io(iodev, stemp, SweepPoints);
-
-fftdbplot(rawresp{1}, iodev.Fs);
-
-%% play/record raw signal
-sadj = sin2array(sadj, 1, iodev.Fs);
-stemp = [sadj; zeros(size(sadj))];
-[adjresp, indx] = nidaq_calibration_io(iodev, stemp, SweepPoints);
-fftdbplot(adjresp{1}, iodev.Fs);
-
-
-%% delete/clean  up NI subsystem
-
-iodev = ni_ioexit(iodev); clear iodev
-
-return
-
-
 
 
 
