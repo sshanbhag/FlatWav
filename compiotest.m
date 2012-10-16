@@ -11,17 +11,17 @@
 
 
 % frequencies
-Fs = 44100;
+Fs = 500000;
 Fmin = 4000;
-Fmax = 10000;
+Fmax = 80000;
 stimdur = 250;
-corr_frange = [4000 10000];
+corr_frange = [4000 80000];
 % hi pass filter Fc
 InputHPFc = 20;
 InputLPFc = 20000;
-forder = 5;
+forder = 3;
 
-SweepDuration = 500;
+SweepDuration = 300;
 
 MIN_DB = -120;
 
@@ -30,7 +30,7 @@ callname = 'app1.wav';
 
 
 %% load xfer function data
-load('TDT3972_5V_MicNoScreen_cal.mat', '-MAT', 'caldata');
+load('test_16Oct2012_3K-110K.cal', '-MAT', 'caldata');
 
 % plot
 figure(1)
@@ -46,7 +46,6 @@ s = normalize(s);
 
 % s = synmonosine(stimdur, Fs, Fsine, 1, 0);
 % plot spectrum of s
-[fraw, magraw] = daqdbfft(s, Fs, length(s));
 figure(2)
 tvec = 1000 * (0:(length(s)-1)) ./ Fs;
 subplot(221)
@@ -56,6 +55,7 @@ xlabel('time (milliseconds)')
 ylabel('V')
 
 subplot(222)
+[fraw, magraw] = daqdbfft(s, Fs, length(s));
 plot(0.001*fraw, magraw);
 title('Test Signal Spectrum')
 xlabel('freq (kHz)')
@@ -64,10 +64,10 @@ ylim([-120 -40])
 xlim([0 0.001*Fs/2])
 
 %% use compensate signal to compensate
-[sadj, Sfull, Hnorm, foutadj] = compensate_signal(s, caldata.freq, caldata.mag(1, :), Fs, corr_frange, 'Method', 'BOOST', 'Normalize', 'on', 'Lowcut', 'off');
+[sadj, Sfull, Hnorm, foutadj] = compensate_signal(s, caldata.freq, caldata.mag(1, :), Fs, ...
+							corr_frange, 'Method', 'comp', 'Normalize', 'off', 'Lowcut', 'off');
 
 % plot compensated signal
-[fadj, magadj] = daqdbfft(sadj, Fs, length(sadj));
 figure(2)
 subplot(223)
 plot(tvec, sadj)
@@ -76,6 +76,7 @@ xlabel('time (milliseconds)')
 ylabel('V')
 
 subplot(224)
+[fadj, magadj] = daqdbfft(sadj, Fs, length(sadj));
 plot(0.001*fadj, magadj);
 title('Compensated Signal Spectrum')
 xlabel('freq (kHz)')
@@ -106,15 +107,19 @@ SweepPoints = ms2samples(SweepDuration, iodev.Fs);
 %% play/record raw signal
 s = sin2array(s, 1, iodev.Fs);
 stemp = [s; zeros(size(s))];
-[rawresp, indx] = nidaq_calibration_io(iodev, stemp, SweepPoints);
+[resp, indx] = nidaq_calibration_io(iodev, stemp, SweepPoints);
 
-fftdbplot(rawresp{1}, iodev.Fs);
+rawresp = filter(fcoeffb, fcoeffa, sin2array(resp{1}, 5, iodev.Fs));
+fftdbplot(rawresp, iodev.Fs, figure(3));
+
+pause(1)
 
 %% play/record raw signal
 sadj = sin2array(sadj, 1, iodev.Fs);
 stemp = [sadj; zeros(size(sadj))];
-[adjresp, indx] = nidaq_calibration_io(iodev, stemp, SweepPoints);
-fftdbplot(adjresp{1}, iodev.Fs);
+[resp, indx] = nidaq_calibration_io(iodev, stemp, SweepPoints);
+adjresp = filter(fcoeffb, fcoeffa, sin2array(resp{1}, 5, iodev.Fs));
+fftdbplot(adjresp, iodev.Fs, figure(4));
 
 
 %% delete/clean  up NI subsystem
