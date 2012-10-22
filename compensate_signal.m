@@ -130,7 +130,7 @@ if nvararg
 				else
 					error('%s: invalid LEVEL value (%s)', mfilename, lval);
 				end
-				aindex = aindex + 1;
+				aindex = aindex + 2;
 				clear lval;
 				
 			otherwise
@@ -355,6 +355,7 @@ end
 %------------------------------------------------------------------------
 %------------------------------------------------------------------------
 if NORMALIZE
+	keyboard
 	sadj = NORMALIZE * normalize(sadj);
 end
 

@@ -22,7 +22,7 @@ function varargout = FlatWav(varargin)
 
 % Edit the above text to modify the response to help FlatWav
 
-% Last Modified by GUIDE v2.5 12-Oct-2012 17:17:49
+% Last Modified by GUIDE v2.5 22-Oct-2012 18:37:14
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -119,6 +119,11 @@ update_ui_val(handles.CompMethodCtrl, handles.CompMethod);
 handles.CorrFrange = [10 10000];
 % default normalize status
 handles.Normalize = 'on';
+handles.NormalizeValue = 1.0;
+update_ui_val(handles.NormalizeCtrl, handles.NormalizeValue);
+update_ui_str(handles.NormalizePeakCtrl, handles.NormalizeValue);
+show_uictrl(handles.NormalizePeakCtrl);
+show_uictrl(handles.NormalizePeakText);
 % default LowCut options
 handles.LowCut = 'off';
 handles.LowCutFreq = read_ui_str(handles.LowCutFreqCtrl, 'n');
@@ -126,7 +131,11 @@ if strcmpi(handles.LowCut, 'off')
 	disable_ui(handles.LowCutFreqText);
 	disable_ui(handles.LowCutFreqCtrl);
 end
+% target SPL
+handles.TargetSPL = 65;
+update_ui_str(handles.TargetSPLCtrl, handles.TargetSPL);
 guidata(hObject, handles);
+
 
 %--------------------------------------------------
 % spectrum settings
@@ -185,6 +194,7 @@ varargout{1} = handles.output;
 % --- Executes on selection change in CompMethodCtrl.
 function CompMethodCtrl_Callback(hObject, eventdata, handles)
 	handles.CompMethod = read_ui_val(handles.CompMethodCtrl);
+	guidata(hObject, handles);
 %------------------------------------------------------------------------------
 
 
@@ -230,25 +240,41 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 	% apply compensation
 	switch handles.CompMethod
 		case 1
-			method = 'ATTEN';
+			method = 'ATTEN'
 		case 2
 			method = 'BOOST'
 		case 3
 			method = 'COMPRESS'
 	end
+	
 	if strcmp(handles.LowCut, 'off')
 		lowcut = 'off';
 	else
 		lowcut = handles.LowCutFreq;
 	end
-	adj = compensate_signal(	raw, ...
-										handles.cal.freq, ...
-										handles.cal.mag(1, :), ...
-										handles.S.Fs, ...
-										handles.CorrFrange, ...
-										'Method', method, ...
-										'Normalize', handles.Normalize, ...
-										'Lowcut', lowcut	);
+	
+	if strcmpi(handles.Normalize, 'off')
+		adj = compensate_signal(	raw, ...
+											handles.cal.freq, ...
+											handles.cal.mag(1, :), ...
+											handles.S.Fs, ...
+											handles.CorrFrange, ...
+											'Method', method, ...
+											'Normalize', 'off', ...
+											'Lowcut', lowcut, ...
+											'Level', handles.TargetSPL);
+	else
+		adj = compensate_signal(	raw, ...
+											handles.cal.freq, ...
+											handles.cal.mag(1, :), ...
+											handles.S.Fs, ...
+											handles.CorrFrange, ...
+											'Method', method, ...
+											'Normalize', handles.NormalizeValue, ...
+											'Lowcut', lowcut, ...
+											'Level', handles.TargetSPL);
+	end
+	
 	% store in handles;
 	handles.adj = adj;
 	% take fft of adj data
@@ -307,7 +333,6 @@ function SynthTypeCtrl_Callback(hObject, eventdata, handles)
 			handles.Sweep = handles.synth;
 	end
 	
-
 	% update new ones
 	switch newVal
 		case 1
@@ -358,7 +383,12 @@ function FilenameCtrl_Callback(hObject, eventdata, handles)
 function TargetSPLCtrl_Callback(hObject, eventdata, handles)
 	newVal = read_ui_str(handles.TargetSPLCtrl, 'n');
 	% should perform some checks, forget for now
-	handles.TargetSPL = newVal;
+	if ~between(newVal, 0, 140)
+		warndlg('Target SPL must be [0 140]');
+		update_ui_str(handles.TargetSPL);
+	else
+		handles.TargetSPL = newVal;
+	end
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
 
@@ -384,8 +414,24 @@ function NormalizeCtrl_Callback(hObject, eventdata, handles)
 	newVal = read_ui_val(handles.NormalizeCtrl);
 	if newVal
 		handles.Normalize = 'on';
+		enable_ui(handles.NormalizePeakCtrl);
+		enable_ui(handles.NormalizePeakText);
 	else
 		handles.Normalize = 'off';
+		disable_ui(handles.NormalizePeakCtrl);
+		disable_ui(handles.NormalizePeakText);
+	end
+	guidata(hObject, handles);
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function NormalizePeakCtrl_Callback(hObject, eventdata, handles)
+	newVal = read_ui_str(handles.NormalizePeakCtrl, 'n');
+	if between(newVal, 0, 10)
+		handles.NormalizeValue = newVal;
+	else
+		warndlg('Normalize value must be [0 10]');
+		update_ui_str(handles.NormalizeValue);
 	end
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
@@ -614,7 +660,8 @@ function LoadCalMenuItem_Callback(hObject, eventdata, handles)
 		datafile = fullfile(calpath, calfile);	
 		handles.cal = load_headphone_cal(datafile);
 		plot(handles.CalibrationAxes, 0.001*handles.cal.freq, handles.cal.mag(1, :), '.-');
-		ylim([0 100]);
+		ylim([min(handles.cal.mag(1, :)) max(handles.cal.mag(1, :))]);
+		grid on
 	end
 	guidata(hObject, handles);
 %-------------------------------------------------------------------------
@@ -817,9 +864,14 @@ function CorrFmaxCtrl_CreateFcn(hObject, eventdata, handles)
 	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
+function NormalizePeakCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
+
 
 
 
