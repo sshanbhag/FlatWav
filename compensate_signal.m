@@ -3,24 +3,35 @@ function [sadj, Sfull, Magnorm, f] = compensate_signal(s, calfreq, calmag, Fs, c
 % [sadj, Sfull, Magnorm, f] = compensate_signal(s, calfreq, calmag, Fs, corr_frange)
 %------------------------------------------------------------------------
 % 
-% Description
+% Function that takes an input signal, s, sampled at Fs, and applies calibration 
+% (magnitude only!) information in calfreq, calmag over range corr_frange.
 % 
 %------------------------------------------------------------------------
 % Input Arguments:
 % 	
+% 	s					signal to be calibrated (NX1 or 1XN only!)
+% 	calfreq			1XN vector of frequencies for calibration data
+% 	calmag			1XN vector of calibration values at frequencies 
+% 						given by calfreq
+% 	Fs					sample rate, samples/second
+% 	corr_frange		1X2 vector specifying range of frequencies (in Hz)
+% 						to calibrate [fmin fmax] 
 % 
 % 	Options:
-% 		Method
+% 		Method		'atten', 'boost', 'compress'
 % 		
-% 		Normalize
+% 		Normalize	'on', 'off', <value>
 % 		
-% 		Lowcut
+% 		Lowcut		'on', 'off', <value>, 
 % 		
-% 		Level (only applicable for COMPRESS method!)
-% 		
+% 		Level			<value> greater than 0
+% 			*only applicable for COMPRESS method!		
 % 
 % Output Arguments:
-% 	Output	output info
+% 	sadj				compensated verion of vector s
+% 	Sfull				full discrete Fourier transform of sadj
+% 	Magnorm			correction factors for sadj, in dB
+% 	f					frequencies for calibration
 %
 %------------------------------------------------------------------------
 % See also: NICal
@@ -36,6 +47,7 @@ function [sadj, Sfull, Magnorm, f] = compensate_signal(s, calfreq, calmag, Fs, c
 %	1 Oct 2012 (SJS): working on method # 2
 %	8 Oct 2012 (SJS): implemented COMPRESS method
 %	9 Oct 2012 (SJS): added LEVEL option to specify target level
+%	23 Oct 2012 (SJS): updated docs
 %------------------------------------------------------------------------
 % TO DO:
 %------------------------------------------------------------------------
