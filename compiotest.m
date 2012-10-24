@@ -13,24 +13,24 @@
 % frequencies
 Fs = 500000;
 Fmin = 4000;
-Fmax = 80000;
+Fmax = 100000;
 stimdur = 250;
-corr_frange = [4000 80000];
+corr_frange = [4000 100000];
 % hi pass filter Fc
-InputHPFc = 20;
-InputLPFc = 20000;
+InputHPFc = 250;
+InputLPFc = 150000;
 forder = 3;
 
 SweepDuration = 300;
 
 MIN_DB = -120;
 
-CALLPATH = '~/Work/Data/Audio/BatCalls';
+CALLPATH = 'Z:\Data\Audio\BatCalls';
 callname = 'app1.wav';
 
 
 %% load xfer function data
-load('test_16Oct2012_3K-110K.cal', '-MAT', 'caldata');
+load('test_23Oct2012_4K-120K.cal', '-MAT', 'caldata');
 
 % plot
 figure(1)
@@ -69,7 +69,7 @@ xlim([0 0.001*Fs/2])
 																	'Method', 'compress', ...
 																	'Normalize', 'off', ...
 																	'Lowcut', 'off', ...
-																	'Level', 80);
+																	'Level', 90);
 
 % plot compensated signal
 figure(2)
@@ -118,13 +118,12 @@ fftdbplot(rawresp, iodev.Fs, figure(3));
 
 pause(1)
 
-%% play/record raw signal
+%% play/record adj signal
 sadj = sin2array(sadj, 1, iodev.Fs);
 stemp = [sadj; zeros(size(sadj))];
 [resp, indx] = nidaq_calibration_io(iodev, stemp, SweepPoints);
 adjresp = filter(fcoeffb, fcoeffa, sin2array(resp{1}, 5, iodev.Fs));
 fftdbplot(adjresp, iodev.Fs, figure(4));
-
 
 %% delete/clean  up NI subsystem
 
@@ -144,11 +143,16 @@ b = normalize(b)';
 b = sin2array(b, 1, Fs);
 
 % apply correction (BOOST method)
-[badj, Bfull, Hnorm, foutadj] = compensate_signal(b,  caldata.freq, caldata.mag(1, :), Fs, corr_frange);
+[badj, Bfull, Hnorm, foutadj] = compensate_signal(b, caldata.freq, caldata.mag(1, :), Fs, ...
+																	corr_frange, ...
+																	'Method', 'compress', ...
+																	'Normalize', 'off', ...
+																	'Lowcut', 'off', ...
+																	'Level', 90);
 
 % plot call and spectrum
 [fraw, magraw] = daqdbfft(b, Fs, length(b));
-figure(3)
+figure(6)
 tvec = 1000 * (0:(length(b)-1)) ./ Fs;
 subplot(221)
 plot(tvec, b)
@@ -177,6 +181,21 @@ xlabel('freq (kHz)')
 ylabel('dB')
 ylim([-140 -40])
 xlim([0 0.001*Fs/2])
+
+%% play/record b signal
+b = sin2array(b, 1, iodev.Fs);
+btemp = [b; zeros(size(b))];
+[resp, indx] = nidaq_calibration_io(iodev, btemp, SweepPoints);
+bresp = filter(fcoeffb, fcoeffa, sin2array(resp{1}, 5, iodev.Fs));
+fftdbplot(bresp, iodev.Fs, figure(7));
+
+%% play/record badj signal
+badj = sin2array(badj, 1, iodev.Fs);
+btemp = [badj; zeros(size(badj))];
+[resp, indx] = nidaq_calibration_io(iodev, btemp, SweepPoints);
+badjresp = filter(fcoeffb, fcoeffa, sin2array(resp{1}, 5, iodev.Fs));
+fftdbplot(badjresp, iodev.Fs, figure(8));
+
 
 %% test atten method
 
