@@ -11,14 +11,14 @@
 
 
 % frequencies
-Fs = 500000;
+Fs = 250000;
 Fmin = 4000;
 Fmax = 100000;
 stimdur = 250;
 corr_frange = [4000 100000];
 % hi pass filter Fc
 InputHPFc = 250;
-InputLPFc = 150000;
+InputLPFc = 120000;
 forder = 3;
 
 SweepDuration = 300;
@@ -108,6 +108,7 @@ fband = [InputHPFc InputLPFc] ./ fnyq;
 
 SweepPoints = ms2samples(SweepDuration, iodev.Fs);
 
+
 %% play/record raw signal
 s = sin2array(s, 1, iodev.Fs);
 stemp = [s; zeros(size(s))];
@@ -125,15 +126,6 @@ stemp = [sadj; zeros(size(sadj))];
 adjresp = filter(fcoeffb, fcoeffa, sin2array(resp{1}, 5, iodev.Fs));
 fftdbplot(adjresp, iodev.Fs, figure(4));
 
-%% delete/clean  up NI subsystem
-
-iodev = ni_ioexit(iodev); clear iodev
-
-return
-
-
-
-
 
 %% test with real signal
 
@@ -141,6 +133,8 @@ return
 [b, Fs, nbits, opts] = wavread(fullfile(CALLPATH, callname));
 b = normalize(b)';
 b = sin2array(b, 1, Fs);
+SweepPoints =  length(b) + ms2samples(50, iodev.Fs);
+set(iodev.NI.ai, 'SamplesPerTrigger', SweepPoints);
 
 % apply correction (BOOST method)
 [badj, Bfull, Hnorm, foutadj] = compensate_signal(b, caldata.freq, caldata.mag(1, :), Fs, ...
@@ -196,7 +190,7 @@ btemp = [badj; zeros(size(badj))];
 badjresp = filter(fcoeffb, fcoeffa, sin2array(resp{1}, 5, iodev.Fs));
 fftdbplot(badjresp, iodev.Fs, figure(8));
 
-
+%{
 %% test atten method
 
 % apply correction (BOOST method)
@@ -234,4 +228,16 @@ xlabel('freq (kHz)')
 ylabel('dB')
 ylim([-140 -40])
 xlim([0 0.001*Fs/2])
+%}
 
+%% delete/clean  up NI subsystem
+srate = iodev.Fs;
+iodev = ni_ioexit(iodev); clear iodev
+
+% plot spectrogram
+
+figure(9)
+subplot(121)
+spectrogram(bresp, 256, 250, 256, srate, 'yaxis'); 
+subplot(122)
+spectrogram(badjresp, 256, 250, 256, srate, 'yaxis'); 
