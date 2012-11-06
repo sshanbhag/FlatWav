@@ -52,6 +52,7 @@ end
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
 % --- Executes just before FlatWav is made visible.
 %------------------------------------------------------------------------------
 function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
@@ -61,115 +62,143 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to FlatWav (see VARARGIN)
 
-% Choose default command line output for FlatWav
-handles.output = hObject;
+	% Choose default command line output for FlatWav
+	handles.output = hObject;
 
-% Update handles structure
-guidata(hObject, handles);
+	% Update handles structure
+	guidata(hObject, handles);
 
-%--------------------------------------------------
-% SYNTH SETTINGS
-%--------------------------------------------------
-% set output signal to synth (vs. wav) and update GUI
-handles.SignalMode = 'SYNTH';
-update_ui_val(handles.SynthSignalButton, 1);
-update_ui_val(handles.WavSignalButton, 0);
-% initialize S synth parameter structure
-handles.S = FlatWav_buildS;
-guidata(hObject, handles);
-% initialize tone, noise, sweep structs
-typenum = 1;
-handles.Tone.type = handles.S.Types{typenum};
-for n = 1:handles.S.Nparam(typenum);
-	handles.Tone.(handles.S.Param{typenum}{n}) = handles.S.DefaultVals{typenum}(n);
-end
-typenum = 2;
-handles.Noise.type = handles.S.Types{typenum};
-for n = 1:handles.S.Nparam(typenum);
-	handles.Noise.(handles.S.Param{typenum}{n}) = handles.S.DefaultVals{typenum}(n);
-end
-typenum = 3;
-handles.Sweep.type = handles.S.Types{typenum};
-for n = 1:handles.S.Nparam(typenum);
-	handles.Sweep.(handles.S.Param{typenum}{n}) = handles.S.DefaultVals{typenum}(n);
-end
-% set current synth object to Noise
-handles.synth = handles.Noise;
-handles.SynthIndex = 2;
-handles.SynthType = handles.S.Types{handles.SynthIndex};
+	%----------------------------------------------------------
+	%----------------------------------------------------------
+	% Setup Paths
+	%----------------------------------------------------------
+	%----------------------------------------------------------
+	disp([mfilename ': checking paths'])
+	% directory when using installed version:
+	%	pdir = ['C:\TytoLogy\TytoLogySettings\' getenv('USERNAME')];
+	% development tree
+	pdir = ['C:\Users\sshanbhag\Code\Matlab\TytoLogy\TytoLogySettings\' getenv('USERNAME')];
+	if isempty(which('ms2samples'))
+		% could not find the RPload.m function (which is in TytoLogy
+		% toolbox) which suggests that the paths are not set or are 
+		% incorrect for this setup.  load the paths using the tytopaths program.
+		%--------
+		% First, store the current path
+		cdir = pwd;
+		% build the path to the user's TytoSettings directory and
+		% change dirs to it.  Run the tytopaths script and then
+		% return to the original ("current") directory
+		disp([mfilename ': loading paths using ' pdir])
+		cd(pdir);
+		tytopaths
+		cd(cdir);
+	else
+		disp([mfilename ': paths ok, launching programn'])
+	end
 
-%--------------------------------------------------
-% update GUI and synth
-%--------------------------------------------------
-guidata(hObject, handles);
-updateGuiFromSynth(hObject, handles)
-guidata(hObject, handles);
-updateSynthFromGui(hObject, handles);
-guidata(hObject, handles);
+	%--------------------------------------------------
+	% SYNTH SETTINGS
+	%--------------------------------------------------
+	% set output signal to synth (vs. wav) and update GUI
+	handles.SignalMode = 'SYNTH';
+	update_ui_val(handles.SynthSignalButton, 1);
+	update_ui_val(handles.WavSignalButton, 0);
+	% initialize S synth parameter structure
+	handles.S = FlatWav_buildS;
+	guidata(hObject, handles);
+	% initialize tone, noise, sweep structs
+	typenum = 1;
+	handles.Tone.type = handles.S.Types{typenum};
+	for n = 1:handles.S.Nparam(typenum);
+		handles.Tone.(handles.S.Param{typenum}{n}) = handles.S.DefaultVals{typenum}(n);
+	end
+	typenum = 2;
+	handles.Noise.type = handles.S.Types{typenum};
+	for n = 1:handles.S.Nparam(typenum);
+		handles.Noise.(handles.S.Param{typenum}{n}) = handles.S.DefaultVals{typenum}(n);
+	end
+	typenum = 3;
+	handles.Sweep.type = handles.S.Types{typenum};
+	for n = 1:handles.S.Nparam(typenum);
+		handles.Sweep.(handles.S.Param{typenum}{n}) = handles.S.DefaultVals{typenum}(n);
+	end
+	% set current synth object to Noise
+	handles.synth = handles.Noise;
+	handles.SynthIndex = 2;
+	handles.SynthType = handles.S.Types{handles.SynthIndex};
 
-%--------------------------------------------------
-% COMPENSATION SETTINGS
-%--------------------------------------------------
-% reset string
-set(handles.CompMethodCtrl, 'string', 'none|atten|boost|compress');
-% set compensation method to 1 ('atten')
-handles.CompMethod = 1;
-update_ui_val(handles.CompMethodCtrl, handles.CompMethod);
-% set correction freq range (in Hz)
-handles.CorrFrange = [10 10000];
-% default normalize status
-handles.Normalize = 'on';
-handles.NormalizeValue = 1.0;
-update_ui_val(handles.NormalizeCtrl, handles.NormalizeValue);
-update_ui_str(handles.NormalizePeakCtrl, handles.NormalizeValue);
-show_uictrl(handles.NormalizePeakCtrl);
-show_uictrl(handles.NormalizePeakText);
-% default LowCut options
-handles.LowCut = 'off';
-handles.LowCutFreq = read_ui_str(handles.LowCutFreqCtrl, 'n');
-if strcmpi(handles.LowCut, 'off')
-	disable_ui(handles.LowCutFreqText);
-	disable_ui(handles.LowCutFreqCtrl);
-end
-% target SPL
-handles.TargetSPL = 65;
-update_ui_str(handles.TargetSPLCtrl, handles.TargetSPL);
-guidata(hObject, handles);
+	%--------------------------------------------------
+	% update GUI and synth
+	%--------------------------------------------------
+	guidata(hObject, handles);
+	updateGuiFromSynth(hObject, handles)
+	guidata(hObject, handles);
+	updateSynthFromGui(hObject, handles);
+	guidata(hObject, handles);
 
+	%--------------------------------------------------
+	% COMPENSATION SETTINGS
+	%--------------------------------------------------
+	% reset string in CompMethodCtrl
+	set(handles.CompMethodCtrl, 'string', 'none|atten|boost|compress');
+	% set compensation method to 1 ('atten')
+	handles.CompMethod = 1;
+	update_ui_val(handles.CompMethodCtrl, handles.CompMethod);
+	% set correction freq range (in Hz)
+	handles.CorrFrange = [10 10000];
+	% default normalize status
+	handles.Normalize = 'on';
+	handles.NormalizeValue = 1.0;
+	update_ui_val(handles.NormalizeCtrl, handles.NormalizeValue);
+	update_ui_str(handles.NormalizePeakCtrl, handles.NormalizeValue);
+	show_uictrl(handles.NormalizePeakCtrl);
+	show_uictrl(handles.NormalizePeakText);
+	% default LowCut options
+	handles.LowCut = 'off';
+	handles.LowCutFreq = read_ui_str(handles.LowCutFreqCtrl, 'n');
+	if strcmpi(handles.LowCut, 'off')
+		disable_ui(handles.LowCutFreqText);
+		disable_ui(handles.LowCutFreqCtrl);
+	end
+	% target SPL
+	handles.TargetSPL = 65;
+	update_ui_str(handles.TargetSPLCtrl, handles.TargetSPL);
+	guidata(hObject, handles);
 
-%--------------------------------------------------
-% spectrum settings
-%--------------------------------------------------
-handles.SpectrumWindow = 1024;
-update_ui_str(handles.SpectrumWindowCtrl, handles.SpectrumWindow);
-guidata(hObject, handles);
+	%--------------------------------------------------
+	% spectrum settings
+	%--------------------------------------------------
+	handles.SpectrumWindow = 1024;
+	update_ui_str(handles.SpectrumWindowCtrl, handles.SpectrumWindow);
+	guidata(hObject, handles);
 
-%--------------------------------------------------
-% set initial state for sounds
-%--------------------------------------------------
-% wavdata struct holds information about wav file.
-% create blank wavdata struct, update gui
-handles.wavdata = struct(	'datafile', [], 'raw', [], 'fs', [], ...
-									'nbits', [], 'opts', []);
-update_ui_str(handles.FilenameCtrl, '');
-update_ui_str(handles.WaveInfoCtrl, 'no wav loaded');
-% create empty raw and adj vectors
-handles.raw = [];
-handles.adj = [];
-guidata(hObject, handles);
+	%--------------------------------------------------
+	% set initial state for sounds
+	%--------------------------------------------------
+	% wavdata struct holds information about wav file.
+	% create blank wavdata struct, update gui
+	handles.wavdata = struct(	'datafile', [], 'raw', [], 'fs', [], ...
+										'nbits', [], 'opts', []);
+	update_ui_str(handles.FilenameCtrl, '');
+	update_ui_str(handles.WaveInfoCtrl, 'no wav loaded');
+	% create empty raw and adj vectors
+	handles.raw = [];
+	handles.adj = [];
+	guidata(hObject, handles);
 
-%--------------------------------------------------
-% fake cal data
-%--------------------------------------------------
-handles.cal = fake_caldata('freqs', [1:10:(handles.S.Fs / 2)]);
-handles.cal.mag = 90 * handles.cal.mag;
-guidata(hObject, handles);
-plot(handles.CalibrationAxes, 0.001*handles.cal.freq, handles.cal.mag(1, :), '.-');
-ylim([0 100]);
+	%--------------------------------------------------
+	% fake cal data
+	%--------------------------------------------------
+	handles.cal = fake_caldata('freqs', [1:10:(handles.S.Fs / 2)]);
+	handles.cal.mag = 90 * handles.cal.mag;
+	guidata(hObject, handles);
+	plot(handles.CalibrationAxes, 0.001*handles.cal.freq, handles.cal.mag(1, :), '.-');
+	ylim([0 100]);
 
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
 
+%------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
 % --- Outputs from this function are returned to the command line.
 %------------------------------------------------------------------------------
@@ -179,8 +208,10 @@ function varargout = FlatWav_OutputFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Get default command line output from handles structure
-varargout{1} = handles.output;
+	% Get default command line output from handles structure
+	varargout{1} = handles.output;
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
@@ -202,48 +233,73 @@ function CompMethodCtrl_Callback(hObject, eventdata, handles)
 % --- Executes on button press in UpdateSignalCtrl.
 %------------------------------------------------------------------------------
 function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
-	% get mode
-	
+%------------------------------------------------------------------------------
+% using settings from GUI, update the test signal, compensated signal, and
+% plots of the signals
+%------------------------------------------------------------------------------
+	%--------------------------------------------------------------------
+	% Signal Mode is either WAV (.wav file) or SYNTH (synthesized)
+	%--------------------------------------------------------------------
 	switch handles.SignalMode
 		
 		case 'WAV'
 			% load wav file
-			[raw, wav.Fs, wav.nbits, wav.opts] = wavread(handles.wavfile);
+			[wavdata.raw, wavdata.Fs, wavdata.nbits, wavdata.opts] = wavread(handles.wavdata.datafile);
+			% apply ramp (short, just to ensure zeros at beginning and end of
+			% stimulus)
+			wavdata.raw = sin2array(wavdata.raw', 0.5, wavdata.Fs);
+			% store raw vector in handles.
+			handles.raw = wavdata.raw;
+			handles.S.Fs = wavdata.Fs;
+			handles.wavdata = wavdata;
+			update_ui_str(handles.FsCtrl, handles.S.Fs);
 			
 		case 'SYNTH'
+			% update Synth data (handles.synth) from GUI
 			updateSynthFromGui(hObject, handles);
+			% store changes in handles
 			guidata(hObject, handles);
+			% local copy of synth for sake of brevity
 			synth = handles.synth;
-			
+			% act according to type of synth signal
 			switch synth.type
 				case 'tone'
-					raw = synmonosine(synth.dur, handles.S.Fs, synth.freq, synth.amp, 0);
+					% create tone
+					handles.raw = synmonosine(synth.dur, handles.S.Fs, synth.freq, synth.amp, 0);
 
 				case 'noise'
-					raw = synmononoise_fft(synth.dur, handles.S.Fs, synth.fmin, synth.fmax, synth.amp, 0);
+					% create noise
+					handles.raw = synmononoise_fft(synth.dur, handles.S.Fs, synth.fmin, synth.fmax, synth.amp, 0);
 					% kludge to scale amplitude properly
-					raw = synth.amp * normalize(raw);
+					handles.raw = synth.amp * normalize(handles.raw);
 					
 				case 'sweep'
-					raw = synsweep(synth.dur, handles.S.Fs, synth.fmin, synth.fmax, synth.amp, 0);
-					
+					% create FM sweep (via wrapper around chirp() matlab
+					% function)
+					handles.raw = synsweep(synth.dur, handles.S.Fs, synth.fmin, synth.fmax, synth.amp, 0);
 			end
+			% apply ramp to raw stimulus
+			handles.raw = sin2array(handles.raw, synth.ramp, handles.S.Fs);
 	end
-	% apply ramp
-	raw = sin2array(raw, synth.ramp, handles.S.Fs);
-	% store in handles;
-	handles.raw = raw;
+	
 	% take fft of raw data
-	[handles.fraw, handles.magraw, handles.phiraw] = daqdbfullfft(raw, handles.S.Fs, length(raw));
+	[handles.fraw, handles.magraw, handles.phiraw] = ...
+											daqdbfullfft(handles.raw, handles.S.Fs, length(handles.raw));
 	guidata(hObject, handles);
 
-	% apply compensation
+	%--------------------------------------------------------------------
+	% apply compensation method
+	% CompMethod is value of 1, 2, 3, 4 (value of CompMethodCtrl) which 
+	% is a pull-down menu.  Map these to string values
+	%--------------------------------------------------------------------
 	switch handles.CompMethod
 		case 1
-			method = 'ATTEN'
+			method = 'NONE'
 		case 2
-			method = 'BOOST'
+			method = 'ATTEN'
 		case 3
+			method = 'BOOST'
+		case 4
 			method = 'COMPRESS'
 	end
 	
@@ -253,8 +309,11 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 		lowcut = handles.LowCutFreq;
 	end
 	
-	if strcmpi(handles.Normalize, 'off')
-		adj = compensate_signal(	raw, ...
+	if strcmpi(method, 'NONE')
+		handles.adj = handles.raw;
+		
+	elseif strcmpi(handles.Normalize, 'off')
+		handles.adj = compensate_signal(	handles.raw, ...
 											handles.cal.freq, ...
 											handles.cal.mag(1, :), ...
 											handles.S.Fs, ...
@@ -264,7 +323,7 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 											'Lowcut', lowcut, ...
 											'Level', handles.TargetSPL);
 	else
-		adj = compensate_signal(	raw, ...
+		handles.adj = compensate_signal(	handles.raw, ...
 											handles.cal.freq, ...
 											handles.cal.mag(1, :), ...
 											handles.S.Fs, ...
@@ -275,10 +334,8 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 											'Level', handles.TargetSPL);
 	end
 	
-	% store in handles;
-	handles.adj = adj;
 	% take fft of adj data
-	[handles.fadj, handles.magadj, handles.phiadj] = daqdbfullfft(adj, handles.S.Fs, length(adj));
+	[handles.fadj, handles.magadj, handles.phiadj] = daqdbfullfft(handles.adj, handles.S.Fs, length(handles.adj));
 	guidata(hObject, handles);
 
 	updatePlots(hObject, handles);
@@ -302,6 +359,7 @@ function WavSignalButton_Callback(hObject, eventdata, handles)
 	else
 		% otherwise set handles.raw to empty
 		handles.raw = [];
+		handles.S.Fs = read_ui_str(handles.FsCtrl, 'n');
 	end
 	update_ui_val(handles.WavSignalButton, 1);
 	guidata(hObject, handles);
@@ -318,7 +376,6 @@ function SynthSignalButton_Callback(hObject, eventdata, handles)
 	guidata(hObject, handles);
 	updateGuiFromSynth(hObject, handles);
 %------------------------------------------------------------------------------
-
 
 %------------------------------------------------------------------------------
 function SynthTypeCtrl_Callback(hObject, eventdata, handles)
@@ -577,8 +634,9 @@ function updatePlots(hObject, handles)
 	ylim(freqlim);
 	axis tight;
 	view(0, 90);
-	title('Spectrogram (time vs. Freq (kHz) vs. dB')
+	title('Time vs. Freq (kHz) vs. dB')
 	set(handles.RawSpectrumAxes, 'XTickLabel', []);
+	colormap('gray')
 	
 	% Update adj plots
 	axes(handles.AdjSignalAxes)
@@ -608,6 +666,7 @@ function updatePlots(hObject, handles)
 	axis tight;
 	view(0, 90);
 	xlabel('Time (ms)')
+	colormap('gray')
 	
 	
 	guidata(hObject, handles);
@@ -617,12 +676,14 @@ function updatePlots(hObject, handles)
 function loadWavFile(hObject, eventdata, handles)
 	[wavfile, wavpath] = uigetfile( '*.wav', ...
 												'Load wav file...');
-	if wavfile ~=0
+	if wavfile ~= 0
 		wavdata.datafile = fullfile(wavpath, wavfile);
 		[wavdata.raw, wavdata.fs, wavdata.nbits, wavdata.opts] = wavread(wavdata.datafile);
 		handles.wavdata = wavdata;
 		update_ui_str(handles.FilenameCtrl, wavdata.datafile);
+		update_ui_str(handles.WaveInfoCtrl, wavdata.datafile);
 		clear wavdata;
+		
 	else
 		handles.wavdata = struct(	'datafile', [], 'raw', [], 'fs', [], ...
 											'nbits', [], 'opts', []);
@@ -712,6 +773,7 @@ function IndividualPlotMenuItem_Callback(hObject, eventdata, handles)
 %-------------------------------------------------------------------------
 function LoadWavMenuItem_Callback(hObject, eventdata, handles)
 	loadWavFile(hObject, eventdata, handles);
+
 %-------------------------------------------------------------------------
 
 %-------------------------------------------------------------------------
