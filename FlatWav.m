@@ -189,7 +189,7 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	%--------------------------------------------------
 	% fake cal data
 	%--------------------------------------------------
-	handles.cal = fake_caldata('freqs', [1:10:(handles.S.Fs / 2)]);
+	handles.cal = fake_caldata('freqs', 1:10:(handles.S.Fs / 2));
 	handles.cal.mag = 90 * handles.cal.mag;
 	guidata(hObject, handles);
 	plot(handles.CalibrationAxes, 0.001*handles.cal.freq, handles.cal.mag(1, :), '.-');
@@ -294,13 +294,13 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 	%--------------------------------------------------------------------
 	switch handles.CompMethod
 		case 1
-			method = 'NONE'
+			method = 'NONE';
 		case 2
-			method = 'ATTEN'
+			method = 'ATTEN';
 		case 3
-			method = 'BOOST'
+			method = 'BOOST';
 		case 4
-			method = 'COMPRESS'
+			method = 'COMPRESS';
 	end
 	
 	if strcmp(handles.LowCut, 'off')
