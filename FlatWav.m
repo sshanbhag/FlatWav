@@ -22,7 +22,7 @@ function varargout = FlatWav(varargin)
 
 % Edit the above text to modify the response to help FlatWav
 
-% Last Modified by GUIDE v2.5 22-Oct-2012 18:37:14
+% Last Modified by GUIDE v2.5 04-Dec-2012 17:24:32
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -195,6 +195,13 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	plot(handles.CalibrationAxes, 0.001*handles.cal.freq, handles.cal.mag(1, :), '.-');
 	ylim([0 100]);
 
+	%--------------------------------------------------
+	% output settings
+	%--------------------------------------------------
+	% options for Output Device are 'winsound' and 'NI-DAQ'
+	handles.OutputDevice = 'winsound';
+	guidata(hObject, handles);
+	
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
 
@@ -409,6 +416,7 @@ function SynthTypeCtrl_Callback(hObject, eventdata, handles)
 
 %------------------------------------------------------------------------------
 function FsCtrl_Callback(hObject, eventdata, handles)
+%------------------------------------------------------------------------------
 	Fs = read_ui_str(handles.FsCtrl, 'n');
 	if between(Fs, 1, 1e6)
 		handles.S.Fs = Fs;
@@ -421,6 +429,7 @@ function FsCtrl_Callback(hObject, eventdata, handles)
 
 %------------------------------------------------------------------------------
 function SynthCtrl_Callback(hObject, eventdata, handles)
+%------------------------------------------------------------------------------
 	% get the tag of the selected object
 	tag = get(hObject, 'Tag');
 	tagnum = find(strcmpi(tag, handles.S.CtrlTags));
@@ -431,6 +440,7 @@ function SynthCtrl_Callback(hObject, eventdata, handles)
 
 %------------------------------------------------------------------------------
 function FilenameCtrl_Callback(hObject, eventdata, handles)
+%------------------------------------------------------------------------------
 	loadWavFile(hObject, eventdata, handles);
 %-------------------------------------------------------------------------
 
@@ -438,6 +448,7 @@ function FilenameCtrl_Callback(hObject, eventdata, handles)
 
 %------------------------------------------------------------------------------
 function TargetSPLCtrl_Callback(hObject, eventdata, handles)
+%------------------------------------------------------------------------------
 	newVal = read_ui_str(handles.TargetSPLCtrl, 'n');
 	% should perform some checks, forget for now
 	if ~between(newVal, 0, 140)
@@ -451,23 +462,31 @@ function TargetSPLCtrl_Callback(hObject, eventdata, handles)
 
 %------------------------------------------------------------------------------
 function PlaySignalCtrl_Callback(hObject, eventdata, handles)
-	if (handles.S.Fs == 44100)  && ~isempty(handles.raw) && ~isempty(handles.adj)
-		disable_ui(hObject);
-		update_ui_str(hObject, 'RAW');
-		pause(0.5);
-		sound(handles.raw, handles.S.Fs);
-		pause(2);
-		update_ui_str(hObject, 'ADJ');
-		pause(0.5);
-		sound(handles.adj, handles.S.Fs);
-		pause(1);
-		enable_ui(hObject);
-		update_ui_str(hObject, 'Play');
+%------------------------------------------------------------------------------
+	if strcmpi(handles.OutputDevice, 'WINSOUND')
+		if (handles.S.Fs == 44100)  && ~isempty(handles.raw) && ~isempty(handles.adj)
+			disable_ui(hObject);
+			update_ui_str(hObject, 'RAW');
+			pause(0.5);
+			sound(handles.raw, handles.S.Fs);
+			pause(2);
+			update_ui_str(hObject, 'ADJ');
+			pause(0.5);
+			sound(handles.adj, handles.S.Fs);
+			pause(1);
+			enable_ui(hObject);
+			update_ui_str(hObject, 'Play');
+		end
+	elseif strcmpi(handles.OutputDevice, 'NIDAQ')
+		NIplaysignal(handles);
+	else
+		errordlg(sprintf('unknown io device %s', handles.OutputDevice), 'FlatWav Error');
 	end
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
 function NormalizeCtrl_Callback(hObject, eventdata, handles)
+%------------------------------------------------------------------------------
 	newVal = read_ui_val(handles.NormalizeCtrl);
 	if newVal
 		handles.Normalize = 'on';
@@ -483,6 +502,7 @@ function NormalizeCtrl_Callback(hObject, eventdata, handles)
 
 %------------------------------------------------------------------------------
 function NormalizePeakCtrl_Callback(hObject, eventdata, handles)
+%------------------------------------------------------------------------------
 	newVal = read_ui_str(handles.NormalizePeakCtrl, 'n');
 	if between(newVal, 0, 10)
 		handles.NormalizeValue = newVal;
@@ -559,6 +579,38 @@ function CorrFmaxCtrl_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
+% --- Executes on button press in SoundCardButton.
+%------------------------------------------------------------------------------
+function SoundCardButton_Callback(hObject, eventdata, handles)
+	%--------------------------------------------------
+	% user selected the SoundCard output
+	%--------------------------------------------------
+	% set signal output to WINSOUND
+	handles.OutputDevice = 'WINSOUND';
+	% make sure synth signal button is deselected
+	update_ui_val(handles.NIDAQButton, 0);
+	update_ui_val(handles.SoundCardButton, 1);
+	guidata(hObject, handles);
+%------------------------------------------------------------------------------
+
+
+%------------------------------------------------------------------------------
+% --- Executes on button press in NIDAQButton.
+%------------------------------------------------------------------------------
+function NIDAQButton_Callback(hObject, eventdata, handles)
+	%--------------------------------------------------
+	% user selected the NIDAQ output
+	%--------------------------------------------------
+	% set signal output to NIDAQ
+	handles.OutputDevice = 'NIDAQ';
+	% make sure synth signal button is deselected
+	update_ui_val(handles.NIDAQButton, 1);
+	update_ui_val(handles.SoundCardButton, 0);
+	guidata(hObject, handles);
+%------------------------------------------------------------------------------
+
+
+%------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
 %% Internal functions
@@ -609,6 +661,7 @@ function updatePlots(hObject, handles)
 	tvec = 1000 * (0:(length(handles.raw)-1)) ./ handles.S.Fs;
 	plot(tvec, handles.raw)
 	title('Signal (V)')
+	ylabel('Raw', 'Color', 'b')
 	set(handles.RawSignalAxes, 'XTickLabel', []);
 	
 	axes(handles.RawMagAxes)
@@ -641,17 +694,18 @@ function updatePlots(hObject, handles)
 	% Update adj plots
 	axes(handles.AdjSignalAxes)
 	tvec = 1000 * (0:(length(handles.adj)-1)) ./ handles.S.Fs;
-	plot(tvec, handles.adj)
+	plot(tvec, handles.adj, 'g')
+	ylabel('Adj', 'Color', 'g')
 	xlabel('time (ms)')
 	
 	axes(handles.AdjMagAxes)
-	plot(0.001*handles.fadj, handles.magadj);
+	plot(0.001*handles.fadj, handles.magadj, 'g');
 	ylim(dblim);
 	xlim(freqlim);
 	xlabel('freq (kHz)');
 	
 	axes(handles.AdjPhaseAxes)
-	plot(0.001*handles.fadj, unwrap(handles.phiadj));
+	plot(0.001*handles.fadj, unwrap(handles.phiadj), 'g');
 	xlim(freqlim);
 	xlabel('freq (kHz)');
 
@@ -693,6 +747,11 @@ function loadWavFile(hObject, eventdata, handles)
 	guidata(hObject, handles);
 %-------------------------------------------------------------------------
 
+
+
+
+
+%------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
@@ -700,38 +759,13 @@ function loadWavFile(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
-
-%------------------------------------------------------------------------------
-function CloseMenuItem_Callback(hObject, eventdata, handles)
-	selection = questdlg(['Close ' get(handles.figure1,'Name') '?'],...
-								['Close ' get(handles.figure1,'Name') '...'],...
-								'Yes','No','Yes');
-	if strcmp(selection,'No')
-		 return;
-	end
-
-	delete(handles.figure1)
 %------------------------------------------------------------------------------
 
-%-------------------------------------------------------------------------
-function LoadCalMenuItem_Callback(hObject, eventdata, handles)
-	[calfile, calpath] = uigetfile( {'*.cal'; '*_cal.mat'}, ...
-												'Load headphone calibration data from file...');
-	if calfile ~=0
-		datafile = fullfile(calpath, calfile);	
-		handles.cal = load_headphone_cal(datafile);
-		plot(handles.CalibrationAxes, 0.001*handles.cal.freq, handles.cal.mag(1, :), '.-');
-		ylim([min(handles.cal.mag(1, :)) max(handles.cal.mag(1, :))]);
-		grid on
-	end
-	guidata(hObject, handles);
-%-------------------------------------------------------------------------
-
-%-------------------------------------------------------------------------
-function PrintMenuItem_Callback(hObject, eventdata, handles)
-	printdlg(handles.figure1)
-%-------------------------------------------------------------------------
-
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+% FlatWav Menu
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
 %-------------------------------------------------------------------------
 function SaveFigureMenuItem_Callback(hObject, eventdata, handles)
 	[figfile, figpath] = uiputfile('*.fig','Save plot and figure in .fig file...');
@@ -771,13 +805,80 @@ function IndividualPlotMenuItem_Callback(hObject, eventdata, handles)
 %-------------------------------------------------------------------------
 
 %-------------------------------------------------------------------------
-function LoadWavMenuItem_Callback(hObject, eventdata, handles)
-	loadWavFile(hObject, eventdata, handles);
+function PrintMenuItem_Callback(hObject, eventdata, handles)
+%-------------------------------------------------------------------------
+	printdlg(handles.figure1)
+%-------------------------------------------------------------------------
 
 %-------------------------------------------------------------------------
+function QuitMenuItem_Callback(hObject, eventdata, handles)
+%-------------------------------------------------------------------------
+	selection = questdlg(['Close ' get(handles.figure1,'Name') '?'],...
+								['Close ' get(handles.figure1,'Name') '...'],...
+								'Yes','No','Yes');
+	if strcmp(selection,'No')
+		 return;
+	end
+
+	delete(handles.figure1)
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+% Cal Menu
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+
+%-------------------------------------------------------------------------
+function LoadCalMenuItem_Callback(hObject, eventdata, handles)
+%-------------------------------------------------------------------------
+	[calfile, calpath] = uigetfile( {'*.cal'; '*_cal.mat'}, ...
+												'Load headphone calibration data from file...');
+	if calfile ~=0
+		datafile = fullfile(calpath, calfile);	
+		handles.cal = load_headphone_cal(datafile);
+		plot(handles.CalibrationAxes, 0.001*handles.cal.freq, handles.cal.mag(1, :), '.-');
+		ylim([min(handles.cal.mag(1, :)) max(handles.cal.mag(1, :))]);
+		grid on
+	end
+	guidata(hObject, handles);
+%-------------------------------------------------------------------------
+
+
+%-------------------------------------------------------------------------
+function FlatCalMenuItem_Callback(hObject, eventdata, handles)
+%--------------------------------------------------
+% fake cal data
+%--------------------------------------------------
+	handles.cal = fake_caldata('freqs', [1:10:(handles.S.Fs / 2)]);
+	handles.cal.mag = 90 * handles.cal.mag;
+	guidata(hObject, handles);
+	plot(handles.CalibrationAxes, 0.001*handles.cal.freq, handles.cal.mag(1, :), '.-');
+	ylim([0 100]);
+%-------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+% Wav Menu
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+
+%-------------------------------------------------------------------------
+function LoadWavMenuItem_Callback(hObject, eventdata, handles)
+%-------------------------------------------------------------------------
+	loadWavFile(hObject, eventdata, handles);
+%-------------------------------------------------------------------------
+
+
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+% Signal Menu
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
 
 %-------------------------------------------------------------------------
 function SaveAdjSignalMenuItem_Callback(hObject, eventdata, handles)
+%-------------------------------------------------------------------------
 	if isempty(handles.adj)
 		warning('%s: adj vector is empty!  aborting save', mfilename);
 		return
@@ -801,6 +902,7 @@ function SaveAdjSignalMenuItem_Callback(hObject, eventdata, handles)
 
 %-------------------------------------------------------------------------
 function SaveRawSignalMenuItem_Callback(hObject, eventdata, handles)
+%-------------------------------------------------------------------------
 	if isempty(handles.raw)
 		warning('%s: raw vector is empty!  aborting save', mfilename);
 		return
@@ -824,6 +926,7 @@ function SaveRawSignalMenuItem_Callback(hObject, eventdata, handles)
 
 %-------------------------------------------------------------------------
 function SaveAllSignalsMenuItem_Callback(hObject, eventdata, handles)
+%-------------------------------------------------------------------------
 	[matfile, matpath] = uiputfile(	'*.mat', ...
 												'Save signals to mat file...');
 	if matfile ~= 0
@@ -842,22 +945,9 @@ function SaveAllSignalsMenuItem_Callback(hObject, eventdata, handles)
 	end
 %-------------------------------------------------------------------------
 
-%-------------------------------------------------------------------------
-function FlatCalMenuItem_Callback(hObject, eventdata, handles)
-%--------------------------------------------------
-% fake cal data
-%--------------------------------------------------
-	handles.cal = fake_caldata('freqs', [1:10:(handles.S.Fs / 2)]);
-	handles.cal.mag = 90 * handles.cal.mag;
-	guidata(hObject, handles);
-	plot(handles.CalibrationAxes, 0.001*handles.cal.freq, handles.cal.mag(1, :), '.-');
-	ylim([0 100]);
-%-------------------------------------------------------------------------
-
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
-
 
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
