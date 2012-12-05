@@ -97,7 +97,9 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	end
 
 	%--------------------------------------------------
+	%--------------------------------------------------
 	% SYNTH SETTINGS
+	%--------------------------------------------------
 	%--------------------------------------------------
 	% set output signal to synth (vs. wav) and update GUI
 	handles.SignalMode = 'SYNTH';
@@ -128,7 +130,9 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	handles.SynthType = handles.S.Types{handles.SynthIndex};
 
 	%--------------------------------------------------
+	%--------------------------------------------------
 	% update GUI and synth
+	%--------------------------------------------------
 	%--------------------------------------------------
 	guidata(hObject, handles);
 	updateGuiFromSynth(hObject, handles)
@@ -137,10 +141,12 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	guidata(hObject, handles);
 
 	%--------------------------------------------------
+	%--------------------------------------------------
 	% COMPENSATION SETTINGS
 	%--------------------------------------------------
+	%--------------------------------------------------
 	% reset string in CompMethodCtrl
-	set(handles.CompMethodCtrl, 'string', 'none|atten|boost|compress');
+	set(handles.CompMethodCtrl, 'string', 'none|normalize|atten|boost|compress');
 	% set compensation method to 1 ('atten')
 	handles.CompMethod = 1;
 	update_ui_val(handles.CompMethodCtrl, handles.CompMethod);
@@ -166,12 +172,14 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	guidata(hObject, handles);
 
 	%--------------------------------------------------
+	%--------------------------------------------------
 	% spectrum settings
+	%--------------------------------------------------
 	%--------------------------------------------------
 	handles.SpectrumWindow = 1024;
 	update_ui_str(handles.SpectrumWindowCtrl, handles.SpectrumWindow);
 	guidata(hObject, handles);
-
+	%--------------------------------------------------
 	%--------------------------------------------------
 	% set initial state for sounds
 	%--------------------------------------------------
@@ -187,6 +195,7 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	guidata(hObject, handles);
 
 	%--------------------------------------------------
+	%--------------------------------------------------
 	% fake cal data
 	%--------------------------------------------------
 	handles.cal = fake_caldata('freqs', 1:10:(handles.S.Fs / 2));
@@ -195,6 +204,7 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	plot(handles.CalibrationAxes, 0.001*handles.cal.freq, handles.cal.mag(1, :), '.-');
 	ylim([0 100]);
 
+	%--------------------------------------------------
 	%--------------------------------------------------
 	% output settings
 	%--------------------------------------------------
@@ -303,10 +313,12 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 		case 1
 			method = 'NONE';
 		case 2
-			method = 'ATTEN';
+			method = 'NORMALIZE';
 		case 3
-			method = 'BOOST';
+			method = 'ATTEN';
 		case 4
+			method = 'BOOST';
+		case 5
 			method = 'COMPRESS';
 	end
 	
@@ -318,6 +330,10 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 	
 	if strcmpi(method, 'NONE')
 		handles.adj = handles.raw;
+	
+	elseif strcmpi(method, 'NORMALIZE')
+		% normalize only
+		handles.adj = handles.NormalizeValue * normalize(handles.raw);
 		
 	elseif strcmpi(handles.Normalize, 'off')
 		handles.adj = compensate_signal(	handles.raw, ...
@@ -564,7 +580,7 @@ function SpectrumWindowCtrl_Callback(hObject, eventdata, handles)
 
 %------------------------------------------------------------------------------
 function CorrFminCtrl_Callback(hObject, eventdata, handles)
-	newVal = read_ui_str(hObject, 'n');
+	newVal = read_ui_str(hObject, 'n')
 	% NEED CHECKS!
 	handles.CorrFrange(1) = newVal;
 	guidata(hObject, handles);

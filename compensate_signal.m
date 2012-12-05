@@ -195,7 +195,7 @@ end
 if corr_frange(2) > max(calfreq)
 	corr_frange(2) = max(calfreq);
 end
-
+keyboard
 % need to find max, min of calibration range
 valid_indices = find(between(f, corr_frange(1), corr_frange(2))==1);
 
