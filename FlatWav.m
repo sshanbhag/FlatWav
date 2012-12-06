@@ -74,10 +74,16 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	%----------------------------------------------------------
 	%----------------------------------------------------------
 	disp([mfilename ': checking paths'])
+
 	% directory when using installed version:
-	%	pdir = ['C:\TytoLogy\TytoLogySettings\' getenv('USERNAME')];
-	% development tree
-	pdir = ['C:\Users\sshanbhag\Code\Matlab\TytoLogy\TytoLogySettings\' getenv('USERNAME')];
+	if ispc
+		%	pdir = ['C:\TytoLogy\TytoLogySettings\' getenv('USERNAME')];
+		% development tree
+		pdir = ['C:\Users\sshanbhag\Code\Matlab\TytoLogy\TytoSettings\' getenv('USERNAME')];
+	else ismac
+		pdir = ['~/Work/Code/Matlab/dev/TytoLogy/TytoLogySettings/' getenv('USER')];
+	end
+			
 	if isempty(which('ms2samples'))
 		% could not find the RPload.m function (which is in TytoLogy
 		% toolbox) which suggests that the paths are not set or are 
@@ -803,7 +809,7 @@ function IndividualPlotMenuItem_Callback(hObject, eventdata, handles)
 	
 	if isfield(handles.caldata, 'settings')
 		if isfield(handles.caldata.settings, 'calfile')
-			[pname, fname, ~] = fileparts(handles.caldata.settings.calfile);
+			[pname, fname, tmp] = fileparts(handles.caldata.settings.calfile);
 		else
 			fname = {};
 		end
