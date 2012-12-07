@@ -5,6 +5,18 @@ function S = FlatWav_buildS
 % 
 % Builds synthesis parameters interface struct S.
 % 
+%             Fs: 44100
+%       MaxNParam: 6
+%        CtrlTags: {'p1Ctrl'  'p2Ctrl'  'p3Ctrl'  'p4Ctrl'  'p5Ctrl'  'p6Ctrl'}
+%        TextTags: {'p1Text'  'p2Text'  'p3Text'  'p4Text'  'p5Text'  'p6Text'}
+%          Ntypes: 3
+%           Types: {'tone'  'noise'  'sweep'}
+%            Text: {3x1 cell}
+%           Param: {3x1 cell}
+%     DefaultVals: {3x1 cell}
+%          Nparam: [3x1 double]
+%     CtrlHandles: {{1x4 cell}  {1x5 cell}  {1x5 cell}}
+%     TextHandles: {{1x4 cell}  {1x5 cell}  {1x5 cell}}
 %------------------------------------------------------------------------
 % Input Arguments:
 %	none
@@ -23,6 +35,7 @@ function S = FlatWav_buildS
 % Created: 10 Oct, 2011 (SJS)
 %
 % Revisions:
+%	7 Dec 2012 (SJS): updated documentation
 %------------------------------------------------------------------------
 % TO DO:
 %------------------------------------------------------------------------
@@ -54,9 +67,9 @@ S.Text =	{	{'Dur (ms)', 'Freq (Hz)', 'Amp (Vpk)', 'RampTime (ms)'}; ...
 % synth struct parameter names associated with labels/controls
 % (stimulus parameters)
 S.Param =	{	{'dur', 'freq', 'amp', 'ramp'}; ...
-							{'dur', 'fmin', 'fmax', 'amp', 'ramp'}; ...
-							{'dur', 'fmin', 'fmax', 'amp', 'ramp'}; ...
-					};
+					{'dur', 'fmin', 'fmax', 'amp', 'ramp'}; ...
+					{'dur', 'fmin', 'fmax', 'amp', 'ramp'}; ...
+				};
 % default values
 S.DefaultVals = ...
 					{	[100, 1000, 1, 5]; ...

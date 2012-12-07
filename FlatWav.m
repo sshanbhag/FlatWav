@@ -43,13 +43,13 @@ else
 end
 % End initialization code - DO NOT EDIT
 
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
 %% Essential Functions
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
 
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
@@ -64,7 +64,6 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 
 	% Choose default command line output for FlatWav
 	handles.output = hObject;
-
 	% Update handles structure
 	guidata(hObject, handles);
 
@@ -74,12 +73,11 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	%----------------------------------------------------------
 	%----------------------------------------------------------
 	disp([mfilename ': checking paths'])
-
-	% directory when using installed version:
 	if ispc
+		% directory when using installed version:
 		%	pdir = ['C:\TytoLogy\TytoLogySettings\' getenv('USERNAME')];
 		% development tree
-		pdir = ['C:\Users\sshanbhag\Code\Matlab\TytoLogy\TytoSettings\' getenv('USERNAME')];
+		pdir = ['C:\Users\sshanbhag\Code\Matlab\TytoLogy\TytoLogySettings\' getenv('USERNAME')];
 	else ismac
 		pdir = ['~/Work/Code/Matlab/dev/TytoLogy/TytoLogySettings/' getenv('USER')];
 	end
@@ -88,16 +86,7 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 		% could not find the RPload.m function (which is in TytoLogy
 		% toolbox) which suggests that the paths are not set or are 
 		% incorrect for this setup.  load the paths using the tytopaths program.
-		%--------
-		% First, store the current path
-		cdir = pwd;
-		% build the path to the user's TytoSettings directory and
-		% change dirs to it.  Run the tytopaths script and then
-		% return to the original ("current") directory
-		disp([mfilename ': loading paths using ' pdir])
-		cd(pdir);
-		tytopaths
-		cd(cdir);
+		run(fullfile(pdir, 'tytopaths'))
 	else
 		disp([mfilename ': paths ok, launching programn'])
 	end
@@ -161,7 +150,7 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	% default normalize status
 	handles.Normalize = 'on';
 	handles.NormalizeValue = 1.0;
-	update_ui_val(handles.NormalizeCtrl, handles.NormalizeValue);
+	update_ui_val(handles.NormalizeCtrl, 1);
 	update_ui_str(handles.NormalizePeakCtrl, handles.NormalizeValue);
 	show_uictrl(handles.NormalizePeakCtrl);
 	show_uictrl(handles.NormalizePeakText);
@@ -184,7 +173,9 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	%--------------------------------------------------
 	handles.SpectrumWindow = 1024;
 	update_ui_str(handles.SpectrumWindowCtrl, handles.SpectrumWindow);
+	handles.ColorMap = 'hot';
 	guidata(hObject, handles);
+	
 	%--------------------------------------------------
 	%--------------------------------------------------
 	% set initial state for sounds
@@ -217,11 +208,14 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	% options for Output Device are 'winsound' and 'NI-DAQ'
 	handles.OutputDevice = 'winsound';
 	guidata(hObject, handles);
-	
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
 
-%------------------------------------------------------------------------------
+
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
 %------------------------------------------------------------------------------
 % --- Outputs from this function are returned to the command line.
 %------------------------------------------------------------------------------
@@ -234,23 +228,18 @@ function varargout = FlatWav_OutputFcn(hObject, eventdata, handles)
 	% Get default command line output from handles structure
 	varargout{1} = handles.output;
 %------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
 
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
-%% Ctrl Callbacks
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
 
-%------------------------------------------------------------------------------
-% --- Executes on selection change in CompMethodCtrl.
-function CompMethodCtrl_Callback(hObject, eventdata, handles)
-	handles.CompMethod = read_ui_val(handles.CompMethodCtrl);
-	guidata(hObject, handles);
-%------------------------------------------------------------------------------
-
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
+%% ACTION BUTTON CONTROL Callbacks
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
 
 %------------------------------------------------------------------------------
 % --- Executes on button press in UpdateSignalCtrl.
@@ -299,7 +288,7 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 				case 'sweep'
 					% create FM sweep (via wrapper around chirp() matlab
 					% function)
-					handles.raw = synsweep(synth.dur, handles.S.Fs, synth.fmin, synth.fmax, synth.amp, 0);
+					handles.raw = synmonosweep(synth.dur, handles.S.Fs, synth.fmin, synth.fmax, synth.amp, 0);
 			end
 			% apply ramp to raw stimulus
 			handles.raw = sin2array(handles.raw, synth.ramp, handles.S.Fs);
@@ -366,10 +355,60 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 	% take fft of adj data
 	[handles.fadj, handles.magadj, handles.phiadj] = daqdbfullfft(handles.adj, handles.S.Fs, length(handles.adj));
 	guidata(hObject, handles);
-
+	% update front panel plots
 	updatePlots(hObject, handles);
+	% save variables in workspace
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function PlaySignalCtrl_Callback(hObject, eventdata, handles)
+%------------------------------------------------------------------------------
+	if strcmpi(handles.OutputDevice, 'WINSOUND')
+		if (handles.S.Fs == 44100)  && ~isempty(handles.raw) && ~isempty(handles.adj)
+			disable_ui(hObject);
+			update_ui_str(hObject, 'RAW');
+			pause(0.5);
+			sound(sin2array(handles.raw, 1, handles.S.Fs), handles.S.Fs);
+			pause(2);
+			update_ui_str(hObject, 'ADJ');
+			pause(0.5);
+			sound(sin2array(handles.adj, 1, handles.S.Fs), handles.S.Fs);
+			pause(1);
+			enable_ui(hObject);
+			update_ui_str(hObject, 'Play');
+		end
+	elseif strcmpi(handles.OutputDevice, 'NIDAQ')
+		NIplaysignal(handles);
+	else
+		errordlg(sprintf('unknown io device %s', handles.OutputDevice), 'FlatWav Error');
+	end
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function LoadCalCtrl_Callback(hObject, eventdata, handles)
+	% use the menu item callback
+	LoadCalMenuItem_Callback(hObject, eventdata, handles)
+%------------------------------------------------------------------------------
+
+
+%------------------------------------------------------------------------------
+function SaveSoundCtrl_Callback(hObject, eventdata, handles)
+	% use the menu item callback
+	SaveAdjSignalMenuItem_Callback(hObject, eventdata, handles);
+%------------------------------------------------------------------------------
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
+
+
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
+%% SELECT SIGNAL CONTROLS
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
 
 %------------------------------------------------------------------------------
 function WavSignalButton_Callback(hObject, eventdata, handles)
@@ -405,6 +444,18 @@ function SynthSignalButton_Callback(hObject, eventdata, handles)
 	guidata(hObject, handles);
 	updateGuiFromSynth(hObject, handles);
 %------------------------------------------------------------------------------
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
+
+
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
+%% SYNTHESIZED SIGNAL CONTROLS
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
 
 %------------------------------------------------------------------------------
 function SynthTypeCtrl_Callback(hObject, eventdata, handles)
@@ -418,7 +469,6 @@ function SynthTypeCtrl_Callback(hObject, eventdata, handles)
 		case 3
 			handles.Sweep = handles.synth;
 	end
-	
 	% update new ones
 	switch newVal
 		case 1
@@ -430,10 +480,10 @@ function SynthTypeCtrl_Callback(hObject, eventdata, handles)
 	end
 	handles.SynthIndex = newVal;
 	handles.SynthType = handles.S.Types{handles.SynthIndex};
-
+	% store in handles
 	guidata(hObject, handles);
-	updateGuiFromSynth(hObject, handles);
-		
+	% update gui from synth settings
+	updateGuiFromSynth(hObject, handles);		
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
@@ -455,17 +505,45 @@ function SynthCtrl_Callback(hObject, eventdata, handles)
 	% get the tag of the selected object
 	tag = get(hObject, 'Tag');
 	tagnum = find(strcmpi(tag, handles.S.CtrlTags));
-	param = handles.S.Param{handles.SynthIndex}{tagnum}
+	param = handles.S.Param{handles.SynthIndex}{tagnum};
 	handles.synth.(param) = read_ui_str(hObject, 'n');
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
 
+
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
+%% WAV FILE CONTROL
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
 %------------------------------------------------------------------------------
 function FilenameCtrl_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
 	loadWavFile(hObject, eventdata, handles);
 %-------------------------------------------------------------------------
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
 
+
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
+%% SIGNAL COMPENSATION CALLBACKS
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
+
+%------------------------------------------------------------------------------
+% --- Executes on selection change in CompMethodCtrl.
+function CompMethodCtrl_Callback(hObject, eventdata, handles)
+	handles.CompMethod = read_ui_val(handles.CompMethodCtrl);
+	guidata(hObject, handles);
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
@@ -480,30 +558,6 @@ function TargetSPLCtrl_Callback(hObject, eventdata, handles)
 		handles.TargetSPL = newVal;
 	end
 	guidata(hObject, handles);
-%------------------------------------------------------------------------------
-
-%------------------------------------------------------------------------------
-function PlaySignalCtrl_Callback(hObject, eventdata, handles)
-%------------------------------------------------------------------------------
-	if strcmpi(handles.OutputDevice, 'WINSOUND')
-		if (handles.S.Fs == 44100)  && ~isempty(handles.raw) && ~isempty(handles.adj)
-			disable_ui(hObject);
-			update_ui_str(hObject, 'RAW');
-			pause(0.5);
-			sound(handles.raw, handles.S.Fs);
-			pause(2);
-			update_ui_str(hObject, 'ADJ');
-			pause(0.5);
-			sound(handles.adj, handles.S.Fs);
-			pause(1);
-			enable_ui(hObject);
-			update_ui_str(hObject, 'Play');
-		end
-	elseif strcmpi(handles.OutputDevice, 'NIDAQ')
-		NIplaysignal(handles);
-	else
-		errordlg(sprintf('unknown io device %s', handles.OutputDevice), 'FlatWav Error');
-	end
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
@@ -558,35 +612,8 @@ function LowCutFreqCtrl_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
-function SaveSoundCtrl_Callback(hObject, eventdata, handles)
-	% use the menu item callback
-	SaveAdjSignalMenuItem_Callback(hObject, eventdata, handles);
-%------------------------------------------------------------------------------
-
-%------------------------------------------------------------------------------
-function LoadCalCtrl_Callback(hObject, eventdata, handles)
-	% use the menu item callback
-	LoadCalMenuItem_Callback(hObject, eventdata, handles)
-%------------------------------------------------------------------------------
-
-%------------------------------------------------------------------------------
-function SpectrumWindowCtrl_Callback(hObject, eventdata, handles)
-	newVal = read_ui_str(handles.SpectrumWindowCtrl, 'n');
-	if ~isnumeric(newVal)
-		update_ui_str(handles.SpectrumWindowCtrl, handles.SpectrumWindow);
-		warning('Spectrum Window size must be a number!')
-	elseif ~between(newVal, 2, 1e6)
-		update_ui_str(handles.SpectrumWindowCtrl, handles.SpectrumWindow);
-		warning('Spectrum Window size must be between 2 and 1e6!')
-	else
-		handles.SpectrumWindow = newVal;
-	end
-	guidata(hObject, handles);
-%------------------------------------------------------------------------------
-
-%------------------------------------------------------------------------------
 function CorrFminCtrl_Callback(hObject, eventdata, handles)
-	newVal = read_ui_str(hObject, 'n')
+	newVal = read_ui_str(hObject, 'n');
 	% NEED CHECKS!
 	handles.CorrFrange(1) = newVal;
 	guidata(hObject, handles);
@@ -599,6 +626,41 @@ function CorrFmaxCtrl_Callback(hObject, eventdata, handles)
 	handles.CorrFrange(2) = newVal;
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
+
+
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
+%------------------------------------------------------------------------------
+function SpectrumWindowCtrl_Callback(hObject, eventdata, handles)
+	newVal = read_ui_str(handles.SpectrumWindowCtrl, 'n');
+	if ~isnumeric(newVal)
+		update_ui_str(handles.SpectrumWindowCtrl, handles.SpectrumWindow);
+		warndlg('Spectrum Window size must be a number!', 'FlatWav')
+	elseif ~between(newVal, 2, 1e6)
+		update_ui_str(handles.SpectrumWindowCtrl, handles.SpectrumWindow);
+		warndlg('Spectrum Window size must be between 2 and 1e6!', 'FlatWav')
+	else
+		handles.SpectrumWindow = newVal;
+	end
+	guidata(hObject, handles);
+	updatePlots(hObject, handles);
+%------------------------------------------------------------------------------
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
+
+
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
+%% OUTPUT DEVICE CONTROLS
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
 
 %------------------------------------------------------------------------------
 % --- Executes on button press in SoundCardButton.
@@ -615,7 +677,6 @@ function SoundCardButton_Callback(hObject, eventdata, handles)
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
 
-
 %------------------------------------------------------------------------------
 % --- Executes on button press in NIDAQButton.
 %------------------------------------------------------------------------------
@@ -630,36 +691,44 @@ function NIDAQButton_Callback(hObject, eventdata, handles)
 	update_ui_val(handles.SoundCardButton, 0);
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
 
 
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
 %% Internal functions
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
 
 %------------------------------------------------------------------------------
 function updateGuiFromSynth(hObject, handles)
+	% get the index for the synthesized signal (ton = 1, noise = 2, sweep = 3) 
 	sindx = handles.SynthIndex;
+	% # of parameters for this signal type (for cycling through the S struct
+	% values to be updated)
 	Nsynthparam = handles.S.Nparam(sindx);
-	
+	% loop through parameters for this signal
 	for n = 1:Nsynthparam
 		update_ui_str(handles.(handles.S.TextTags{n}), [handles.S.Text{sindx}{n} ':']);
 		update_ui_str(handles.(handles.S.CtrlTags{n}), handles.synth.(handles.S.Param{sindx}{n}));
 		show_uictrl(handles.(handles.S.TextTags{n}));
 		show_uictrl(handles.(handles.S.CtrlTags{n}));
 	end
+	% hide unused controls
 	if handles.S.MaxNParam > Nsynthparam
 		for n = (Nsynthparam+1):handles.S.MaxNParam
 			hide_uictrl(handles.(handles.S.CtrlTags{n}));
 			hide_uictrl(handles.(handles.S.TextTags{n}));
 		end
 	end
+	% update ui elements
 	update_ui_str(handles.FsCtrl, handles.S.Fs);
 	update_ui_val(handles.SynthTypeCtrl, handles.SynthIndex);
-	
+	guidata(hObject, handles);
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
@@ -711,7 +780,7 @@ function updatePlots(hObject, handles)
 	view(0, 90);
 	title('Time vs. Freq (kHz) vs. dB')
 	set(handles.RawSpectrumAxes, 'XTickLabel', []);
-	colormap('gray')
+	colormap(handles.RawSpectrumAxes, handles.ColorMap)
 	
 	% Update adj plots
 	axes(handles.AdjSignalAxes)
@@ -742,8 +811,7 @@ function updatePlots(hObject, handles)
 	axis tight;
 	view(0, 90);
 	xlabel('Time (ms)')
-	colormap('gray')
-	
+	colormap(handles.AdjSpectrumAxes, handles.ColorMap)
 	
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
@@ -768,20 +836,18 @@ function loadWavFile(hObject, eventdata, handles)
 	end
 	guidata(hObject, handles);
 %-------------------------------------------------------------------------
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
 
 
-
-
-
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
 %% MENU Callbacks
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
 
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
@@ -872,7 +938,7 @@ function FlatCalMenuItem_Callback(hObject, eventdata, handles)
 %--------------------------------------------------
 % fake cal data
 %--------------------------------------------------
-	handles.cal = fake_caldata('freqs', [1:10:(handles.S.Fs / 2)]);
+	handles.cal = fake_caldata('freqs', (1:10:(handles.S.Fs / 2)));
 	handles.cal.mag = 90 * handles.cal.mag;
 	guidata(hObject, handles);
 	plot(handles.CalibrationAxes, 0.001*handles.cal.freq, handles.cal.mag(1, :), '.-');
@@ -902,7 +968,7 @@ function LoadWavMenuItem_Callback(hObject, eventdata, handles)
 function SaveAdjSignalMenuItem_Callback(hObject, eventdata, handles)
 %-------------------------------------------------------------------------
 	if isempty(handles.adj)
-		warning('%s: adj vector is empty!  aborting save', mfilename);
+		warndlg(sprintf('%s: adj vector is empty!  aborting save', mfilename));
 		return
 	end
 	
@@ -926,7 +992,7 @@ function SaveAdjSignalMenuItem_Callback(hObject, eventdata, handles)
 function SaveRawSignalMenuItem_Callback(hObject, eventdata, handles)
 %-------------------------------------------------------------------------
 	if isempty(handles.raw)
-		warning('%s: raw vector is empty!  aborting save', mfilename);
+		warndlg(sprintf('%s: raw vector is empty!  aborting save', mfilename));
 		return
 	end
 	
@@ -966,17 +1032,17 @@ function SaveAllSignalsMenuItem_Callback(hObject, eventdata, handles)
 		end
 	end
 %-------------------------------------------------------------------------
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
 
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
-
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
 %% Executes during object creation, after setting all properties.
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
 function CompMethodCtrl_CreateFcn(hObject, eventdata, handles)
 	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
 		  set(hObject,'BackgroundColor','white');
@@ -1042,9 +1108,9 @@ function NormalizePeakCtrl_CreateFcn(hObject, eventdata, handles)
 	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
 
 
 

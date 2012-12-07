@@ -123,7 +123,7 @@ set(iodev.NI.ai, 'ChannelSkewMode', 'Equisample');
 %-------------------------------------------------------
 % send raw data to hardware and play it
 %-------------------------------------------------------
-putdata(iodev.NI.ao, handles.raw');
+putdata(iodev.NI.ao, sin2array(handles.raw, 1, handles.S.Fs)');
 % wait for time to settle
 timeToWait = ceil(bin2seconds(inpts, iodev.Fs)*2);
 
@@ -140,7 +140,7 @@ rawresp = getdata(iodev.NI.ai, index);
 %-------------------------------------------------------
 % send adj data to hardware and play it
 %-------------------------------------------------------
-putdata(iodev.NI.ao, handles.adj');
+putdata(iodev.NI.ao, sin2array(handles.adj, 1, handles.S.Fs)');
 % wait for time to settle
 timeToWait = bin2seconds(inpts, iodev.Fs)*2;
 % start
@@ -198,7 +198,7 @@ axis tight;
 view(0, 90);
 title('Time vs. Freq (kHz) vs. dB')
 set(handles.RawSpectrumAxes, 'XTickLabel', []);
-colormap('gray')
+colormap(handles.AdjSpectrumAxes, handles.ColorMap)
 
 % Update adj plots
 axes(handles.AdjSignalAxes)
@@ -229,7 +229,7 @@ ylim(freqlim);
 axis tight;
 view(0, 90);
 xlabel('Time (ms)')
-colormap('gray')
+colormap(handles.AdjSpectrumAxes, handles.ColorMap)
 %------------------------------------------------------------------------------
 
 
