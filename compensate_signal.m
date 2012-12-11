@@ -50,6 +50,7 @@ function [sadj, Sfull, Magnorm, f] = compensate_signal(s, calfreq, calmag, Fs, c
 %	23 Oct 2012 (SJS): updated docs
 %------------------------------------------------------------------------
 % TO DO:
+%	*Implement phase correction in algorithm and switch/tag for input 
 %------------------------------------------------------------------------
 
 %------------------------------------------------------------------------

@@ -22,7 +22,7 @@ function varargout = FlatWav(varargin)
 
 % Edit the above text to modify the response to help FlatWav
 
-% Last Modified by GUIDE v2.5 04-Dec-2012 17:24:32
+% Last Modified by GUIDE v2.5 10-Dec-2012 18:44:40
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -208,6 +208,12 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	% options for Output Device are 'winsound' and 'NI-DAQ'
 	handles.OutputDevice = 'winsound';
 	guidata(hObject, handles);
+	
+	handles.MicSensitivity = 1;
+	handles.MicGaindB = 0;
+	handles.MicGain = invdb(handles.MicGaindB);
+	handles.VtoPa = (1/handles.MicGain) * (1/handles.MicSensitivity);
+	guidata(hObject, handles);
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
@@ -379,10 +385,20 @@ function PlaySignalCtrl_Callback(hObject, eventdata, handles)
 			update_ui_str(hObject, 'Play');
 		end
 	elseif strcmpi(handles.OutputDevice, 'NIDAQ')
-		NIplaysignal(handles);
+		[handles.rawresp, handles.adjresp] = NIplaysignal(handles);
 	else
 		errordlg(sprintf('unknown io device %s', handles.OutputDevice), 'FlatWav Error');
 	end
+	guidata(hObject, handles);
+	
+	% compute dBSPL
+	rawRMS = rms(handles.raw);
+	rawdBSPL = dbspl(handles.VtoPa*rawRMS);
+	adjRMS = rms(handles.adj);
+	adjdBSPL = dbspl(handles.VtoPa*adjRMS);
+	
+	fprintf('Raw dB SPL: %.4f\n', rawdBSPL);
+	fprintf('Adj dB SPL: %.4f\n', adjdBSPL);
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
@@ -1032,6 +1048,42 @@ function SaveAllSignalsMenuItem_Callback(hObject, eventdata, handles)
 		end
 	end
 %-------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+% SETTINGS Menu
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+
+%-------------------------------------------------------------------------
+%-------------------------------------------------------------------------
+function MicSensitivityMenuItem_Callback(hObject, eventdata, handles)
+	newVal = uiaskvalue(	'Value',				handles.MicSensitivity,			...
+								'ValueText',		'Mic Sensitivity (V/Pa)',		...
+								'QuestionText',	'Enter value from NEXXUS',		...
+								'FigureName',		''	);
+	handles.MicSensitivity = newVal;
+	% pre-compute the V -> Pa conversion factor
+	handles.VtoPa = (1/handles.MicGain) * (1/handles.MicSensitivity);
+	guidata(hObject, handles);
+%-------------------------------------------------------------------------
+%-------------------------------------------------------------------------
+
+%-------------------------------------------------------------------------
+%-------------------------------------------------------------------------
+function MicrophoneGainMenuItem_Callback(hObject, eventdata, handles)
+	newVal = uiaskvalue(	'Value',				handles.MicGaindB,			...
+								'ValueText',		'Mic Gain (dB)',		...
+								'QuestionText',	'Enter mic gain (0 dB for NEXXUS)',		...
+								'FigureName',		''	);
+	handles.MicGaindB = newVal;
+	handles.MicGain = invdb(handles.MicGaindB);
+	% pre-compute the V -> Pa conversion factor
+	handles.VtoPa = (1/handles.MicGain) * (1/handles.MicSensitivity);
+	guidata(hObject, handles);
+%-------------------------------------------------------------------------
+%-------------------------------------------------------------------------
+
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
@@ -1111,7 +1163,6 @@ function NormalizePeakCtrl_CreateFcn(hObject, eventdata, handles)
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
-
 
 
 

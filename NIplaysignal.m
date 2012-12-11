@@ -1,4 +1,4 @@
-function NIplaysignal(handles)
+function varargout = NIplaysignal(handles)
 %------------------------------------------------------------------------------
 % NIplaysignal
 %------------------------------------------------------------------------------
@@ -15,20 +15,41 @@ function NIplaysignal(handles)
 % Revisions:
 %------------------------------------------------------------------------------
 
-fprintf('%s: starting NI hardware...\n', mfilename);
-
 %-----------------------------------------------------------------------
 %-----------------------------------------------------------------------
 %% Settings/Constants
 %-----------------------------------------------------------------------
 %-----------------------------------------------------------------------
 % NICal_Constants;
+AI_LIMIT = 5;
+AO_LIMIT = 10;
+
+% range needs to be in [RangeMin RangeMax] format
+aiRange = AI_LIMIT * [-1 1];
+aoRange = AO_LIMIT * [-1 1];
+
+%-----------------------------------------------------------------------
+%-----------------------------------------------------------------------
+%% Check Inputs
+%-----------------------------------------------------------------------
+%-----------------------------------------------------------------------
+% check to make sure output signal isn't crazy
+if max(abs(handles.raw)) > AO_LIMIT
+	warndlg('RAW signal out of range');
+	return
+end
+if max(abs(handles.adj)) > AO_LIMIT
+	warndlg('ADJ signal out of range!');
+	return
+end
+
 
 %-----------------------------------------------------------------------
 %-----------------------------------------------------------------------
 %% Initialize the NI device
 %-----------------------------------------------------------------------
 %-----------------------------------------------------------------------
+fprintf('%s: starting NI hardware...\n', mfilename);
 iodev.Dnum = 'Dev1';
 try
 	iodev.NI = nidaq_aiao_singlechannel_init('NI', iodev.Dnum);
@@ -66,19 +87,17 @@ iodev.Fs = ActualRate;
 %% set input range
 %-----------------------------------------------------------------------
 %-----------------------------------------------------------------------
-% range needs to be in [RangeMin RangeMax] format
-aiaoRange = 5 * [-1 1];
 % set analog input range (might be overkill to set 
 % InputRange, SensorRange and UnitsRange, but is seems to work)
 for n = 1:length(iodev.NI.ai.Channel)
-	iodev.NI.ai.Channel(n).InputRange = aiaoRange;
-	iodev.NI.ai.Channel(n).SensorRange = aiaoRange;
-	iodev.NI.ai.Channel(n).UnitsRange = aiaoRange;
+	iodev.NI.ai.Channel(n).InputRange = aiRange;
+	iodev.NI.ai.Channel(n).SensorRange = aiRange;
+	iodev.NI.ai.Channel(n).UnitsRange = aiRange;
 end
 % set analog output range
 for n = 1:length(iodev.NI.ao.Channel)
-	iodev.NI.ao.Channel(n).OutputRange = aiaoRange;
-	iodev.NI.ao.Channel(n).UnitsRange = aiaoRange;
+	iodev.NI.ao.Channel(n).OutputRange = aoRange;
+	iodev.NI.ao.Channel(n).UnitsRange = aoRange;
 end
 
 %------------------------------------------------------------------------
@@ -136,6 +155,9 @@ stop([iodev.NI.ai iodev.NI.ao]);
 % read data from ai object
 index = iodev.NI.ai.SamplesAvailable;
 rawresp = getdata(iodev.NI.ai, index);
+
+% pause
+pause(1);
 
 %-------------------------------------------------------
 % send adj data to hardware and play it
@@ -257,6 +279,11 @@ save(fullfile(pwd, 'EventLogs.mat'), ...
 
 clear iodev
 
-
-	
+nargout
+if nargout <= 2
+	varargout{1} = rawresp;
+end
+if nargout == 2
+	varargout{2} = adjresp;
+end
 
