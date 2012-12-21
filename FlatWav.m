@@ -761,6 +761,7 @@ function SoundCardButton_Callback(hObject, eventdata, handles)
 	update_ui_str(handles.AdjdBText, sprintf('Adj dB SPL: ---'));
 	hide_uictrl(handles.RawdBText);
 	hide_uictrl(handles.AdjdBText);
+%	handles.S.Fs = read_ui_str(handles.FsCtrl, 'n');
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
 
@@ -1155,6 +1156,7 @@ function MicrophoneGainMenuItem_Callback(hObject, eventdata, handles)
 %-------------------------------------------------------------------------
 %-------------------------------------------------------------------------
 function InputFilterMenuItem_Callback(hObject, eventdata, handles)
+
 	newVal = uiaskvalue(	'Value',				handles.LPFc,			...
 								'ValueText',		'Lowpass Filter Fc (Hz)',		...
 								'QuestionText',	'Input LowPass Filter Cutoff Frequency', ...
