@@ -175,6 +175,12 @@ stop([iodev.NI.ai iodev.NI.ao]);
 index = iodev.NI.ai.SamplesAvailable;
 adjresp = getdata(iodev.NI.ai, index);
 
+%-------------------------------------------------------
+%% filter data
+%-------------------------------------------------------
+rawresp = filtfilt(handles.fcoeffb, handles.fcoeffa, rawresp);
+adjresp = filtfilt(handles.fcoeffb, handles.fcoeffa, adjresp);
+
 %-----------------------------------------------------------------------
 %% plot data
 %-----------------------------------------------------------------------

@@ -22,7 +22,7 @@ function varargout = FlatWav(varargin)
 
 % Edit the above text to modify the response to help FlatWav
 
-% Last Modified by GUIDE v2.5 10-Dec-2012 18:44:40
+% Last Modified by GUIDE v2.5 21-Dec-2012 10:48:57
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -134,6 +134,10 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	guidata(hObject, handles);
 	updateSynthFromGui(hObject, handles);
 	guidata(hObject, handles);
+	update_ui_str(handles.RawdBText, sprintf('Raw dB SPL: ---'));
+	update_ui_str(handles.AdjdBText, sprintf('Adj dB SPL: ---'));
+	hide_uictrl(handles.RawdBText);
+	hide_uictrl(handles.AdjdBText);
 
 	%--------------------------------------------------
 	%--------------------------------------------------
@@ -182,7 +186,7 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	%--------------------------------------------------
 	% wavdata struct holds information about wav file.
 	% create blank wavdata struct, update gui
-	handles.wavdata = struct(	'datafile', [], 'raw', [], 'fs', [], ...
+	handles.wavdata = struct(	'datafile', '', 'raw', [], 'fs', [], ...
 										'nbits', [], 'opts', []);
 	update_ui_str(handles.FilenameCtrl, '');
 	update_ui_str(handles.WaveInfoCtrl, 'no wav loaded');
@@ -209,10 +213,30 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	handles.OutputDevice = 'winsound';
 	guidata(hObject, handles);
 	
+	%--------------------------------------------------
+	%--------------------------------------------------
+	% Mic settings
+	%--------------------------------------------------
 	handles.MicSensitivity = 1;
 	handles.MicGaindB = 0;
 	handles.MicGain = invdb(handles.MicGaindB);
 	handles.VtoPa = (1/handles.MicGain) * (1/handles.MicSensitivity);
+	guidata(hObject, handles);
+
+	%--------------------------------------------------
+	%--------------------------------------------------
+	% Filter settings
+	% Define a bandpass filter for processing the data
+	%--------------------------------------------------
+	% Nyquist frequency
+	fnyq = handles.S.Fs / 2;
+	handles.LPFc = fnyq - 100;
+	handles.HPFc = 200;
+	handles.FilterOrder = 4;
+	% passband definition
+	fband = [handles.HPFc handles.LPFc] ./ fnyq;
+	% filter coefficients using a butterworth bandpass filter
+	[handles.fcoeffb, handles.fcoeffa] = butter(handles.FilterOrder, fband, 'bandpass');
 	guidata(hObject, handles);
 %******************************************************************************
 %******************************************************************************
@@ -265,6 +289,7 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 			[wavdata.raw, wavdata.Fs, wavdata.nbits, wavdata.opts] = wavread(handles.wavdata.datafile);
 			% apply ramp (short, just to ensure zeros at beginning and end of
 			% stimulus)
+			wavdata.datafile = handles.wavdata.datafile;
 			wavdata.raw = sin2array(wavdata.raw', 0.5, wavdata.Fs);
 			% store raw vector in handles.
 			handles.raw = wavdata.raw;
@@ -370,6 +395,17 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
 function PlaySignalCtrl_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
+	%--------------------------------------------------
+	% update bandpass filter for processing the data
+	%--------------------------------------------------
+	% Nyquist frequency
+	fnyq = handles.S.Fs / 2;
+	% passband definition
+	fband = [handles.HPFc handles.LPFc] ./ fnyq;
+	% filter coefficients using a butterworth bandpass filter
+	[handles.fcoeffb, handles.fcoeffa] = butter(handles.FilterOrder, fband, 'bandpass');
+	guidata(hObject, handles);
+	
 	if strcmpi(handles.OutputDevice, 'WINSOUND')
 		if (handles.S.Fs == 44100)  && ~isempty(handles.raw) && ~isempty(handles.adj)
 			disable_ui(hObject);
@@ -383,22 +419,31 @@ function PlaySignalCtrl_Callback(hObject, eventdata, handles)
 			pause(1);
 			enable_ui(hObject);
 			update_ui_str(hObject, 'Play');
+			update_ui_str(handles.RawdBText, sprintf('Raw dB SPL: ---'));
+			update_ui_str(handles.AdjdBText, sprintf('Adj dB SPL: ---'));
+			hide_uictrl(handles.RawdBText);
+			hide_uictrl(handles.AdjdBText);
 		end
 	elseif strcmpi(handles.OutputDevice, 'NIDAQ')
 		[handles.rawresp, handles.adjresp] = NIplaysignal(handles);
+		% compute dBSPL
+		rawRMS = rms(handles.rawresp);
+		rawdBSPL = dbspl(handles.VtoPa*rawRMS);
+		adjRMS = rms(handles.adjresp);
+		adjdBSPL = dbspl(handles.VtoPa*adjRMS);
+		fprintf('Raw dB SPL: %.4f\n', rawdBSPL);
+		fprintf('Adj dB SPL: %.4f\n', adjdBSPL);
+		update_ui_str(handles.RawdBText, sprintf('Raw dB SPL: %.2f', rawdBSPL));
+		update_ui_str(handles.AdjdBText, sprintf('Adj dB SPL: %.2f', adjdBSPL));
+		show_uictrl(handles.RawdBText);
+		show_uictrl(handles.AdjdBText);
+
 	else
 		errordlg(sprintf('unknown io device %s', handles.OutputDevice), 'FlatWav Error');
 	end
 	guidata(hObject, handles);
 	
-	% compute dBSPL
-	rawRMS = rms(handles.raw);
-	rawdBSPL = dbspl(handles.VtoPa*rawRMS);
-	adjRMS = rms(handles.adj);
-	adjdBSPL = dbspl(handles.VtoPa*adjRMS);
-	
-	fprintf('Raw dB SPL: %.4f\n', rawdBSPL);
-	fprintf('Adj dB SPL: %.4f\n', adjdBSPL);
+
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
@@ -540,7 +585,29 @@ function SynthCtrl_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
 function FilenameCtrl_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
-	loadWavFile(hObject, eventdata, handles);
+	[tmppath, tmpfile] = fileparts(handles.wavdata.datafile);
+	[wavfile, wavpath] = uigetfile( '*.wav', ...
+												'Load wav file...', ...
+												tmppath);
+	clear tmppath tmpfile
+	if wavfile ~= 0
+		wavdata.datafile = fullfile(wavpath, wavfile);
+		[wavdata.raw, wavdata.Fs, wavdata.nbits, wavdata.opts] = wavread(wavdata.datafile);
+		handles.wavdata = wavdata;
+		update_ui_str(handles.FilenameCtrl, handles.wavdata.datafile);
+		ostr = sprintf('Fs: %.2f\nnbits: %d\n', wavdata.Fs, wavdata.nbits);
+		update_ui_str(handles.WaveInfoCtrl, ostr);
+		handles.S.Fs = handles.wavdata.Fs;
+		update_ui_str(handles.FsCtrl, handles.S.Fs);
+		clear wavdata;
+		
+	else
+		handles.wavdata = struct(	'datafile', '', 'raw', [], 'Fs', [], ...
+											'nbits', [], 'opts', []);
+		update_ui_str(handles.FilenameCtrl, '');
+		update_ui_str(handles.WaveInfoCtrl, 'no wav loaded');
+	end
+	guidata(hObject, handles);
 %-------------------------------------------------------------------------
 %******************************************************************************
 %******************************************************************************
@@ -690,6 +757,10 @@ function SoundCardButton_Callback(hObject, eventdata, handles)
 	% make sure synth signal button is deselected
 	update_ui_val(handles.NIDAQButton, 0);
 	update_ui_val(handles.SoundCardButton, 1);
+	update_ui_str(handles.RawdBText, sprintf('Raw dB SPL: ---'));
+	update_ui_str(handles.AdjdBText, sprintf('Adj dB SPL: ---'));
+	hide_uictrl(handles.RawdBText);
+	hide_uictrl(handles.AdjdBText);
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
 
@@ -705,6 +776,8 @@ function NIDAQButton_Callback(hObject, eventdata, handles)
 	% make sure synth signal button is deselected
 	update_ui_val(handles.NIDAQButton, 1);
 	update_ui_val(handles.SoundCardButton, 0);
+	show_uictrl(handles.RawdBText);
+	show_uictrl(handles.AdjdBText);
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
 %******************************************************************************
@@ -832,26 +905,18 @@ function updatePlots(hObject, handles)
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
 
-%-------------------------------------------------------------------------
-function loadWavFile(hObject, eventdata, handles)
-	[wavfile, wavpath] = uigetfile( '*.wav', ...
-												'Load wav file...');
-	if wavfile ~= 0
-		wavdata.datafile = fullfile(wavpath, wavfile);
-		[wavdata.raw, wavdata.fs, wavdata.nbits, wavdata.opts] = wavread(wavdata.datafile);
-		handles.wavdata = wavdata;
-		update_ui_str(handles.FilenameCtrl, wavdata.datafile);
-		update_ui_str(handles.WaveInfoCtrl, wavdata.datafile);
-		clear wavdata;
-		
-	else
-		handles.wavdata = struct(	'datafile', [], 'raw', [], 'fs', [], ...
-											'nbits', [], 'opts', []);
-		update_ui_str(handles.FilenameCtrl, '');
-		update_ui_str(handles.WaveInfoCtrl, 'no wav loaded');
+%------------------------------------------------------------------------------
+function [atten_val] = figure_atten(spl_val, rms_val, caldata)
+%------------------------------------------------------------------------------
+	[n, m] = size(caldata.mag);
+
+	atten_val(1) = caldata.mindbspl(1) + db(rms_val(1)) - spl_val(1);
+	if n == 2
+		atten_val(2) = caldata.mindbspl(2) + db(rms_val(2)) - spl_val(2);
 	end
-	guidata(hObject, handles);
-%-------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+
+
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
@@ -970,9 +1035,8 @@ function FlatCalMenuItem_Callback(hObject, eventdata, handles)
 %-------------------------------------------------------------------------
 function LoadWavMenuItem_Callback(hObject, eventdata, handles)
 %-------------------------------------------------------------------------
-	loadWavFile(hObject, eventdata, handles);
-%-------------------------------------------------------------------------
-
+	FilenameCtrl_Callback(hObject, eventdata, handles);
+%-------------------------------------------------------------------------	
 
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
@@ -988,20 +1052,24 @@ function SaveAdjSignalMenuItem_Callback(hObject, eventdata, handles)
 		return
 	end
 	
+	[tmppath, tmpname, tmpext] = fileparts(handles.wavdata.datafile);
+	tmpfile = fullfile(tmppath, [tmpname '_adj' tmpext]);
+	
 	[adjfile, adjpath] = uiputfile(	'*.wav', ...
-												'Save adj signal to wav file...');
+												'Save adj signal to wav file...', tmpfile);
 	if adjfile ~=0
 		datafile = fullfile(adjpath, adjfile);
 		peakval = max(handles.adj);
 		if peakval >= 1
 			fprintf('!!!!!!!!!!!!!!!!\nPoints in adj are >= 1\nFile will be normalized\n');
 			wavwrite(0.9*normalize(handles.adj), handles.S.Fs, datafile);
-			peakfile = [datafile(1:(end-4)) '_PeakVal.txt'];
-			save(peakfile, peakval, '-ascii');
+% 			peakfile = [datafile(1:(end-4)) '_PeakVal.txt'];
+% 			save(peakfile, peakval, '-ascii');
 		else
 			wavwrite(handles.adj, handles.S.Fs, datafile);
 		end
 	end
+	guidata(hObject, handles);
 %-------------------------------------------------------------------------
 
 %-------------------------------------------------------------------------
@@ -1080,6 +1148,38 @@ function MicrophoneGainMenuItem_Callback(hObject, eventdata, handles)
 	handles.MicGain = invdb(handles.MicGaindB);
 	% pre-compute the V -> Pa conversion factor
 	handles.VtoPa = (1/handles.MicGain) * (1/handles.MicSensitivity);
+	guidata(hObject, handles);
+%-------------------------------------------------------------------------
+%-------------------------------------------------------------------------
+
+%-------------------------------------------------------------------------
+%-------------------------------------------------------------------------
+function InputFilterMenuItem_Callback(hObject, eventdata, handles)
+	newVal = uiaskvalue(	'Value',				handles.LPFc,			...
+								'ValueText',		'Lowpass Filter Fc (Hz)',		...
+								'QuestionText',	'Input LowPass Filter Cutoff Frequency', ...
+								'FigureName',		''	);
+	handles.LPFc = newVal;
+	newVal = uiaskvalue(	'Value',				handles.HPFc,			...
+								'ValueText',		'Highpass Filter Fc (Hz)',		...
+								'QuestionText',	'Input HighPass Filter Cutoff Frequency', ...
+								'FigureName',		''	);
+	handles.HPFc = newVal;
+	newVal = uiaskvalue(	'Value',				handles.FilterOrder,			...
+								'ValueText',		'Filter Order (>0)',		...
+								'QuestionText',	'Input Filter Order', ...
+								'FigureName',		''	);
+	handles.FilterOrder = newVal;
+		
+	%--------------------------------------------------
+	% Define a bandpass filter for processing the data
+	%--------------------------------------------------
+	% Nyquist frequency
+	fnyq = handles.S.Fs / 2;
+	% passband definition
+	fband = [handles.HPFc handles.LPFc] ./ fnyq;
+	% filter coefficients using a butterworth bandpass filter
+	[handles.fcoeffb, handles.fcoeffa] = butter(handles.FilterOrder, fband, 'bandpass');
 	guidata(hObject, handles);
 %-------------------------------------------------------------------------
 %-------------------------------------------------------------------------
