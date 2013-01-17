@@ -1,6 +1,6 @@
-function varargout = NIplaysignal(handles)
+function varargout = NIplaysignal(hObject, handles)
 %------------------------------------------------------------------------------
-% NIplaysignal
+% [resp, magresp, phiresp] = NIplaysignal(hObject, handles)
 %------------------------------------------------------------------------------
 % sets up NI data acquisition toolbox parameters and plays signal
 %------------------------------------------------------------------------------
@@ -15,11 +15,18 @@ function varargout = NIplaysignal(handles)
 % Revisions:
 %------------------------------------------------------------------------------
 
+
 %-----------------------------------------------------------------------
 %-----------------------------------------------------------------------
-%% Settings/Constants
+% Settings/Constants
 %-----------------------------------------------------------------------
 %-----------------------------------------------------------------------
+
+%--------------------------------------------------
+% find who called us
+%--------------------------------------------------
+ButtonID = read_ui_str(hObject) %#ok<NOPRT>
+
 % NICal_Constants;
 AI_LIMIT = 5;
 AO_LIMIT = 10;
@@ -30,23 +37,32 @@ aoRange = AO_LIMIT * [-1 1];
 
 %-----------------------------------------------------------------------
 %-----------------------------------------------------------------------
-%% Check Inputs
+% Check Inputs
 %-----------------------------------------------------------------------
 %-----------------------------------------------------------------------
 % check to make sure output signal isn't crazy
-if max(abs(handles.raw)) > AO_LIMIT
-	warndlg('RAW signal out of range');
-	return
+if strcmpi(ButtonID, 'Play Raw') 
+	if isempty(handles.raw)	
+		warndlg('RAW signal empty!');
+		return
+	elseif max(abs(handles.raw)) > AO_LIMIT
+		warndlg('RAW signal out of range');
+		return
+	end
 end
-if max(abs(handles.adj)) > AO_LIMIT
-	warndlg('ADJ signal out of range!');
-	return
+if strcmpi(ButtonID, 'Play Adj')
+	if isempty(handles.adj)
+		warndlg('ADJ signal empty!');
+		return
+	elseif max(abs(handles.adj)) > AO_LIMIT
+		warndlg('ADJ signal out of range!');
+		return
+	end
 end
-
 
 %-----------------------------------------------------------------------
 %-----------------------------------------------------------------------
-%% Initialize the NI device
+% Initialize the NI device
 %-----------------------------------------------------------------------
 %-----------------------------------------------------------------------
 fprintf('%s: starting NI hardware...\n', mfilename);
@@ -84,7 +100,7 @@ iodev.Fs = ActualRate;
 
 %-----------------------------------------------------------------------
 %-----------------------------------------------------------------------
-%% set input range
+% set input range
 %-----------------------------------------------------------------------
 %-----------------------------------------------------------------------
 % set analog input range (might be overkill to set 
@@ -102,7 +118,7 @@ end
 
 %------------------------------------------------------------------------
 %------------------------------------------------------------------------
-%% HARDWARE TRIGGERING
+% HARDWARE TRIGGERING
 %------------------------------------------------------------------------
 %------------------------------------------------------------------------
 % set TriggerType to manual (to synchronize ai and ao)
@@ -113,7 +129,11 @@ set(iodev.NI.ai,'ManualTriggerHwOn','Trigger')
 set(iodev.NI.ai, 'TriggerRepeat', 0);
 % set SamplesPerTrigger to Inf for continous acquisition or 
 % to # of samples to collect for each trigger event
-inpts = length(handles.raw) + ms2samples(10, iodev.Fs);
+if strcmpi(ButtonID, 'Play Raw')
+	inpts = length(handles.raw) + ms2samples(10, iodev.Fs);
+else
+	inpts = length(handles.adj) + ms2samples(10, iodev.Fs);
+end	
 set(iodev.NI.ai, 'SamplesPerTrigger', inpts);
 
 %------------------------------------------------------------------------
@@ -139,130 +159,135 @@ set(iodev.NI.ai, 'ChannelSkewMode', 'Equisample');
 %------------------------------------------------------------------------
 %------------------------------------------------------------------------
 
-%-------------------------------------------------------
-% send raw data to hardware and play it
-%-------------------------------------------------------
-putdata(iodev.NI.ao, sin2array(handles.raw, 1, handles.S.Fs)');
-% wait for time to settle
-timeToWait = ceil(bin2seconds(inpts, iodev.Fs)*2);
+if strcmpi(ButtonID, 'Play Raw')
+	%-------------------------------------------------------
+	% send raw data to hardware and play it
+	%-------------------------------------------------------
+	putdata(iodev.NI.ao, sin2array(handles.raw, 1, handles.S.Fs)');
+	% wait for time to settle
+	timeToWait = ceil(bin2seconds(inpts, iodev.Fs)*2);
 
-% start
-start([iodev.NI.ai iodev.NI.ao]);
-trigger([iodev.NI.ai iodev.NI.ao]);
-wait(iodev.NI.ai, timeToWait);
-% stop acquiring
-stop([iodev.NI.ai iodev.NI.ao]);
-% read data from ai object
-index = iodev.NI.ai.SamplesAvailable;
-rawresp = getdata(iodev.NI.ai, index);
+	% start
+	start([iodev.NI.ai iodev.NI.ao]);
+	trigger([iodev.NI.ai iodev.NI.ao]);
+	wait(iodev.NI.ai, timeToWait);
+	% stop acquiring
+	stop([iodev.NI.ai iodev.NI.ao]);
+	% read data from ai object
+	index = iodev.NI.ai.SamplesAvailable;
+	resp = getdata(iodev.NI.ai, index);
+	% pause
+	pause(1);
+	
+else
+	%-------------------------------------------------------
+	% send adj data to hardware and play it
+	%-------------------------------------------------------
+	putdata(iodev.NI.ao, sin2array(handles.adj, 1, handles.S.Fs)');
+	% wait for time to settle
+	timeToWait = bin2seconds(inpts, iodev.Fs)*2;
+	% start
+	start([iodev.NI.ai iodev.NI.ao]);
+	trigger([iodev.NI.ai iodev.NI.ao]);
+	wait(iodev.NI.ai, 5);
+	% stop acquiring
+	stop([iodev.NI.ai iodev.NI.ao]);
+	% read data from ai object
+	index = iodev.NI.ai.SamplesAvailable;
+	resp = getdata(iodev.NI.ai, index);
+	pause(1)
+end
 
-% pause
-pause(1);
-
 %-------------------------------------------------------
-% send adj data to hardware and play it
+% filter data
 %-------------------------------------------------------
-putdata(iodev.NI.ao, sin2array(handles.adj, 1, handles.S.Fs)');
-% wait for time to settle
-timeToWait = bin2seconds(inpts, iodev.Fs)*2;
-% start
-start([iodev.NI.ai iodev.NI.ao]);
-trigger([iodev.NI.ai iodev.NI.ao]);
-wait(iodev.NI.ai, 5);
-% stop acquiring
-stop([iodev.NI.ai iodev.NI.ao]);
-% read data from ai object
-index = iodev.NI.ai.SamplesAvailable;
-adjresp = getdata(iodev.NI.ai, index);
-
-%-------------------------------------------------------
-%% filter data
-%-------------------------------------------------------
-rawresp = filtfilt(handles.fcoeffb, handles.fcoeffa, rawresp);
-adjresp = filtfilt(handles.fcoeffb, handles.fcoeffa, adjresp);
+resp = filtfilt(handles.fcoeffb, handles.fcoeffa, resp);
 
 %-----------------------------------------------------------------------
-%% plot data
+% plot data
 %-----------------------------------------------------------------------
 % take fft of raw and adj response data
-[fraw, magraw, phiraw] = daqdbfullfft(rawresp, iodev.Fs, length(rawresp));
-[fadj, magadj, phiadj] = daqdbfullfft(adjresp, iodev.Fs, length(adjresp));
-
+[fresp, magresp, phiresp] = daqdbfullfft(resp, iodev.Fs, length(resp));
 
 % plotting limits
 dblim = [-120 0];
 freqlim = 0.001*[0 iodev.Fs/2];
 
-% raw plots
-axes(handles.RawSignalAxes)
-tvec = 1000 * (0:(length(rawresp)-1)) ./ iodev.Fs;
-plot(tvec, rawresp)
-title('Signal (V)')
-ylabel('Raw', 'Color', 'b')
-set(handles.RawSignalAxes, 'XTickLabel', []);
+if strcmpi(ButtonID, 'Play Raw')
+	% raw plots
+	axes(handles.RawSignalAxes)
+	tvec = 1000 * (0:(length(resp)-1)) ./ iodev.Fs;
+	plot(tvec, resp)
+	title('Signal (V)')
+	ylabel('Raw', 'Color', 'b')
+	set(handles.RawSignalAxes, 'XTickLabel', []);
 
-axes(handles.RawMagAxes)
-plot(0.001*fraw, magraw);
-title('Magnitude (dB)')
-ylim(dblim);
-xlim(freqlim);
-set(handles.RawMagAxes, 'XTickLabel', []);
+	axes(handles.RawMagAxes)
+	plot(0.001*fresp, magresp);
+	title('Magnitude (dB)')
+	ylim(dblim);
+	xlim(freqlim);
+	set(handles.RawMagAxes, 'XTickLabel', []);
 
-axes(handles.RawPhaseAxes)
-plot(0.001*fraw, unwrap(phiraw));
-title('Phase (rad)')
-xlim(freqlim);
-set(handles.RawPhaseAxes, 'XTickLabel', []);
+	axes(handles.RawPhaseAxes)
+	plot(0.001*fresp, unwrap(phiresp));
+	title('Phase (rad)')
+	xlim(freqlim);
+	set(handles.RawPhaseAxes, 'XTickLabel', []);
 
-axes(handles.RawSpectrumAxes)
-[S, F, T, P] = spectrogram(	rawresp, ...
-										handles.SpectrumWindow, ...
-										floor(0.95*handles.SpectrumWindow), ...
-										512, ...
-										iodev.Fs	);
-surf(1000*T, 0.001*F, 20*log10(P), 'edgecolor', 'none');
-ylim(freqlim);
-axis tight;
-view(0, 90);
-title('Time vs. Freq (kHz) vs. dB')
-set(handles.RawSpectrumAxes, 'XTickLabel', []);
-colormap(handles.AdjSpectrumAxes, handles.ColorMap)
+	axes(handles.RawSpectrumAxes)
+	[S, F, T, P] = spectrogram(	resp, ...
+											handles.SpectrumWindow, ...
+											floor(0.95*handles.SpectrumWindow), ...
+											512, ...
+											iodev.Fs	);
+	surf(1000*T, 0.001*F, 20*log10(P), 'edgecolor', 'none');
+	ylim(freqlim);
+	axis tight;
+	view(0, 90);
+	title('Time vs. Freq (kHz) vs. dB')
+	set(handles.RawSpectrumAxes, 'XTickLabel', []);
+	colormap(handles.AdjSpectrumAxes, handles.ColorMap)
 
-% Update adj plots
-axes(handles.AdjSignalAxes)
-tvec = 1000 * (0:(length(adjresp)-1)) ./ iodev.Fs;
-plot(tvec, adjresp, 'g')
-ylabel('Adj', 'Color', 'g')
-xlabel('time (ms)')
+elseif strcmpi(ButtonID, 'Play Adj')
+	% Update adj plots
+	axes(handles.AdjSignalAxes)
+	tvec = 1000 * (0:(length(resp)-1)) ./ iodev.Fs;
+	plot(tvec, resp, 'g')
+	ylabel('Adj', 'Color', 'g')
+	xlabel('time (ms)')
 
-axes(handles.AdjMagAxes)
-plot(0.001*fadj, magadj, 'g');
-ylim(dblim);
-xlim(freqlim);
-xlabel('freq (kHz)');
+	axes(handles.AdjMagAxes)
+	plot(0.001*fresp, magresp, 'g');
+	ylim(dblim);
+	xlim(freqlim);
+	xlabel('freq (kHz)');
 
-axes(handles.AdjPhaseAxes)
-plot(0.001*fadj, unwrap(phiadj), 'g');
-xlim(freqlim);
-xlabel('freq (kHz)');
+	axes(handles.AdjPhaseAxes)
+	plot(0.001*fresp, unwrap(phiresp), 'g');
+	xlim(freqlim);
+	xlabel('freq (kHz)');
 
-axes(handles.AdjSpectrumAxes)
-[S, F, T, P] = spectrogram(	adjresp, ...
-										handles.SpectrumWindow, ...
-										floor(0.95*handles.SpectrumWindow), ...
-										512, ...
-										iodev.Fs	);
-surf(1000*T, 0.001*F, 20*log10(P), 'edgecolor', 'none');
-ylim(freqlim);
-axis tight;
-view(0, 90);
-xlabel('Time (ms)')
-colormap(handles.AdjSpectrumAxes, handles.ColorMap)
+	axes(handles.AdjSpectrumAxes)
+	[S, F, T, P] = spectrogram(	resp, ...
+											handles.SpectrumWindow, ...
+											floor(0.95*handles.SpectrumWindow), ...
+											512, ...
+											iodev.Fs	);
+	surf(1000*T, 0.001*F, 20*log10(P), 'edgecolor', 'none');
+	ylim(freqlim);
+	axis tight;
+	view(0, 90);
+	xlabel('Time (ms)')
+	colormap(handles.AdjSpectrumAxes, handles.ColorMap);
+end
 %------------------------------------------------------------------------------
 
 
 %-----------------------------------------------------------------------
-%% Clean up the NI Device
+%-----------------------------------------------------------------------
+% Clean up the NI Device
+%-----------------------------------------------------------------------
 %-----------------------------------------------------------------------
 disp('...closing NI devices...');
 
@@ -285,11 +310,13 @@ save(fullfile(pwd, 'EventLogs.mat'), ...
 
 clear iodev
 
-nargout
-if nargout <= 2
-	varargout{1} = rawresp;
+if any(nargout == [1 2 3])
+	varargout{1} = resp;
 end
-if nargout == 2
-	varargout{2} = adjresp;
+if any(nargout == [2 3])
+	varargout{2} = magresp;
+end
+if nargout == 3
+	varargout{3} = phiresp;
 end
 

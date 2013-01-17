@@ -22,7 +22,7 @@ function varargout = FlatWav(varargin)
 
 % Edit the above text to modify the response to help FlatWav
 
-% Last Modified by GUIDE v2.5 21-Dec-2012 10:48:57
+% Last Modified by GUIDE v2.5 17-Jan-2013 14:54:45
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -393,57 +393,15 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
-function PlaySignalCtrl_Callback(hObject, eventdata, handles)
+function PlayRawSignalCtrl_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
-	%--------------------------------------------------
-	% update bandpass filter for processing the data
-	%--------------------------------------------------
-	% Nyquist frequency
-	fnyq = handles.S.Fs / 2;
-	% passband definition
-	fband = [handles.HPFc handles.LPFc] ./ fnyq;
-	% filter coefficients using a butterworth bandpass filter
-	[handles.fcoeffb, handles.fcoeffa] = butter(handles.FilterOrder, fband, 'bandpass');
-	guidata(hObject, handles);
-	
-	if strcmpi(handles.OutputDevice, 'WINSOUND')
-		if (handles.S.Fs == 44100)  && ~isempty(handles.raw) && ~isempty(handles.adj)
-			disable_ui(hObject);
-			update_ui_str(hObject, 'RAW');
-			pause(0.5);
-			sound(sin2array(handles.raw, 1, handles.S.Fs), handles.S.Fs);
-			pause(2);
-			update_ui_str(hObject, 'ADJ');
-			pause(0.5);
-			sound(sin2array(handles.adj, 1, handles.S.Fs), handles.S.Fs);
-			pause(1);
-			enable_ui(hObject);
-			update_ui_str(hObject, 'Play');
-			update_ui_str(handles.RawdBText, sprintf('Raw dB SPL: ---'));
-			update_ui_str(handles.AdjdBText, sprintf('Adj dB SPL: ---'));
-			hide_uictrl(handles.RawdBText);
-			hide_uictrl(handles.AdjdBText);
-		end
-	elseif strcmpi(handles.OutputDevice, 'NIDAQ')
-		[handles.rawresp, handles.adjresp] = NIplaysignal(handles);
-		% compute dBSPL
-		rawRMS = rms(handles.rawresp);
-		rawdBSPL = dbspl(handles.VtoPa*rawRMS);
-		adjRMS = rms(handles.adjresp);
-		adjdBSPL = dbspl(handles.VtoPa*adjRMS);
-		fprintf('Raw dB SPL: %.4f\n', rawdBSPL);
-		fprintf('Adj dB SPL: %.4f\n', adjdBSPL);
-		update_ui_str(handles.RawdBText, sprintf('Raw dB SPL: %.2f', rawdBSPL));
-		update_ui_str(handles.AdjdBText, sprintf('Adj dB SPL: %.2f', adjdBSPL));
-		show_uictrl(handles.RawdBText);
-		show_uictrl(handles.AdjdBText);
+	PlaySignal(hObject, handles);
+%------------------------------------------------------------------------------
 
-	else
-		errordlg(sprintf('unknown io device %s', handles.OutputDevice), 'FlatWav Error');
-	end
-	guidata(hObject, handles);
-	
-
+%------------------------------------------------------------------------------
+function PlayAdjSignalCtrl_Callback(hObject, eventdata, handles)
+%------------------------------------------------------------------------------
+	PlaySignal(hObject, handles);
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
