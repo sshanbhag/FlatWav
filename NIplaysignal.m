@@ -15,7 +15,6 @@ function varargout = NIplaysignal(hObject, handles)
 % Revisions:
 %------------------------------------------------------------------------------
 
-
 %-----------------------------------------------------------------------
 %-----------------------------------------------------------------------
 % Settings/Constants
@@ -25,7 +24,7 @@ function varargout = NIplaysignal(hObject, handles)
 %--------------------------------------------------
 % find who called us
 %--------------------------------------------------
-ButtonID = read_ui_str(hObject) %#ok<NOPRT>
+ButtonID = read_ui_str(hObject);
 
 % NICal_Constants;
 AI_LIMIT = 5;
@@ -203,11 +202,32 @@ end
 %-------------------------------------------------------
 resp = filtfilt(handles.fcoeffb, handles.fcoeffa, resp);
 
+
+%-------------------------------------------------------
+% update analysis window
+%-------------------------------------------------------
+% check if analysis window is beyond length of signal
+if  ms2samples(handles.Awindow(2), iodev.Fs) > length(resp)
+	% if so, reset to duration of signal
+	handles.Awindow(2) = floor(bin2ms(length(resp), iodev.Fs));
+	update_ui_str(handles.AnalysisEndCtrl, handles.Awindow(2));
+	guidata(hObject, handles);
+	fprintf('warning: Analysis End > length of signal!!!!');
+end
+% find bins for analysis
+bin = ms2samples(handles.Awindow, iodev.Fs);
+if bin(1) == 0
+	bin(1) = 1;
+end
+
+
 %-----------------------------------------------------------------------
 % plot data
 %-----------------------------------------------------------------------
 % take fft of raw and adj response data
-[fresp, magresp, phiresp] = daqdbfullfft(resp, iodev.Fs, length(resp));
+[fresp, magresp, phiresp] = daqdbfullfft(	resp(bin(1):bin(2)), ...
+														iodev.Fs, ...
+														length(resp(bin(1):bin(2))) );
 
 % plotting limits
 dblim = [-120 0];
@@ -253,18 +273,18 @@ elseif strcmpi(ButtonID, 'Play Adj')
 	% Update adj plots
 	axes(handles.AdjSignalAxes)
 	tvec = 1000 * (0:(length(resp)-1)) ./ iodev.Fs;
-	plot(tvec, resp, 'g')
-	ylabel('Adj', 'Color', 'g')
+	plot(tvec, resp, 'r')
+	ylabel('Adj', 'Color', 'r')
 	xlabel('time (ms)')
 
 	axes(handles.AdjMagAxes)
-	plot(0.001*fresp, magresp, 'g');
+	plot(0.001*fresp, magresp, 'r');
 	ylim(dblim);
 	xlim(freqlim);
 	xlabel('freq (kHz)');
 
 	axes(handles.AdjPhaseAxes)
-	plot(0.001*fresp, unwrap(phiresp), 'g');
+	plot(0.001*fresp, unwrap(phiresp), 'r');
 	xlim(freqlim);
 	xlabel('freq (kHz)');
 
@@ -282,7 +302,6 @@ elseif strcmpi(ButtonID, 'Play Adj')
 	colormap(handles.AdjSpectrumAxes, handles.ColorMap);
 end
 %------------------------------------------------------------------------------
-
 
 %-----------------------------------------------------------------------
 %-----------------------------------------------------------------------
