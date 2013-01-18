@@ -333,10 +333,8 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 															synth.fmin, ...
 															synth.fmax, ...
 															synth.amp, 0);
-			end
-			% apply ramp to raw stimulus
-			handles.raw = sin2array(handles.raw, synth.ramp, handles.S.Fs);
-	end
+			end	% END switch synth.type
+	end	% END switch handles.SignalMode
 	
 	% update analysis window
 	% check if analysis window is beyond length of signal
@@ -411,6 +409,13 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 											'Lowcut', lowcut, ...
 											'Level', handles.TargetSPL);
 	end
+	
+	if strcmpi(handles.SignalMode, 'SYNTH')
+		% apply ramp to stimuli
+		handles.raw = sin2array(handles.raw, synth.ramp, handles.S.Fs);
+		handles.raw = sin2array(handles.adj, synth.ramp, handles.S.Fs);
+	end
+	guidata(hObject, handles);
 		
 	% take fft of adj data
 	[handles.fadj, handles.magadj, handles.phiadj] = ...
