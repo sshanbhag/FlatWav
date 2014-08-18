@@ -75,9 +75,9 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	disp([mfilename ': checking paths'])
 	if ispc
 		% directory when using installed version:
-		%	pdir = ['C:\TytoLogy\TytoLogySettings\' getenv('USERNAME')];
+		pdir = ['C:\TytoLogy\TytoLogySettings\' getenv('USERNAME')];
 		% development tree
-		pdir = ['C:\Users\sshanbhag\Code\Matlab\TytoLogy\TytoLogySettings\' getenv('USERNAME')];
+		% pdir = ['C:\Users\sshanbhag\Code\Matlab\TytoLogy\TytoLogySettings\' getenv('USERNAME')];
 	else ismac
 		pdir = ['~/Work/Code/Matlab/dev/TytoLogy/TytoLogySettings/' getenv('USER')];
 	end
@@ -413,7 +413,7 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 	if strcmpi(handles.SignalMode, 'SYNTH')
 		% apply ramp to stimuli
 		handles.raw = sin2array(handles.raw, synth.ramp, handles.S.Fs);
-		handles.raw = sin2array(handles.adj, synth.ramp, handles.S.Fs);
+		handles.adj = sin2array(handles.adj, synth.ramp, handles.S.Fs);
 	end
 	guidata(hObject, handles);
 		
