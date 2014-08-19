@@ -230,7 +230,8 @@ end
 														length(resp(bin(1):bin(2))) );
 
 % plotting limits
-dblim = [-120 0];
+% limits for Mag and Phase plots
+dblim = [min(magresp) max(magresp)];
 freqlim = 0.001*[0 iodev.Fs/2];
 
 if strcmpi(ButtonID, 'Play Raw')
@@ -267,7 +268,7 @@ if strcmpi(ButtonID, 'Play Raw')
 	view(0, 90);
 	title('Time vs. Freq (kHz) vs. dB')
 	set(handles.RawSpectrumAxes, 'XTickLabel', []);
-	colormap(handles.AdjSpectrumAxes, handles.ColorMap)
+	colormap(handles.RawSpectrumAxes, handles.ColorMap)
 
 elseif strcmpi(ButtonID, 'Play Adj')
 	% Update adj plots
