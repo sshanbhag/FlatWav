@@ -22,7 +22,7 @@ function varargout = FlatWav(varargin)
 
 % Edit the above text to modify the response to help FlatWav
 
-% Last Modified by GUIDE v2.5 18-Jan-2013 12:14:18
+% Last Modified by GUIDE v2.5 19-Aug-2014 16:56:45
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -178,7 +178,8 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	%--------------------------------------------------
 	%--------------------------------------------------
 	handles.SpectrumWindow = 1024;
-	handles.ColorMap = 'hot';
+	handles.ColorMap = 'hot';	
+	handles.ColorMap = 'gray';
 	guidata(hObject, handles);
 	
 	%--------------------------------------------------
@@ -205,6 +206,16 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	guidata(hObject, handles);
 	plot(handles.CalibrationAxes, 0.001*handles.cal.freq, handles.cal.mag(1, :), '.-');
 	ylim([0 100]);
+	
+	%--------------------------------------------------
+	%--------------------------------------------------
+	% calibration processing settings
+	%--------------------------------------------------
+	handles.SmoothMethod = 1;
+	handles.SmoothVal1 = 3;
+	handles.SmoothVal2 = 4;
+	guidata(hObject, handles)
+	SmoothCalCtrl_Callback(hObject, eventdata, handles);
 
 	%--------------------------------------------------
 	%--------------------------------------------------
@@ -452,6 +463,154 @@ function SaveSoundCtrl_Callback(hObject, eventdata, handles)
 	% use the menu item callback
 	SaveAdjSignalMenuItem_Callback(hObject, eventdata, handles);
 %------------------------------------------------------------------------------
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
+
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
+% CALIBRATION DATA CONTROLS
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
+
+%------------------------------------------------------------------------------
+function SmoothCalCtrl_Callback(hObject, eventdata, handles)
+	if read_ui_val(handles.SmoothCalCtrl)
+		enable_ui(handles.CalSmoothMethodText);
+		enable_ui(handles.CalSmoothMethodCtrl);
+		smoothmethod = read_ui_val(handles.CalSmoothMethodCtrl);
+		switch(smoothmethod)
+			case 1
+				enable_ui(handles.SmoothVal1Text);
+				update_ui_str(handles.SmoothVal1Text, 'Window Size');
+				enable_ui(handles.SmoothVal1Ctrl);
+				disable_ui(handles.SmoothVal2Text);
+				disable_ui(handles.SmoothVal2Ctrl);
+			case 2
+				enable_ui(handles.SmoothVal1Text);
+				update_ui_str(handles.SmoothVal1Text, 'Order');
+				enable_ui(handles.SmoothVal1Ctrl);
+				enable_ui(handles.SmoothVal2Text);
+				update_ui_str(handles.SmoothVal2Text, 'Frame Size');
+				enable_ui(handles.SmoothVal2Ctrl);
+		end
+		mag_smooth = SmoothCalibrationData(hObject, eventdata, handles);
+		plot(handles.CalibrationAxes, 0.001*handles.cal.freq, mag_smooth(1, :), '.-');
+		ylim([0 (1.1 * max(mag_smooth))]);
+		figure(1)
+		plot( 0.001*handles.cal.freq, mag_smooth(1, :), '.-');
+	else
+		disable_ui(handles.CalSmoothMethodText);
+		disable_ui(handles.CalSmoothMethodCtrl);
+		disable_ui(handles.SmoothVal1Text);
+		disable_ui(handles.SmoothVal1Ctrl);
+		plot(handles.CalibrationAxes, 0.001*handles.cal.freq, handles.cal.mag(1, :), '.-');
+		ylim([0 (1.1 * max(handles.cal.mag(1, :))) ]);
+		figure(1)
+		plot(0.001*handles.cal.freq, handles.cal.mag(1, :), '.-');
+	end
+	guidata(hObject, handles);
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function CalSmoothMethodCtrl_Callback(hObject, eventdata, handles)
+%------------------------------------------------------------------------------
+	% get value of smooth method
+	smoothmethod = read_ui_val(handles.CalSmoothMethodCtrl);
+	switch(smoothmethod)
+		case 1
+			enable_ui(handles.SmoothVal1Text);
+			update_ui_str(handles.SmoothVal1Text, 'Window Size');
+			enable_ui(handles.SmoothVal1Ctrl);
+			disable_ui(handles.SmoothVal2Text);
+			disable_ui(handles.SmoothVal2Ctrl);
+		case 2
+			enable_ui(handles.SmoothVal1Text);
+			update_ui_str(handles.SmoothVal1Text, 'Order');
+			enable_ui(handles.SmoothVal1Ctrl);
+			enable_ui(handles.SmoothVal2Text);
+			update_ui_str(handles.SmoothVal2Text, 'Frame Size');
+			enable_ui(handles.SmoothVal2Ctrl);
+	end
+	
+	mag_smooth = SmoothCalibrationData(hObject, eventdata, handles);
+	plot(handles.CalibrationAxes, 0.001*handles.cal.freq, mag_smooth(1, :), '.-');
+	ylim([0 (1.1 * max(mag_smooth))]);
+	figure(1)
+	plot( 0.001*handles.cal.freq, mag_smooth(1, :), '.-');
+	
+	
+	guidata(hObject, handles);
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function SmoothVal1Ctrl_Callback(hObject, eventdata, handles)
+	tmp = read_ui_str(handles.SmoothVal1Ctrl, 'n');
+	if tmp > 0
+		handles.SmoothVal1 = tmp;
+	else
+		update_ui_str(handles.SmoothVal1Ctrl, handles.SmoothVal1);
+		errordlg('Value must be greater than 0', 'Flat Wav Error');
+	end
+	CalSmoothMethodCtrl_Callback(hObject, eventdata, handles);
+	guidata(hObject, handles)
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function SmoothVal2Ctrl_Callback(hObject, eventdata, handles)
+	tmp = read_ui_str(handles.SmoothVal2Ctrl, 'n');
+	if tmp > 0
+		if even(tmp)
+			update_ui_str(handles.SmoothVal2Ctrl, handles.SmoothVal2);
+			errordlg('Value must be odd', 'Flat Wav Error');
+		else
+			handles.SmoothVal2 = tmp;
+		end
+	else
+		update_ui_str(handles.SmoothVal2Ctrl, handles.SmoothVal2);
+		errordlg('Value must be greater than 0', 'Flat Wav Error');
+	end
+	CalSmoothMethodCtrl_Callback(hObject, eventdata, handles);
+	guidata(hObject, handles)
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function smoothed = SmoothCalibrationData(hObject, eventdata, handles)
+	smoothmethod = read_ui_val(handles.CalSmoothMethodCtrl)
+	switch(smoothmethod)
+		case 1
+			% moving window average
+			[nrows, ncols] = size(handles.cal.mag);
+			smoothed = zeros(nrows, ncols);
+			for n = 1:nrows
+				smoothed(n, :) = moving_average(	handles.cal.mag(n, :), ...
+															handles.SmoothVal1);
+			end
+		case 2
+			% savitzky-golay filter
+			[nrows, ncols] = size(handles.cal.mag);
+			smoothed = zeros(nrows, ncols);
+			for n = 1:nrows
+				smoothed(n, :) = sgolayfilt(	handles.cal.mag(n, :), ...
+														handles.SmoothVal1, ...
+														handles.SmoothVal2	);
+			end			
+		
+		otherwise
+			smoothed = handles.cal.mag;
+	end
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function y = moving_average(x, w)
+	k = ones(1, w) ./ w;
+	y = conv(x, k, 'same');
+%------------------------------------------------------------------------------
+
+
+
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
@@ -835,9 +994,12 @@ function updateSynthFromGui(hObject, handles)
 %------------------------------------------------------------------------------
 function updatePlots(hObject, handles)
 	% plotting limits
-	dblim = [-120 0];
+	% limits for Mag and Phase plots
+	dbmax = 0;
+	dbmin = min([min(handles.magraw) min(handles.magadj)]);
+	dblim = [dbmin dbmax];
 	freqlim = 0.001*[0 handles.S.Fs/2];
-
+	
 	% update raw plots
 	axes(handles.RawSignalAxes)
 	tvec = 1000 * (0:(length(handles.raw)-1)) ./ handles.S.Fs;
@@ -845,6 +1007,9 @@ function updatePlots(hObject, handles)
 	title('Signal (V)')
 	ylabel('Raw', 'Color', 'b')
 	set(handles.RawSignalAxes, 'XTickLabel', []);
+	xlim([min(tvec) max(tvec)])
+	% get ticks
+	time_ticks = get(handles.RawSignalAxes, 'XTick');
 	
 	axes(handles.RawMagAxes)
 	plot(0.001*handles.fraw, handles.magraw);
@@ -866,8 +1031,10 @@ function updatePlots(hObject, handles)
 											512, ...
 											handles.S.Fs	);
 	surf(1000*T, 0.001*F, 20*log10(P), 'edgecolor', 'none');
+	xlim([min(tvec) max(tvec)])
 	ylim(freqlim);
-	axis tight;
+	set(handles.RawSpectrumAxes, 'XTick', time_ticks)
+%	axis tight;
 	view(0, 90);
 	title('Time vs. Freq (kHz) vs. dB')
 	set(handles.RawSpectrumAxes, 'XTickLabel', []);
@@ -877,6 +1044,7 @@ function updatePlots(hObject, handles)
 	axes(handles.AdjSignalAxes)
 	tvec = 1000 * (0:(length(handles.adj)-1)) ./ handles.S.Fs;
 	plot(tvec, handles.adj, 'r')
+	xlim([min(tvec) max(tvec)])
 	ylabel('Adj', 'Color', 'r')
 	xlabel('time (ms)')
 	
@@ -898,8 +1066,10 @@ function updatePlots(hObject, handles)
 											512, ...
 											handles.S.Fs	);
 	surf(1000*T, 0.001*F, 20*log10(P), 'edgecolor', 'none');
+	xlim([min(tvec) max(tvec)])
 	ylim(freqlim);
-	axis tight;
+	set(handles.AdjSpectrumAxes, 'XTick', time_ticks)	
+%	axis tight;
 	view(0, 90);
 	xlabel('Time (ms)')
 	colormap(handles.AdjSpectrumAxes, handles.ColorMap)
@@ -1296,8 +1466,22 @@ function AnalysisEndCtrl_CreateFcn(hObject, eventdata, handles)
 	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
+function SmoothVal1Ctrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
 
+function CalSmoothMethodCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+		set(hObject,'BackgroundColor','white');
+	end
+function SmoothVal2Ctrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	    set(hObject,'BackgroundColor','white');
+	end
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
+
+
 

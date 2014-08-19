@@ -35,6 +35,7 @@ fband = [handles.HPFc handles.LPFc] ./ fnyq;
 if  ms2samples(handles.Awindow(2), handles.S.Fs) > length(handles.raw)
 	% if so, reset to duration of signal
 	handles.Awindow(2) = floor(bin2ms(length(handles.raw), handles.S.Fs));
+	% and update display
 	update_ui_str(handles.AnalysisEndCtrl, handles.Awindow(2));
 	guidata(hObject, handles);
 	fprintf('warning: Analysis End > length of signal!!!!');
@@ -44,12 +45,16 @@ bin = ms2samples(handles.Awindow, handles.S.Fs);
 if bin(1) == 0
 	bin(1) = 1;
 end
-
+% store changes to handles 
 guidata(hObject, handles);
 
+%--------------------------------------------------
+% play sound out of selected output device
+%--------------------------------------------------
 if strcmpi(handles.OutputDevice, 'WINSOUND')
-	if (handles.S.Fs == 44100)  
+	if (handles.S.Fs == 44100)
 		if strcmpi(ButtonID, 'Play Raw') && ~isempty(handles.raw)
+			% play raw sound
 			disable_ui(hObject);
 			pause(0.5);
 			sound(sin2array(handles.raw, 1, handles.S.Fs), handles.S.Fs);
@@ -59,6 +64,7 @@ if strcmpi(handles.OutputDevice, 'WINSOUND')
 			hide_uictrl(handles.RawdBText);
 			hide_uictrl(handles.AdjdBText);
 		elseif strcmpi(ButtonID, 'Play Adj') && ~isempty(handles.adj)
+			% play adj sound
 			disable_ui(hObject);
 			pause(0.5);
 			sound(sin2array(handles.adj, 1, handles.S.Fs), handles.S.Fs);
@@ -68,9 +74,14 @@ if strcmpi(handles.OutputDevice, 'WINSOUND')
 			hide_uictrl(handles.RawdBText);
 			hide_uictrl(handles.AdjdBText);		
 		end
+	else
+		errordlg(sprintf('Invalid sample rate %.2f for WINSOUND', handles.S.Fs), ...
+								'FlatWav Error');
 	end
+	
 elseif strcmpi(handles.OutputDevice, 'NIDAQ')
 	if strcmpi(ButtonID, 'Play Raw') && ~isempty(handles.raw)
+		% play raw sound
 		disable_ui(hObject);
 		handles.rawresp = NIplaysignal(hObject, handles);
 		% compute dBSPL
@@ -81,6 +92,7 @@ elseif strcmpi(handles.OutputDevice, 'NIDAQ')
 		show_uictrl(handles.RawdBText);
 		enable_ui(hObject);		
 	elseif strcmpi(ButtonID, 'Play Adj') && ~isempty(handles.adj)
+		% play adj sound
 		disable_ui(hObject);
 		handles.adjresp = NIplaysignal(hObject, handles);
 		% compute dBSPL
@@ -91,12 +103,15 @@ elseif strcmpi(handles.OutputDevice, 'NIDAQ')
 		show_uictrl(handles.AdjdBText);		
 		enable_ui(hObject);
 	end
-
+	
 else
 	errordlg(sprintf('unknown io device %s', handles.OutputDevice), 'FlatWav Error');
 end
 guidata(hObject, handles);
 
+% assign outputs
 varargout{1} = hObject;
 varargout{2} = handles;
+
+return
 
