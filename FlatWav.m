@@ -22,7 +22,7 @@ function varargout = FlatWav(varargin)
 
 % Edit the above text to modify the response to help FlatWav
 
-% Last Modified by GUIDE v2.5 19-Aug-2014 16:56:45
+% Last Modified by GUIDE v2.5 20-Aug-2014 14:20:50
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -136,11 +136,15 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	guidata(hObject, handles);
 	updateSynthFromGui(hObject, handles);
 	guidata(hObject, handles);
+	% set Raw and Adj dB text to default vals and hide them
 	update_ui_str(handles.RawdBText, sprintf('Raw dB SPL: ---'));
 	update_ui_str(handles.AdjdBText, sprintf('Adj dB SPL: ---'));
 	hide_uictrl(handles.RawdBText);
 	hide_uictrl(handles.AdjdBText);
-
+	% assign blank handle to PlaySignalFig
+	handles.PlaySignalFig = [];
+	guidata(hObject, handles);
+	
 	%--------------------------------------------------
 	%--------------------------------------------------
 	% COMPENSATION SETTINGS
@@ -151,8 +155,10 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	% set compensation method to 1 ('atten')
 	handles.CompMethod = 1;
 	update_ui_val(handles.CompMethodCtrl, handles.CompMethod);
-	% set correction freq range (in Hz)
-	handles.CorrFrange = [10 10000];
+	% set correction freq range (in Hz) and update ctrl values
+	handles.CorrFrange = [100 10000];
+	update_ui_str(handles.CorrFminCtrl, handles.CorrFrange(1));
+	update_ui_str(handles.CorrFmaxCtrl, handles.CorrFrange(2));
 	% default normalize status
 	handles.Normalize = 'on';
 	handles.NormalizeValue = 1.0;
@@ -189,7 +195,7 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	% create blank wavdata struct, update gui
 	handles.wavdata = struct(	'datafile', '', 'raw', [], 'fs', [], ...
 										'nbits', [], 'opts', []);
-	update_ui_str(handles.FilenameCtrl, '');
+	update_ui_str(handles.WavFilenameCtrl, '');
 	update_ui_str(handles.WaveInfoCtrl, 'no wav loaded');
 	% create empty raw and adj vectors
 	handles.raw = [];
@@ -234,21 +240,7 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	handles.VtoPa = (1/handles.MicGain) * (1/handles.MicSensitivity);
 	guidata(hObject, handles);
 
-	%--------------------------------------------------
-	%--------------------------------------------------
-	% Filter settings
-	% Define a bandpass filter for processing the data
-	%--------------------------------------------------
-	% Nyquist frequency
-	fnyq = handles.S.Fs / 2;
-	handles.LPFc = fnyq - 100;
-	handles.HPFc = 200;
-	handles.FilterOrder = 4;
-	% passband definition
-	fband = [handles.HPFc handles.LPFc] ./ fnyq;
-	% filter coefficients using a butterworth bandpass filter
-	[handles.fcoeffb, handles.fcoeffa] = butter(handles.FilterOrder, fband, 'bandpass');
-	guidata(hObject, handles);
+	
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
@@ -290,6 +282,7 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 % using settings from GUI, update the test signal, compensated signal, and
 % plots of the signals
 %------------------------------------------------------------------------------
+	disp('updating signal display...')
 	%--------------------------------------------------------------------
 	% Signal Mode is either WAV (.wav file) or SYNTH (synthesized)
 	%--------------------------------------------------------------------
@@ -437,6 +430,7 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 	updatePlots(hObject, handles);
 	% save variables in workspace
 	guidata(hObject, handles);
+	disp('....updating complete');
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
@@ -473,44 +467,8 @@ function SaveSoundCtrl_Callback(hObject, eventdata, handles)
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
-
 %------------------------------------------------------------------------------
 function SmoothCalCtrl_Callback(hObject, eventdata, handles)
-%{
-	if read_ui_val(handles.SmoothCalCtrl)
-		enable_ui(handles.CalSmoothMethodText);
-		enable_ui(handles.CalSmoothMethodCtrl);
-		smoothmethod = read_ui_val(handles.CalSmoothMethodCtrl);
-		switch(smoothmethod)
-			case 1
-				enable_ui(handles.SmoothVal1Text);
-				update_ui_str(handles.SmoothVal1Text, 'Window Size');
-				enable_ui(handles.SmoothVal1Ctrl);
-				disable_ui(handles.SmoothVal2Text);
-				disable_ui(handles.SmoothVal2Ctrl);
-			case 2
-				enable_ui(handles.SmoothVal1Text);
-				update_ui_str(handles.SmoothVal1Text, 'Order');
-				enable_ui(handles.SmoothVal1Ctrl);
-				enable_ui(handles.SmoothVal2Text);
-				update_ui_str(handles.SmoothVal2Text, 'Frame Size');
-				enable_ui(handles.SmoothVal2Ctrl);
-		end
-		mag_smooth = SmoothCalibrationData(hObject, eventdata, handles);
-		plot(handles.CalibrationAxes, 0.001*handles.cal.freq, mag_smooth(1, :), '.-');
-		ylim([0 (1.1 * max(mag_smooth))]);
-		figure(1)
-		plot( 0.001*handles.cal.freq, mag_smooth(1, :), '.-');
-	else
-		disable_ui(handles.CalSmoothMethodText);
-		disable_ui(handles.CalSmoothMethodCtrl);
-		disable_ui(handles.SmoothVal1Text);
-		disable_ui(handles.SmoothVal1Ctrl);
-		plot(handles.CalibrationAxes, 0.001*handles.cal.freq, handles.cal.mag(1, :), '.-');
-		ylim([0 (1.1 * max(handles.cal.mag(1, :))) ]);
-	end
-	guidata(hObject, handles);
-%}
 	% check value of handles.SmoothCalCtrl
 	if read_ui_val(handles.SmoothCalCtrl)
 		% if 1 (selected), enable the method text and control...
@@ -530,6 +488,7 @@ function SmoothCalCtrl_Callback(hObject, eventdata, handles)
 				handles.cal.mag(1, :), 'b.-');
 		ylim( [	(0.9 * min(handles.cal.mag(1, :))) ...
 					(1.1 * max(handles.cal.mag(1, :)))		]);
+		grid on
 	end
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
@@ -564,6 +523,7 @@ function CalSmoothMethodCtrl_Callback(hObject, eventdata, handles)
 				0.001*handles.cal.freq, ...
 				mag_smooth(1, :), 'b.-');
 	ylim([(0.9 * min(mag_smooth(1, :))) (1.1 * max(mag_smooth(1, :)))]);
+	grid on
 	% store smoothed data
 	handles.mag_smooth = mag_smooth;
 	guidata(hObject, handles);
@@ -685,6 +645,7 @@ function WavSignalButton_Callback(hObject, eventdata, handles)
 	end
 	update_ui_val(handles.WavSignalButton, 1);
 	guidata(hObject, handles);
+	UpdateInputFilter(hObject, eventdata, handles);
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
@@ -697,6 +658,7 @@ function SynthSignalButton_Callback(hObject, eventdata, handles)
 	update_ui_val(handles.SynthSignalButton, 1);
 	guidata(hObject, handles);
 	updateGuiFromSynth(hObject, handles);
+	UpdateInputFilter(hObject, eventdata, handles);
 %------------------------------------------------------------------------------
 %******************************************************************************
 %******************************************************************************
@@ -737,7 +699,8 @@ function SynthTypeCtrl_Callback(hObject, eventdata, handles)
 	% store in handles
 	guidata(hObject, handles);
 	% update gui from synth settings
-	updateGuiFromSynth(hObject, handles);		
+	updateGuiFromSynth(hObject, handles);
+	UpdateInputFilter(hObject, eventdata, handles);
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
@@ -751,6 +714,7 @@ function FsCtrl_Callback(hObject, eventdata, handles)
 		disp('Bad sample rate')
 	end
 	guidata(hObject, handles);
+	UpdateInputFilter(hObject, eventdata, handles);
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
@@ -762,6 +726,7 @@ function SynthCtrl_Callback(hObject, eventdata, handles)
 	param = handles.S.Param{handles.SynthIndex}{tagnum};
 	handles.synth.(param) = read_ui_str(hObject, 'n');
 	guidata(hObject, handles);
+	UpdateInputFilter(hObject, eventdata, handles);
 %------------------------------------------------------------------------------
 %******************************************************************************
 %******************************************************************************
@@ -776,7 +741,7 @@ function SynthCtrl_Callback(hObject, eventdata, handles)
 %******************************************************************************
 %******************************************************************************
 %------------------------------------------------------------------------------
-function FilenameCtrl_Callback(hObject, eventdata, handles)
+function WavFilenameCtrl_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
 	[tmppath, tmpfile] = fileparts(handles.wavdata.datafile);
 	[wavfile, wavpath] = uigetfile( '*.wav', ...
@@ -787,17 +752,25 @@ function FilenameCtrl_Callback(hObject, eventdata, handles)
 		wavdata.datafile = fullfile(wavpath, wavfile);
 		[wavdata.raw, wavdata.Fs, wavdata.nbits, wavdata.opts] = wavread(wavdata.datafile);
 		handles.wavdata = wavdata;
-		update_ui_str(handles.FilenameCtrl, handles.wavdata.datafile);
+		update_ui_str(handles.WavFilenameCtrl, handles.wavdata.datafile);
 		ostr = sprintf('Fs: %.2f\nnbits: %d\n', wavdata.Fs, wavdata.nbits);
 		update_ui_str(handles.WaveInfoCtrl, ostr);
 		handles.S.Fs = handles.wavdata.Fs;
 		update_ui_str(handles.FsCtrl, handles.S.Fs);
 		clear wavdata;
-		
+		% update input filter based on sample rate
+		UpdateInputFilter(hObject, eventdata, handles);
+		% update Analysis window based on duration of sound
+		handles.Awindow(1) = 0;
+		handles.Awindow(2) = floor(	bin2ms(length(handles.wavdata.raw), ...
+												handles.S.Fs));
+		update_ui_str(handles.AnalysisStartCtrl, handles.Awindow(1));
+		update_ui_str(handles.AnalysisEndCtrl, handles.Awindow(2));
+		guidata(hObject, handles);		
 	else
 		handles.wavdata = struct(	'datafile', '', 'raw', [], 'Fs', [], ...
 											'nbits', [], 'opts', []);
-		update_ui_str(handles.FilenameCtrl, '');
+		update_ui_str(handles.WavFilenameCtrl, '');
 		update_ui_str(handles.WaveInfoCtrl, 'no wav loaded');
 	end
 	guidata(hObject, handles);
@@ -961,6 +934,7 @@ function SoundCardButton_Callback(hObject, eventdata, handles)
 	hide_uictrl(handles.AdjdBText);
 %	handles.S.Fs = read_ui_str(handles.FsCtrl, 'n');
 	guidata(hObject, handles);
+	UpdateInputFilter(hObject, eventdata, handles);
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
@@ -978,6 +952,7 @@ function NIDAQButton_Callback(hObject, eventdata, handles)
 	show_uictrl(handles.RawdBText);
 	show_uictrl(handles.AdjdBText);
 	guidata(hObject, handles);
+	UpdateInputFilter(hObject, eventdata, handles);
 %------------------------------------------------------------------------------
 %******************************************************************************
 %******************************************************************************
@@ -1217,8 +1192,10 @@ function LoadCalMenuItem_Callback(hObject, eventdata, handles)
 	if calfile ~=0
 		datafile = fullfile(calpath, calfile);	
 		handles.cal = load_headphone_cal(datafile);
-		plot(handles.CalibrationAxes, 0.001*handles.cal.freq, handles.cal.mag(1, :), '.-');
-		ylim([min(handles.cal.mag(1, :)) max(handles.cal.mag(1, :))]);
+		plot(	handles.CalibrationAxes, ...
+				0.001*handles.cal.freq, ...
+				handles.cal.mag(1, :), '.-');
+		ylim([0.9*min(handles.cal.mag(1, :)) 1.1*max(handles.cal.mag(1, :))]);
 		grid on
 	end
 	guidata(hObject, handles);
@@ -1246,7 +1223,7 @@ function FlatCalMenuItem_Callback(hObject, eventdata, handles)
 %-------------------------------------------------------------------------
 function LoadWavMenuItem_Callback(hObject, eventdata, handles)
 %-------------------------------------------------------------------------
-	FilenameCtrl_Callback(hObject, eventdata, handles);
+	WavFilenameCtrl_Callback(hObject, eventdata, handles);
 %-------------------------------------------------------------------------	
 
 %------------------------------------------------------------------------------
@@ -1438,7 +1415,7 @@ function CompMethodCtrl_CreateFcn(hObject, eventdata, handles)
 		  set(hObject,'BackgroundColor','white');
 	end
 	set(hObject, 'String', {'plot(rand(5))', 'plot(sin(1:0.01:25))', 'bar(1:.5:10)', 'plot(membrane)', 'surf(peaks)'});
-function FilenameCtrl_CreateFcn(hObject, eventdata, handles)
+function WavFilenameCtrl_CreateFcn(hObject, eventdata, handles)
 	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
@@ -1522,6 +1499,8 @@ function SmoothVal2Ctrl_CreateFcn(hObject, eventdata, handles)
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
+
+
 
 
 

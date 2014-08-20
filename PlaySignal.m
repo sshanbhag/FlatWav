@@ -21,6 +21,11 @@ function varargout = PlaySignal(hObject, handles)
 ButtonID = read_ui_str(hObject);
 
 %--------------------------------------------------
+% if figure has not been created, do so
+%--------------------------------------------------
+
+
+%--------------------------------------------------
 % update bandpass filter for processing the data
 %--------------------------------------------------
 % Nyquist frequency
