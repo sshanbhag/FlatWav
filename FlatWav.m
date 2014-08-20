@@ -177,8 +177,7 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	% spectrum settings
 	%--------------------------------------------------
 	%--------------------------------------------------
-	handles.SpectrumWindow = 1024;
-	handles.ColorMap = 'hot';	
+	handles.SpectrumWindow = 512;
 	handles.ColorMap = 'gray';
 	guidata(hObject, handles);
 	
@@ -213,7 +212,7 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	%--------------------------------------------------
 	handles.SmoothMethod = 1;
 	handles.SmoothVal1 = 3;
-	handles.SmoothVal2 = 4;
+	handles.SmoothVal2 = 5;
 	guidata(hObject, handles)
 	SmoothCalCtrl_Callback(hObject, eventdata, handles);
 
@@ -477,6 +476,7 @@ function SaveSoundCtrl_Callback(hObject, eventdata, handles)
 
 %------------------------------------------------------------------------------
 function SmoothCalCtrl_Callback(hObject, eventdata, handles)
+%{
 	if read_ui_val(handles.SmoothCalCtrl)
 		enable_ui(handles.CalSmoothMethodText);
 		enable_ui(handles.CalSmoothMethodCtrl);
@@ -508,8 +508,28 @@ function SmoothCalCtrl_Callback(hObject, eventdata, handles)
 		disable_ui(handles.SmoothVal1Ctrl);
 		plot(handles.CalibrationAxes, 0.001*handles.cal.freq, handles.cal.mag(1, :), '.-');
 		ylim([0 (1.1 * max(handles.cal.mag(1, :))) ]);
-		figure(1)
-		plot(0.001*handles.cal.freq, handles.cal.mag(1, :), '.-');
+	end
+	guidata(hObject, handles);
+%}
+	% check value of handles.SmoothCalCtrl
+	if read_ui_val(handles.SmoothCalCtrl)
+		% if 1 (selected), enable the method text and control...
+		enable_ui(handles.CalSmoothMethodText);
+		enable_ui(handles.CalSmoothMethodCtrl);
+		% ... and call the smoothmethod control callback
+		CalSmoothMethodCtrl_Callback(hObject, eventdata, handles);
+	else
+		% if 0 (unselected), disable appropriate controls...
+		disable_ui(handles.CalSmoothMethodText);
+		disable_ui(handles.CalSmoothMethodCtrl);
+		disable_ui(handles.SmoothVal1Text);
+		disable_ui(handles.SmoothVal1Ctrl);
+		% and plot original cal mag data
+		plot(handles.CalibrationAxes, ...
+				0.001*handles.cal.freq, ...
+				handles.cal.mag(1, :), 'b.-');
+		ylim( [	(0.9 * min(handles.cal.mag(1, :))) ...
+					(1.1 * max(handles.cal.mag(1, :)))		]);
 	end
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
@@ -519,14 +539,17 @@ function CalSmoothMethodCtrl_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
 	% get value of smooth method
 	smoothmethod = read_ui_val(handles.CalSmoothMethodCtrl);
+	% based on smoothmethod, adjust UI controls/display
 	switch(smoothmethod)
 		case 1
+			% moving-window average
 			enable_ui(handles.SmoothVal1Text);
 			update_ui_str(handles.SmoothVal1Text, 'Window Size');
 			enable_ui(handles.SmoothVal1Ctrl);
 			disable_ui(handles.SmoothVal2Text);
 			disable_ui(handles.SmoothVal2Ctrl);
 		case 2
+			% Savitzky-Golay filter
 			enable_ui(handles.SmoothVal1Text);
 			update_ui_str(handles.SmoothVal1Text, 'Order');
 			enable_ui(handles.SmoothVal1Ctrl);
@@ -534,14 +557,15 @@ function CalSmoothMethodCtrl_Callback(hObject, eventdata, handles)
 			update_ui_str(handles.SmoothVal2Text, 'Frame Size');
 			enable_ui(handles.SmoothVal2Ctrl);
 	end
-	
+	% smooth the calibration mag data, return in mag_smooth
 	mag_smooth = SmoothCalibrationData(hObject, eventdata, handles);
-	plot(handles.CalibrationAxes, 0.001*handles.cal.freq, mag_smooth(1, :), '.-');
-	ylim([0 (1.1 * max(mag_smooth))]);
-	figure(1)
-	plot( 0.001*handles.cal.freq, mag_smooth(1, :), '.-');
-	
-	
+	% plot the smoothed data
+	plot(handles.CalibrationAxes, ...
+				0.001*handles.cal.freq, ...
+				mag_smooth(1, :), 'b.-');
+	ylim([(0.9 * min(mag_smooth(1, :))) (1.1 * max(mag_smooth(1, :)))]);
+	% store smoothed data
+	handles.mag_smooth = mag_smooth;
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
 
@@ -578,12 +602,14 @@ function SmoothVal2Ctrl_Callback(hObject, eventdata, handles)
 
 %------------------------------------------------------------------------------
 function smoothed = SmoothCalibrationData(hObject, eventdata, handles)
-	smoothmethod = read_ui_val(handles.CalSmoothMethodCtrl)
+	smoothmethod = read_ui_val(handles.CalSmoothMethodCtrl);
 	switch(smoothmethod)
 		case 1
 			% moving window average
 			[nrows, ncols] = size(handles.cal.mag);
 			smoothed = zeros(nrows, ncols);
+			% smooth each row of mags using moving_average() function
+			% (internal to FlatWav)
 			for n = 1:nrows
 				smoothed(n, :) = moving_average(	handles.cal.mag(n, :), ...
 															handles.SmoothVal1);
@@ -599,17 +625,31 @@ function smoothed = SmoothCalibrationData(hObject, eventdata, handles)
 			end			
 		
 		otherwise
+			% undefined method... should never get here if GUI is properly
+			% functioning!!!
 			smoothed = handles.cal.mag;
 	end
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
 function y = moving_average(x, w)
+	%-----------------------------------------------------------------
+	% computes sliding moving-average of vector x with window size w
+	%-----------------------------------------------------------------
 	k = ones(1, w) ./ w;
+	% don't want to use normal 0 padding for x vector.  instead, add copies
+	% of 1st and last values to x vector
+	% first, force x to row vector
+	x = x(:)';
+	% store original length of x
+	xlen = length(x);
+	% then, pad vector with w copies of first and last x values
+	x = [ x(1)*ones(1, w) x x(end)*ones(1, w)];
+	% convolve
 	y = conv(x, k, 'same');
+	% truncate to proper length
+	y = y(w + (1:xlen));
 %------------------------------------------------------------------------------
-
-
 
 %******************************************************************************
 %******************************************************************************
