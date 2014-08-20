@@ -89,6 +89,9 @@ if handles.S.Fs ~= ActualRate
 	warning('FlatWav:NIDAQ', 'Requested ai Fs (%f) ~= ActualRate (%f)', handles.S.Fs, ActualRate);
 end
 iodev.Fs = ActualRate;
+handles.S.Fs = iodev.Fs;
+guidata(hObject, handles);
+
 % AO subsystem
 set(iodev.NI.ao, 'SampleRate', iodev.Fs);
 ActualRate = get(iodev.NI.ao, 'SampleRate');
@@ -323,7 +326,8 @@ delete(iodev.NI.chO);
 clear iodev.NI.ai iodev.NI.ao iodev.NI.chI iodev.NI.chO
 
 % save settings information to mat file
-save(fullfile(pwd, 'EventLogs.mat'), ...
+[folder, mname, mext] = fileparts(which('FlatWav'));
+save(fullfile(folder, 'EventLogs.mat'), ...
 		'EventLogAI'			, ...
 		'EventLogAO'			, ...
 		'-MAT' );
