@@ -22,7 +22,7 @@ function varargout = FlatWav(varargin)
 
 % Edit the above text to modify the response to help FlatWav
 
-% Last Modified by GUIDE v2.5 20-Aug-2014 14:20:50
+% Last Modified by GUIDE v2.5 21-Aug-2014 16:40:14
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -341,6 +341,7 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 															synth.fmax, ...
 															synth.amp, 0);
 			end	% END switch synth.type
+			
 	end	% END switch handles.SignalMode
 	
 	% update analysis window
@@ -382,6 +383,7 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 			method = 'COMPRESS';
 	end
 	
+	% check low freq cutoff setting
 	if strcmp(handles.LowCut, 'off')
 		lowcut = 'off';
 	else
@@ -420,7 +422,7 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 	if strcmpi(handles.SignalMode, 'SYNTH')
 		% apply ramp to stimuli
 		handles.raw = sin2array(handles.raw, synth.ramp, handles.S.Fs);
-		handles.raw = sin2array(handles.adj, synth.ramp, handles.S.Fs);
+		handles.adj = sin2array(handles.adj, synth.ramp, handles.S.Fs);
 	end
 	guidata(hObject, handles);
 		
@@ -460,6 +462,12 @@ function SaveSoundCtrl_Callback(hObject, eventdata, handles)
 	% use the menu item callback
 	SaveAdjSignalMenuItem_Callback(hObject, eventdata, handles);
 %------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function LoadWavCtrl_Callback(hObject, eventdata, handles)
+	WavFilenameCtrl_Callback(hObject, eventdata, handles)
+%------------------------------------------------------------------------------
+
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
@@ -1046,11 +1054,12 @@ function updatePlots(hObject, handles)
 	axes(handles.RawSpectrumAxes)
 	[S, F, T, P] = spectrogram(	handles.raw, ...
 											handles.SpectrumWindow, ...
-											floor(0.95*handles.SpectrumWindow), ...
-											512, ...
+											[], ...
+											handles.SpectrumWindow, ...
 											handles.S.Fs	);
+	save p.mat S F T P -MAT
 	P = 20*log10(P);
-	P(P == -Inf) = min(min(P ~= -Inf));	
+	P(P == -Inf) = min(min(P(P ~= -Inf)));	
 	surf(1000*T, 0.001*F, P, 'edgecolor', 'none');
 	xlim([min(tvec) max(tvec)])
 	ylim(freqlim);
@@ -1059,7 +1068,8 @@ function updatePlots(hObject, handles)
 	title('Time vs. Freq (kHz) vs. dB')
 	set(handles.RawSpectrumAxes, 'XTickLabel', []);
 	colormap(handles.RawSpectrumAxes, handles.ColorMap)
-	caxis([min(min(P)) max(max(P))])
+% 	caxis([0.5*min(min(P)) max(max(P))])
+	guidata(hObject, handles)
 	
 	% Update adj plots
 	axes(handles.AdjSignalAxes)
@@ -1081,13 +1091,18 @@ function updatePlots(hObject, handles)
 	xlabel('freq (kHz)');
 
 	axes(handles.AdjSpectrumAxes)
+% 	[S, F, T, P] = spectrogram(	handles.adj, ...
+% 											handles.SpectrumWindow, ...
+% 											floor(0.95*handles.SpectrumWindow), ...
+% 											512, ...
+% 											handles.S.Fs	);
 	[S, F, T, P] = spectrogram(	handles.adj, ...
 											handles.SpectrumWindow, ...
-											floor(0.95*handles.SpectrumWindow), ...
-											512, ...
+											[], ...
+											handles.SpectrumWindow, ...
 											handles.S.Fs	);
 	P = 20*log10(P);
-	P(P == -Inf) = min(min(P ~= -Inf));	
+	P(P == -Inf) = min(min(P(P ~= -Inf)));	
 	surf(1000*T, 0.001*F, P, 'edgecolor', 'none');
 	xlim([min(tvec) max(tvec)])
 	ylim(freqlim);
@@ -1095,7 +1110,7 @@ function updatePlots(hObject, handles)
 	view(0, 90);
 	xlabel('Time (ms)')
 	colormap(handles.AdjSpectrumAxes, handles.ColorMap)
-	caxis([min(min(P)) max(max(P))])
+% 	caxis([min(min(P)) max(max(P))])
 
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
@@ -1257,7 +1272,7 @@ function SaveAdjSignalMenuItem_Callback(hObject, eventdata, handles)
 		datafile = fullfile(adjpath, adjfile);
 		peakval = max(handles.adj);
 		if peakval >= 1
-			fprintf('!!!!!!!!!!!!!!!!\nPoints in adj are >= 1\nFile will be normalized\n');
+			fprintf('!!!!!!!\nPoints in adj are >= 1\nFile will be normalized\n');
 			wavwrite(0.9*normalize(handles.adj), handles.S.Fs, datafile);
 % 			peakfile = [datafile(1:(end-4)) '_PeakVal.txt'];
 % 			save(peakfile, peakval, '-ascii');
@@ -1282,7 +1297,7 @@ function SaveRawSignalMenuItem_Callback(hObject, eventdata, handles)
 		datafile = fullfile(rawpath, rawfile);
 		peakval = max(handles.raw);
 		if peakval >= 1
-			fprintf('!!!!!!!!!!!!!!!!\nPoints in raw are >= 1\nFile will be normalized\n');
+			fprintf('!!!!!!!\nPoints in raw are >= 1\nFile will be normalized\n');
 			wavwrite(0.9*normalize(handles.raw), handles.S.Fs, datafile);
 			peakfile = [datafile(1:(end-4)) '_PeakVal.txt'];
 			save(peakfile, peakval, '-ascii');
@@ -1507,6 +1522,8 @@ function SmoothVal2Ctrl_CreateFcn(hObject, eventdata, handles)
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
+
+
 
 
 
