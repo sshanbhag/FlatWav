@@ -143,7 +143,10 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	hide_uictrl(handles.AdjdBText);
 	% assign blank handle to PlaySignalFig
 	handles.PlaySignalFig = [];
+	% signal IO figure
+	handles.IOfigure = [];
 	guidata(hObject, handles);
+	
 	
 	%--------------------------------------------------
 	%--------------------------------------------------
@@ -228,6 +231,7 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	%--------------------------------------------------
 	% options for Output Device are 'winsound' and 'NI-DAQ'
 	handles.OutputDevice = 'winsound';
+	handles.IOpause = 0.5;
 	guidata(hObject, handles);
 	
 	%--------------------------------------------------
@@ -1045,15 +1049,17 @@ function updatePlots(hObject, handles)
 											floor(0.95*handles.SpectrumWindow), ...
 											512, ...
 											handles.S.Fs	);
-	surf(1000*T, 0.001*F, 20*log10(P), 'edgecolor', 'none');
+	P = 20*log10(P);
+	P(P == -Inf) = min(min(P ~= -Inf));	
+	surf(1000*T, 0.001*F, P, 'edgecolor', 'none');
 	xlim([min(tvec) max(tvec)])
 	ylim(freqlim);
 	set(handles.RawSpectrumAxes, 'XTick', time_ticks)
-%	axis tight;
 	view(0, 90);
 	title('Time vs. Freq (kHz) vs. dB')
 	set(handles.RawSpectrumAxes, 'XTickLabel', []);
 	colormap(handles.RawSpectrumAxes, handles.ColorMap)
+	caxis([min(min(P)) max(max(P))])
 	
 	% Update adj plots
 	axes(handles.AdjSignalAxes)
@@ -1080,15 +1086,17 @@ function updatePlots(hObject, handles)
 											floor(0.95*handles.SpectrumWindow), ...
 											512, ...
 											handles.S.Fs	);
-	surf(1000*T, 0.001*F, 20*log10(P), 'edgecolor', 'none');
+	P = 20*log10(P);
+	P(P == -Inf) = min(min(P ~= -Inf));	
+	surf(1000*T, 0.001*F, P, 'edgecolor', 'none');
 	xlim([min(tvec) max(tvec)])
 	ylim(freqlim);
 	set(handles.AdjSpectrumAxes, 'XTick', time_ticks)	
-%	axis tight;
 	view(0, 90);
 	xlabel('Time (ms)')
 	colormap(handles.AdjSpectrumAxes, handles.ColorMap)
-	
+	caxis([min(min(P)) max(max(P))])
+
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
 
