@@ -519,6 +519,12 @@ function CalSmoothMethodCtrl_Callback(hObject, eventdata, handles)
 			enable_ui(handles.SmoothVal1Ctrl);
 			disable_ui(handles.SmoothVal2Text);
 			disable_ui(handles.SmoothVal2Ctrl);
+			% smooth the calibration mag data, store in mag_smooth
+			window_len = read_ui_str(handles.SmoothVal1Ctrl, 'n');
+			mag_smooth = smooth_calibration_data(	smoothmethod, ...
+																handles.cal, ...
+																window_len);
+
 		case 2
 			% Savitzky-Golay filter
 			enable_ui(handles.SmoothVal1Text);
@@ -527,9 +533,16 @@ function CalSmoothMethodCtrl_Callback(hObject, eventdata, handles)
 			enable_ui(handles.SmoothVal2Text);
 			update_ui_str(handles.SmoothVal2Text, 'Frame Size');
 			enable_ui(handles.SmoothVal2Ctrl);
+			% smooth the calibration mag data, store in mag_smooth
+			sg_order = read_ui_str(handles.SmoothVal1Ctrl, 'n');
+			sg_framesize = read_ui_str(handles.SmoothVal2Ctrl, 'n');
+			mag_smooth = smooth_calibration_data(	smoothmethod, ...
+																handles.cal, ...
+																sg_order, ...
+																sg_framesize);
+			
 	end
-	% smooth the calibration mag data, return in mag_smooth
-	mag_smooth = SmoothCalibrationData(hObject, eventdata, handles);
+	
 	% plot the smoothed data
 	plot(handles.CalibrationAxes, ...
 				0.001*handles.cal.freq, ...
@@ -572,56 +585,6 @@ function SmoothVal2Ctrl_Callback(hObject, eventdata, handles)
 	guidata(hObject, handles)
 %------------------------------------------------------------------------------
 
-%------------------------------------------------------------------------------
-function smoothed = SmoothCalibrationData(hObject, eventdata, handles)
-	smoothmethod = read_ui_val(handles.CalSmoothMethodCtrl);
-	switch(smoothmethod)
-		case 1
-			% moving window average
-			[nrows, ncols] = size(handles.cal.mag);
-			smoothed = zeros(nrows, ncols);
-			% smooth each row of mags using moving_average() function
-			% (internal to FlatWav)
-			for n = 1:nrows
-				smoothed(n, :) = moving_average(	handles.cal.mag(n, :), ...
-															handles.SmoothVal1);
-			end
-		case 2
-			% savitzky-golay filter
-			[nrows, ncols] = size(handles.cal.mag);
-			smoothed = zeros(nrows, ncols);
-			for n = 1:nrows
-				smoothed(n, :) = sgolayfilt(	handles.cal.mag(n, :), ...
-														handles.SmoothVal1, ...
-														handles.SmoothVal2	);
-			end			
-		
-		otherwise
-			% undefined method... should never get here if GUI is properly
-			% functioning!!!
-			smoothed = handles.cal.mag;
-	end
-%------------------------------------------------------------------------------
-
-%------------------------------------------------------------------------------
-function y = moving_average(x, w)
-	%-----------------------------------------------------------------
-	% computes sliding moving-average of vector x with window size w
-	%-----------------------------------------------------------------
-	k = ones(1, w) ./ w;
-	% don't want to use normal 0 padding for x vector.  instead, add copies
-	% of 1st and last values to x vector
-	% first, force x to row vector
-	x = x(:)';
-	% store original length of x
-	xlen = length(x);
-	% then, pad vector with w copies of first and last x values
-	x = [ x(1)*ones(1, w) x x(end)*ones(1, w)];
-	% convolve
-	y = conv(x, k, 'same');
-	% truncate to proper length
-	y = y(w + (1:xlen));
-%------------------------------------------------------------------------------
 
 %******************************************************************************
 %******************************************************************************
@@ -1028,9 +991,9 @@ function updatePlots(hObject, handles)
 	freqlim = 0.001*[0 handles.S.Fs/2];
 	
 	% update raw plots
-	axes(handles.RawSignalAxes)
+	% axes(handles.RawSignalAxes)
 	tvec = 1000 * (0:(length(handles.raw)-1)) ./ handles.S.Fs;
-	plot(tvec, handles.raw)
+	plot(handles.RawSignalAxes, tvec, handles.raw)
 	title('Signal (V)')
 	ylabel('Raw', 'Color', 'b')
 	set(handles.RawSignalAxes, 'XTickLabel', []);
@@ -1038,20 +1001,20 @@ function updatePlots(hObject, handles)
 	% get ticks
 	time_ticks = get(handles.RawSignalAxes, 'XTick');
 	
-	axes(handles.RawMagAxes)
-	plot(0.001*handles.fraw, handles.magraw);
+	% axes(handles.RawMagAxes)
+	plot(handles.RawMagAxes, 0.001*handles.fraw, handles.magraw);
 	title('Magnitude (dB)')
 	ylim(dblim);
 	xlim(freqlim);
 	set(handles.RawMagAxes, 'XTickLabel', []);
 	
-	axes(handles.RawPhaseAxes)
-	plot(0.001*handles.fraw, unwrap(handles.phiraw));
+% 	axes(handles.RawPhaseAxes)
+	plot(handles.RawPhaseAxes, 0.001*handles.fraw, unwrap(handles.phiraw));
 	title('Phase (rad)')
 	xlim(freqlim);
 	set(handles.RawPhaseAxes, 'XTickLabel', []);
 	
-	axes(handles.RawSpectrumAxes)
+% 	axes(handles.RawSpectrumAxes)
 	[S, F, T, P] = spectrogram(	handles.raw, ...
 											handles.SpectrumWindow, ...
 											[], ...
@@ -1060,7 +1023,7 @@ function updatePlots(hObject, handles)
 	save p.mat S F T P -MAT
 	P = 20*log10(P);
 	P(P == -Inf) = min(min(P(P ~= -Inf)));	
-	surf(1000*T, 0.001*F, P, 'edgecolor', 'none');
+	surf(handles.RawSpectrumAxes, 1000*T, 0.001*F, P, 'edgecolor', 'none');
 	xlim([min(tvec) max(tvec)])
 	ylim(freqlim);
 	set(handles.RawSpectrumAxes, 'XTick', time_ticks)
@@ -1072,25 +1035,25 @@ function updatePlots(hObject, handles)
 	guidata(hObject, handles)
 	
 	% Update adj plots
-	axes(handles.AdjSignalAxes)
+% 	axes(handles.AdjSignalAxes)
 	tvec = 1000 * (0:(length(handles.adj)-1)) ./ handles.S.Fs;
-	plot(tvec, handles.adj, 'r')
+	plot(handles.AdjSignalAxes, tvec, handles.adj, 'r')
 	xlim([min(tvec) max(tvec)])
 	ylabel('Adj', 'Color', 'r')
 	xlabel('time (ms)')
 	
-	axes(handles.AdjMagAxes)
-	plot(0.001*handles.fadj, handles.magadj, 'r');
+% 	axes(handles.AdjMagAxes)
+	plot(handles.AdjMagAxes, 0.001*handles.fadj, handles.magadj, 'r');
 	ylim(dblim);
 	xlim(freqlim);
 	xlabel('freq (kHz)');
 	
-	axes(handles.AdjPhaseAxes)
-	plot(0.001*handles.fadj, unwrap(handles.phiadj), 'r');
+% 	axes(handles.AdjPhaseAxes)
+	plot(handles.AdjPhaseAxes, 0.001*handles.fadj, unwrap(handles.phiadj), 'r');
 	xlim(freqlim);
 	xlabel('freq (kHz)');
 
-	axes(handles.AdjSpectrumAxes)
+% 	axes(handles.AdjSpectrumAxes)
 % 	[S, F, T, P] = spectrogram(	handles.adj, ...
 % 											handles.SpectrumWindow, ...
 % 											floor(0.95*handles.SpectrumWindow), ...
@@ -1103,7 +1066,7 @@ function updatePlots(hObject, handles)
 											handles.S.Fs	);
 	P = 20*log10(P);
 	P(P == -Inf) = min(min(P(P ~= -Inf)));	
-	surf(1000*T, 0.001*F, P, 'edgecolor', 'none');
+	surf(handles.AdjSpectrumAxes, 1000*T, 0.001*F, P, 'edgecolor', 'none');
 	xlim([min(tvec) max(tvec)])
 	ylim(freqlim);
 	set(handles.AdjSpectrumAxes, 'XTick', time_ticks)	

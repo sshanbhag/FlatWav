@@ -1,4 +1,6 @@
-function [sadj, Sfull, Magnorm, f] = compensate_signal(s, calfreq, calmag, Fs, corr_frange, varargin)
+function [sadj, Sfull, Magnorm, f] = ...
+							compensate_signal(s, calfreq, calmag, ...
+													Fs, corr_frange, varargin)
 %------------------------------------------------------------------------
 % [sadj, Sfull, Magnorm, f] = compensate_signal(s, calfreq, calmag, Fs, corr_frange)
 %------------------------------------------------------------------------
@@ -34,7 +36,7 @@ function [sadj, Sfull, Magnorm, f] = compensate_signal(s, calfreq, calmag, Fs, c
 % 	f					frequencies for calibration
 %
 %------------------------------------------------------------------------
-% See also: NICal
+% See also: NICal, FlatWav
 %------------------------------------------------------------------------
 
 %------------------------------------------------------------------------
@@ -48,6 +50,8 @@ function [sadj, Sfull, Magnorm, f] = compensate_signal(s, calfreq, calmag, Fs, c
 %	8 Oct 2012 (SJS): implemented COMPRESS method
 %	9 Oct 2012 (SJS): added LEVEL option to specify target level
 %	23 Oct 2012 (SJS): updated docs
+%	22 Aug 2014 (SJS): some tweaks to improve performance.  This function
+% 		should ideally be moved into the general TytoLogy library
 %------------------------------------------------------------------------
 % TO DO:
 %	*Implement phase correction in algorithm and switch/tag for input 
@@ -100,7 +104,8 @@ if nvararg
 					case 'COMPRESS'
 						COMPMETHOD = 'COMPRESS';
 					otherwise
-						fprintf('%s: unknown compensation method %s\n', mfilename, mtype);
+						fprintf('%s: unknown compensation method %s\n', ...
+																				mfilename, mtype);
 						fprintf('\tUsing default, BOOST method\n');
 						COMPMETHOD = 'BOOST';
 				end
@@ -123,10 +128,12 @@ if nvararg
 				nval = varargin{aindex + 1};
 				if strcmpi(nval, 'ON')
 					NORMALIZE = 1;
+				elseif strcmpi(nval, 'OFF')
+					NORMALIZE = -1;
 				elseif isnumeric(nval)
 					NORMALIZE = nval;
 				else
-					NORMALIZE = 0;
+					NORMALIZE = -1;
 				end
 				aindex = aindex + 2;
 				clear nval;
@@ -136,7 +143,8 @@ if nvararg
 				lval = varargin{aindex + 1};
 				if isnumeric(lval)
 					if lval <= 0
-						error('%s: LEVEL value must be greater than zero!', mfilename);
+						error('%s: LEVEL value must be greater than zero!', ...
+																						mfilename);
 					else
 						LEVEL = lval;
 					end
@@ -203,7 +211,8 @@ valid_indices = find(between(f, corr_frange(1), corr_frange(2))==1);
 % check to make sure there is overlap in ranges
 if isempty(valid_indices)
 	% if not, throw an error
-	error('%s: mismatch between FFT frequencies and calibration range', mfilename);
+	error('%s: mismatch between FFT frequencies and calibration range', ...
+																						mfilename);
 end
 
 % then, get the frequencies for correcting that range
@@ -367,7 +376,7 @@ end
 % normalize output if desired
 %------------------------------------------------------------------------
 %------------------------------------------------------------------------
-if NORMALIZE
+if NORMALIZE >= 0
 	sadj = NORMALIZE * normalize(sadj);
 end
 
