@@ -85,11 +85,13 @@ ylabel('dB')
 ylim([-120 -40])
 xlim([0 0.001*Fs/2])
 
+%------------------------------------------------------------------------
 %% use compensate signal to compensate
+%------------------------------------------------------------------------
 [sadj, Sfull, Hnorm, foutadj] = ...
 						compensate_signal( ...
 									s, ...
-									caldata.freq, caldata.mag(1, :), ...
+									caldata.freq, smoothed(1, :), ...
 									Fs, ...
 									corr_frange, ...
 									'Method', 'boost', ...
@@ -114,6 +116,39 @@ ylabel('dB')
 ylim([-120 -40])
 xlim([0 0.001*Fs/2])
 
+%% spectrogram plot
+figure(3)
+specwin = 512;
+
+subplot(211)
+[S, F, T, P] = spectrogram(	s, ...
+										specwin, ...
+										[], ...
+										specwin, ...
+										Fs	);
+P = 20*log10(P);
+P(P == -Inf) = min(min(P(P ~= -Inf)));	
+surf(1000*T, 0.001*F, P, 'edgecolor', 'none');
+view(0, 90);
+xlim([min(tvec) max(tvec)])
+ylim([0 0.001*Fs/2]);
+colormap(gray)
+
+subplot(212)
+[S, F, T, P] = spectrogram(	sadj, ...
+										specwin, ...
+										[], ...
+										specwin, ...
+										Fs	);
+P = 20*log10(P);
+P(P == -Inf) = min(min(P(P ~= -Inf)));	
+surf(1000*T, 0.001*F, P, 'edgecolor', 'none');
+view(0, 90);
+xlim([min(tvec) max(tvec)])
+ylim([0 0.001*Fs/2]);
+xlabel('Time (ms)')
+colormap(gray)
+% 	caxis([min(min(P)) max(max(P))])
 
 
 %% test with real signal
@@ -128,7 +163,7 @@ b = sin2array(b, 1, Fs);
 
 % plot call and spectrum
 [fraw, magraw] = daqdbfft(b, Fs, length(b));
-figure(3)
+figure(4)
 tvec = 1000 * (0:(length(b)-1)) ./ Fs;
 subplot(221)
 plot(tvec, b)

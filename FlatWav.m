@@ -77,9 +77,11 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 		% directory when using installed version:
 		%	pdir = ['C:\TytoLogy\TytoLogySettings\' getenv('USERNAME')];
 		% development tree
-		pdir = ['C:\Users\sshanbhag\Code\Matlab\TytoLogy\TytoLogySettings\' getenv('USERNAME')];
+		pdir = ['C:\Users\sshanbhag\Code\Matlab\TytoLogy\TytoLogySettings\' ...
+							getenv('USERNAME')];
 	else ismac
-		pdir = ['~/Work/Code/Matlab/dev/TytoLogy/TytoLogySettings/' getenv('USER')];
+		pdir = ['~/Work/Code/Matlab/dev/TytoLogy/TytoLogySettings/' ...
+							getenv('USER')];
 	end
 			
 	if isempty(which('ms2samples'))
@@ -107,17 +109,20 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	typenum = 1;
 	handles.Tone.type = handles.S.Types{typenum};
 	for n = 1:handles.S.Nparam(typenum);
-		handles.Tone.(handles.S.Param{typenum}{n}) = handles.S.DefaultVals{typenum}(n);
+		handles.Tone.(handles.S.Param{typenum}{n}) = ...
+															handles.S.DefaultVals{typenum}(n);
 	end
 	typenum = 2;
 	handles.Noise.type = handles.S.Types{typenum};
 	for n = 1:handles.S.Nparam(typenum);
-		handles.Noise.(handles.S.Param{typenum}{n}) = handles.S.DefaultVals{typenum}(n);
+		handles.Noise.(handles.S.Param{typenum}{n}) = ...
+															handles.S.DefaultVals{typenum}(n);
 	end
 	typenum = 3;
 	handles.Sweep.type = handles.S.Types{typenum};
 	for n = 1:handles.S.Nparam(typenum);
-		handles.Sweep.(handles.S.Param{typenum}{n}) = handles.S.DefaultVals{typenum}(n);
+		handles.Sweep.(handles.S.Param{typenum}{n}) = ...
+															handles.S.DefaultVals{typenum}(n);
 	end
 	% set current synth object to Noise
 	handles.synth = handles.Noise;
@@ -154,7 +159,8 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	%--------------------------------------------------
 	%--------------------------------------------------
 	% reset string in CompMethodCtrl
-	set(handles.CompMethodCtrl, 'string', 'none|normalize|atten|boost|compress');
+	set(handles.CompMethodCtrl, 'string', ...
+												'none|normalize|atten|boost|compress');
 	% set compensation method to 1 ('atten')
 	handles.CompMethod = 1;
 	update_ui_val(handles.CompMethodCtrl, handles.CompMethod);
@@ -212,7 +218,9 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	handles.cal = fake_caldata('freqs', 1:10:(handles.S.Fs / 2));
 	handles.cal.mag = 90 * handles.cal.mag;
 	guidata(hObject, handles);
-	plot(handles.CalibrationAxes, 0.001*handles.cal.freq, handles.cal.mag(1, :), '.-');
+	plot(	handles.CalibrationAxes, ...
+			0.001*handles.cal.freq, ...
+			handles.cal.mag(1, :), '.-');
 	ylim([0 100]);
 	
 	%--------------------------------------------------
