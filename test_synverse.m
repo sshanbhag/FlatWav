@@ -1,23 +1,16 @@
 %------------------------------------------------------------------------
 %------------------------------------------------------------------------
-% script to exercise the compensate_signal.m function
-%
-% Proposed order for calibration:
-% 
-% 
-% 1) load xfer function
-% 		
-% 2) load .wav file
-% 
-% 3) determine max/min of xfer function
+% script to test fft/ifft synverse method
 %------------------------------------------------------------------------
 %------------------------------------------------------------------------
 
 %------------------------------------------------------------------------
 % CONSTANTS
 %------------------------------------------------------------------------
-% minimum dB level
+% arbitrary minimum dB value
 MIN_DB = -120;
+% need to have a small, but non-zero value when taking log, so set that here
+ZERO_VAL = 1e-17;
 
 %------------------------------------------------------------------------
 %% settings
@@ -29,64 +22,65 @@ Fmax = 100000;
 % signal duration
 stimdur = 250;
 % [lower  upper] frequency bounds for compensation
-corr_frange = [4000 100000];
+corr_frange = [5000 100000];
 % low freq cutoff level
-lowcut_level = 3000;
+lowcut_level = 5000;
 % normalization value
 norm_level = 1;
 % db adj level (for compress compensation method)
-dbadj_level = 65;
-% compensation method
-compmethod = 'compress';
-% pre-filter the signal before compensation?
-prefilter = 'on';
-% filter the signal after compensation?
-% postfilter = [5000 95000];
-postfilter = 'off';
-% limit calculation of compensation values to the range being corrected?
-range_limit = 'on';
-% put a cap on the amount of correction?
-corr_limit = 'off';
-% smooth edges at boundaries of corr_frange before performing iFFT?
-smooth_edges = 'off';
-
+dbadj_level = 200;
 specwin = 512;
+compmethod = 'boost';
+prefilter = 'on';
 
 % path to calls, call name
 CALLPATH = pwd;
-callname = 'app1.wav'
-% path to calibration data, calibration file
-CALPATH = pwd;
-calfile = '22Aug2014_test_CapOn.cal'
+callname = 'app1.wav';
 
 
-%------------------------------------------------------------------------
-%% load xfer function data
-%------------------------------------------------------------------------
-load(fullfile(CALPATH, calfile), '-MAT', 'caldata');
-
-% smoothed data
-smoothed = smooth_calibration_data(1, caldata, 3);
-
-%{
-% plot
-figure(1)
-plot(	0.001*caldata.freq, caldata.mag(1, :), 'k.-', ...
-		0.001*caldata.freq, smoothed(1, :), 'b.-')
-xlabel('Frequency (kHz)')
-ylabel('dB SPL')
-title('System Transfer Function')
-%}
-
-%{
 %------------------------------------------------------------------------
 %% synthesize test noise from min(F) to max(F)
 %------------------------------------------------------------------------
 s = synmononoise_fft(stimdur, Fs, Fmin, Fmax, 1, 0);
 s = normalize(s);
 
-% s = synmonosine(stimdur, Fs, Fsine, 1, 0);
-% plot spectrum of s
+% get spectrum of s signal
+% length of signal
+slen = length(s);
+% for speed's sake, get the nearest power of 2 to the desired output length
+NFFT = 2.^(nextpow2(slen));
+% fft
+S = fft(s, NFFT);
+%non-redundant points are kept
+Nunique = NFFT/2;
+Sunique = S(1:Nunique);
+% get the magnitudes of the FFT  and scale by 2 because we're taking only
+% half of the points from the "full" FFT vector S;
+Smag = abs(Sunique)/slen;
+Smag(2:end) = 2*Smag(2:end);
+% get phase
+Sphase = angle(Sunique);
+% convert to db - need to avoid log(0)
+tmp = Smag;
+tmp(tmp==0) = ZERO_VAL; 
+SdBmag = db(tmp);
+clear tmp;
+
+% convert back to linear scale...
+Sadj = invdb(SdBmag);
+
+% scale for length of signal and divide by 2 to scale for conversion to 
+% full FFT before inverse FFT
+Sadj = slen * Sadj ./ 2;
+%Sadj = NFFT * Sadj ./ 2;
+%Sadj = NFFT * Sadj;
+
+% create compensated time domain signal from spectrum
+[sadj, Sfull] = synverse(Sadj, Sphase, 'DC', 'no');
+% return only 1:slen points
+sadj = sadj(1:slen);
+
+% plot s and spectrum of s
 [fraw, magraw] = daqdbfft(s, Fs, length(s));
 figure(2)
 tvec = 1000 * (0:(length(s)-1)) ./ Fs;
@@ -95,7 +89,7 @@ plot(tvec, s)
 title('Test signal')
 xlabel('time (milliseconds)')
 ylabel('V')
-
+ylim(max(abs(s)) * [-1 1])
 subplot(222)
 plot(0.001*fraw, magraw);
 title('Test Signal Spectrum')
@@ -104,39 +98,26 @@ ylabel('dB')
 ylim([-120 -40])
 xlim([0 0.001*Fs/2])
 
-%% use compensate signal to compensate
-[sadj, Sfull, Hnorm, foutadj] = ...
-						compensate_signal( ...
-									s, ...
-									caldata.freq, smoothed(1, :), ...
-									Fs, ...
-									corr_frange, ...
-									'Method', compmethod, ...
-									'Lowcut', lowcut_level, ...
- 									'Normalize', norm_level, ... 
-									'Level', dbadj_level, ...
-									'Prefilter', prefilter);
-
-% plot compensated signal
+% plot s, sadj 
 [fadj, magadj] = daqdbfft(sadj, Fs, length(sadj));
 figure(2)
 subplot(223)
 plot(tvec, sadj)
+ylim(max(abs(s)) * [-1 1])
 title('Compensated Signal')
 xlabel('time (milliseconds)')
 ylabel('V')
 
 subplot(224)
 plot(0.001*fadj, magadj);
-title(sprintf('Compensated Signal Spectrum %s', compmethod))
+title('processed test signal')
 xlabel('freq (kHz)')
 ylabel('dB')
 ylim([-120 -40])
 xlim([0 0.001*Fs/2])
 
-%% spectrogram plot
+% spectrogram plot
 figure(3)
-
 subplot(211)
 [S, F, T, P] = spectrogram(	s, ...
 										specwin, ...
@@ -166,7 +147,7 @@ ylim([0 0.001*Fs/2]);
 xlabel('Time (ms)')
 colormap(gray)
 % 	caxis([min(min(P)) max(max(P))])
-%}
+
 
 %------------------------------------------------------------------------
 %% test with real signal
@@ -178,55 +159,81 @@ colormap(gray)
 b = b';
 b = sin2array(b, 1, Fs);
 
-% apply correction (BOOST method)
-[badj, Bfull, Hnorm, foutadj] = compensate_signal( ...
-											b, ...
-											caldata.freq, smoothed(1, :), ...
-											Fs, ...
-											corr_frange, ...
-											'Method', compmethod, ...
-											'Lowcut', lowcut_level, ...
-											'Normalize', norm_level, ... 
-											'Level', dbadj_level, ...
-											'Postfilter', postfilter, ...
-											'Prefilter', prefilter, ...
-											'Rangelimit', range_limit, ...
-											'Corrlimit', corr_limit, ...
-											'SmoothEdges', smooth_edges	);
-% plot call and spectrum
+% get spectrum of s signal
+% length of signal
+blen = length(b);
+% for speed's sake, get the nearest power of 2 to the desired output length
+NFFT = 2.^(nextpow2(blen));
+% fft
+B = fft(b, NFFT);
+%non-redundant points are kept
+Nunique = NFFT/2;
+Bunique = B(1:Nunique);
+% get the magnitudes of the FFT  and scale by 2 because we're taking only
+% half of the points from the "full" FFT vector S;
+Bmag = abs(Bunique)/blen;
+Bmag(2:end) = 2*Bmag(2:end);
+% get phase
+Bphase = angle(Bunique);
+% convert to db - need to avoid log(0)
+tmp = Bmag;
+tmp(tmp==0) = ZERO_VAL; 
+BdBmag = db(tmp);
+clear tmp;
+
+%  BdBmag(30000:40000) = -40;
+
+% convert back to linear scale...
+Badj = invdb(BdBmag);
+
+% scale for length of signal and divide by 2 to scale for conversion to 
+% full FFT before inverse FFT
+Badj = blen * Badj ./ 2;
+%Badj = NFFT * Badj ./ 2;
+%Badj = NFFT * Badj;
+
+% create compensated time domain signal from spectrum
+[badj, Bfull] = synverse(Badj, Bphase, 'DC', 'no');
+% return only 1:blen points
+badj = badj(1:blen);
+
+% plot b and spectrum of b
 [fraw, magraw] = daqdbfft(b, Fs, length(b));
-figure
+figure(4)
 tvec = 1000 * (0:(length(b)-1)) ./ Fs;
 subplot(221)
 plot(tvec, b)
-title('Call')
+title('WAV signal')
+xlabel('time (milliseconds)')
 ylabel('V')
-
+ylim(max(abs(b)) * [-1 1])
 subplot(222)
 plot(0.001*fraw, magraw);
-title('Call Spectrum')
+title('WAV Spectrum')
+xlabel('freq (kHz)')
 ylabel('dB')
-ylim([-140 -40])
+ylim([-120 -40])
 xlim([0 0.001*Fs/2])
 
-% plot compensated signal
+% plot b, badj 
 [fadj, magadj] = daqdbfft(badj, Fs, length(badj));
 subplot(223)
 plot(tvec, badj)
-title('Compensated Call BOOST')
+ylim(max(abs(b)) * [-1 1])
+title('Compensated Signal')
 xlabel('time (milliseconds)')
 ylabel('V')
 
 subplot(224)
 plot(0.001*fadj, magadj);
-title(sprintf('Compensated Call Spectrum %s', compmethod))
+title('processed test signal')
 xlabel('freq (kHz)')
 ylabel('dB')
-ylim([-140 -40])
+ylim([-120 -40])
 xlim([0 0.001*Fs/2])
 
 % spectrogram plot
-figure
+figure(3)
 subplot(211)
 [S, F, T, P] = spectrogram(	b, ...
 										specwin, ...
@@ -256,4 +263,3 @@ ylim([0 0.001*Fs/2]);
 xlabel('Time (ms)')
 colormap(gray)
 % 	caxis([min(min(P)) max(max(P))])
-

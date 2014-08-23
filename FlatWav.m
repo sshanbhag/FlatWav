@@ -22,7 +22,7 @@ function varargout = FlatWav(varargin)
 
 % Edit the above text to modify the response to help FlatWav
 
-% Last Modified by GUIDE v2.5 21-Aug-2014 16:40:14
+% Last Modified by GUIDE v2.5 22-Aug-2014 21:40:24
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -178,6 +178,7 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	% default LowCut options
 	handles.LowCut = 'off';
 	handles.LowCutFreq = read_ui_str(handles.LowCutFreqCtrl, 'n');
+	update_ui_val(handles.LowCut);
 	if strcmpi(handles.LowCut, 'off')
 		disable_ui(handles.LowCutFreqText);
 		disable_ui(handles.LowCutFreqCtrl);
@@ -185,6 +186,55 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	% target SPL
 	handles.TargetSPL = 65;
 	update_ui_str(handles.TargetSPLCtrl, handles.TargetSPL);
+	% pre-filter range
+	handles.PreFilter = 'off';
+	handles.PreFilterRange = handles.CorrFrange;
+	update_ui_val(handles.PreFilterCtrl, handles.PreFilter);
+	update_ui_str(handles.PreFilterRangeCtrl, ...
+											['[' num2str(handles.PreFilterRange) ']']);
+	disable_ui(handles.PreFilterRangeCtrl);
+	guidata(hObject, handles);
+	% post-filter range
+	handles.PostFilter = 'off';
+	handles.PostFilterRange = handles.CorrFrange;
+	update_ui_val(handles.PostFilterCtrl, handles.PostFilter);
+	update_ui_str(handles.PostFilterRangeCtrl, ...
+											['[' num2str(handles.PostFilterRange) ']']);
+	if strcmpi(handles.PostFilter, 'off')
+		disable_ui(handles.PostFilterRangeCtrl);
+	else
+		enable_ui(handles.PostFilterRangeCtrl);
+	end
+
+	guidata(hObject, handles);
+	% range limit
+	handles.RangeLimit = 'off';
+	update_ui_val(handles.RangeLimitCtrl, handles.RangeLimit);
+	guidata(hObject, handles);
+	% CorrectionLimit
+	handles.CorrectionLimit = 'off';
+	handles.CorrectionLimitValue = 5;
+	update_ui_val(handles.CorrectionLimitCtrl, handles.CorrectionLimit);
+	update_ui_str(handles.CorrectionLimitValCtrl, handles.CorrectionLimitValue);
+	if strcmpi(handles.CorrectionLimit, 'off')
+		disable_ui(handles.CorrectionLimitValCtrl);
+		disable_ui(handles.CorrectionLimitText);
+	else
+		enable_ui(handles.CorrectionLimitValCtrl);
+		enable_ui(handles.CorrectionLimitText);
+	end
+	guidata(hObject, handles);
+	% SmoothEdges
+	handles.SmoothEdges= 'off';
+	handles.SmoothEdgesValue = [1 5];
+	update_ui_val(handles.SmoothEdgesCtrl, handles.SmoothEdges);
+	update_ui_str(handles.SmoothEdgesValCtrl, ...
+											['[' num2str(handles.SmoothEdgesValue) ']']);
+	if strcmpi(handles.SmoothEdges, 'off')
+		disable_ui(handles.SmoothEdgesValCtrl);
+	else
+		enable_ui(handles.SmoothEdgesValCtrl);
+	end
 	guidata(hObject, handles);
 
 	%--------------------------------------------------
@@ -251,8 +301,8 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	handles.MicGain = invdb(handles.MicGaindB);
 	handles.VtoPa = (1/handles.MicGain) * (1/handles.MicSensitivity);
 	guidata(hObject, handles);
-
-	
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------	
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
@@ -392,10 +442,40 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 	end
 	
 	% check low freq cutoff setting
-	if strcmp(handles.LowCut, 'off')
+	if strcmpi(handles.LowCut, 'off')
 		lowcut = 'off';
 	else
 		lowcut = handles.LowCutFreq;
+	end
+	% check pre-filter
+	if strcmpi(handles.PreFilter, 'off')
+		prefilter = 'off';
+	else
+		prefilter = handles.PreFilterRange;
+	end
+	% check post-filter
+	if strcmpi(handles.PostFilter, 'off')
+		postfilter = 'off';
+	else
+		postfilter = handles.PostFilterRange;
+	end
+	% check rangelimit
+	if strcmpi(handles.RangeLimit, 'off')
+		rangelimit = 'off';
+	else
+		rangelimit = 'on';
+	end
+	% check Correction Limit
+	if strcmpi(handles.CorrectionLimit, 'off')
+		corrlimit = 'off';
+	else
+		corrlimit = handles.CorrectionLimitValue;
+	end
+	% check SmoothEdges
+	if strcmpi(handles.SmoothEdges, 'off')
+		smoothedges = 'off';
+	else
+		smoothedges = handles.SmoothEdgesValue;
 	end
 	
 	if strcmpi(method, 'NONE')
@@ -414,7 +494,13 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 											'Method', method, ...
 											'Normalize', 'off', ...
 											'Lowcut', lowcut, ...
-											'Level', handles.TargetSPL);
+											'Level', handles.TargetSPL, ...
+											'Prefilter', prefilter, ...
+											'Postfilter', postfilter, ...
+											'Rangelimit', rangelimit, ...
+											'Corrlimit', corrlimit, ...
+											'SmoothEdges', smoothedges	);
+
 	else
 		handles.adj = compensate_signal(	handles.raw, ...
 											handles.cal.freq, ...
@@ -424,7 +510,12 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 											'Method', method, ...
 											'Normalize', handles.NormalizeValue, ...
 											'Lowcut', lowcut, ...
-											'Level', handles.TargetSPL);
+											'Level', handles.TargetSPL, ...
+											'Prefilter', prefilter, ...
+											'Postfilter', postfilter, ...
+											'Rangelimit', rangelimit, ...
+											'Corrlimit', corrlimit, ...
+											'SmoothEdges', smoothedges	);
 	end
 	
 	if strcmpi(handles.SignalMode, 'SYNTH')
@@ -592,8 +683,6 @@ function SmoothVal2Ctrl_Callback(hObject, eventdata, handles)
 	CalSmoothMethodCtrl_Callback(hObject, eventdata, handles);
 	guidata(hObject, handles)
 %------------------------------------------------------------------------------
-
-
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
@@ -646,7 +735,6 @@ function SynthSignalButton_Callback(hObject, eventdata, handles)
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
-
 
 %******************************************************************************
 %******************************************************************************
@@ -772,7 +860,6 @@ function WavFilenameCtrl_Callback(hObject, eventdata, handles)
 %******************************************************************************
 
 %------------------------------------------------------------------------------
-% --- Executes on selection change in CompMethodCtrl.
 function CompMethodCtrl_Callback(hObject, eventdata, handles)
 	handles.CompMethod = read_ui_val(handles.CompMethodCtrl);
 	guidata(hObject, handles);
@@ -857,6 +944,139 @@ function CorrFmaxCtrl_Callback(hObject, eventdata, handles)
 	% NEED CHECKS!
 	handles.CorrFrange(2) = newVal;
 	guidata(hObject, handles);
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function PreFilterCtrl_Callback(hObject, eventdata, handles)
+	newVal = read_ui_val(hObject);
+	if newVal
+		handles.PreFilter = 'on';
+		enable_ui(handles.PreFilterRangeCtrl);
+	else
+		handles.PreFilter = 'off';
+		disable_ui(handles.PreFilterRangeCtrl);
+	end
+	guidata(hObject, handles)
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function PreFilterRangeCtrl_Callback(hObject, eventdata, handles)
+	try
+		tmpstr = read_ui_str(hObject);
+		newVal = eval(tmpstr);
+		if newVal(1) > newVal(2)
+			errordlg('Bad filter range', 'Flat Wav Error');
+			update_ui_str(hObject, ['[' num2str(handles.PreFilterRange) ']']);
+		else
+			handles.PreFilterRange = newVal;
+			guidata(hObject, handles);
+		end
+	catch err
+		fprintf('error in PreFilterRangeCtrl_Callback');
+	end
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function PostFilterCtrl_Callback(hObject, eventdata, handles)
+	newVal = read_ui_val(hObject);
+	if newVal
+		handles.PostFilter = 'on';
+		enable_ui(handles.PostFilterRangeCtrl);
+	else
+		handles.PostFilter = 'off';
+		disable_ui(handles.PostFilterRangeCtrl);
+	end
+	guidata(hObject, handles)
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function PostFilterRangeCtrl_Callback(hObject, eventdata, handles)
+	try
+		tmpstr = read_ui_str(hObject);
+		newVal = eval(tmpstr);
+		if newVal(1) > newVal(2)
+			errordlg('Bad filter range', 'Flat Wav Error');
+			update_ui_str(hObject, ['[' num2str(handles.PostFilterRange) ']']);
+		else
+			handles.PostFilterRange = newVal;
+			guidata(hObject, handles);
+		end
+	catch err
+		fprintf('error in PostFilterRangeCtrl_Callback');
+	end
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function RangeLimitCtrl_Callback(hObject, eventdata, handles)
+	newVal = read_ui_val(hObject);
+	if newVal
+		handles.RangeLimit = 'on';
+	else
+		handles.RangeLimit = 'off';
+	end
+	guidata(hObject, handles);
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function CorrectionLimitCtrl_Callback(hObject, eventdata, handles)
+	newVal = read_ui_val(hObject);
+	if newVal
+		handles.CorrectionLimit = 'on';
+		enable_ui(handles.CorrectionLimitValCtrl);
+	else
+		handles.CorrectionLimit = 'off';
+		disable_ui(handles.CorrectionLimitValCtrl);
+	end
+	guidata(hObject, handles)
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function CorrectionLimitValCtrl_Callback(hObject, eventdata, handles)
+	try
+		newVal = read_ui_str(hObject, 'n');
+		if newVal <= 0
+			errordlg('Bad Correction Limit', 'Flat Wav Error');
+			update_ui_str(hObject, handles.CorrectionLimitValue);
+		else
+			handles.CorrectionLimitValue = newVal;
+			guidata(hObject, handles);
+		end
+	catch err
+		fprintf('error in CorrectionLimitValCtrl_Callback');
+	end
+%------------------------------------------------------------------------------
+
+
+%------------------------------------------------------------------------------
+function SmoothEdgesCtrl_Callback(hObject, eventdata, handles)
+	newVal = read_ui_val(hObject);
+	if newVal
+		handles.SmoothEdges = 'on';
+		enable_ui(handles.SmoothEdgesValCtrl);
+	else
+		handles.SmoothEdges = 'off';
+		disable_ui(handles.SmoothEdgesValCtrl);
+	end
+	guidata(hObject, handles)
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function SmoothEdgesValCtrl_Callback(hObject, eventdata, handles)
+	try
+		tmpstr = read_ui_str(hObject);
+		newVal = eval(tmpstr);
+		if newVal(1) > newVal(2)
+			errordlg('Bad SmoothEdges values', 'Flat Wav Error');
+			update_ui_str(hObject, ['[' num2str(handles.SmoothEdgesValue) ']']);
+		else
+			handles.SmoothEdgesValue = newVal;
+			guidata(hObject, handles);
+		end
+	catch err
+		fprintf('error in SmoothEdgesValCtrl_Callback');
+	end
+%------------------------------------------------------------------------------
+	
 %------------------------------------------------------------------------------
 %******************************************************************************
 %******************************************************************************
@@ -1002,24 +1222,24 @@ function updatePlots(hObject, handles)
 	% axes(handles.RawSignalAxes)
 	tvec = 1000 * (0:(length(handles.raw)-1)) ./ handles.S.Fs;
 	plot(handles.RawSignalAxes, tvec, handles.raw)
-	title('Signal (V)')
-	ylabel('Raw', 'Color', 'b')
+	title(handles.RawSignalAxes, 'Signal (V)')
+	ylabel(handles.RawSignalAxes, 'Raw', 'Color', 'b')
 	set(handles.RawSignalAxes, 'XTickLabel', []);
-	xlim([min(tvec) max(tvec)])
+	xlim(handles.RawSignalAxes, [min(tvec) max(tvec)])
 	% get ticks
 	time_ticks = get(handles.RawSignalAxes, 'XTick');
 	
 	% axes(handles.RawMagAxes)
 	plot(handles.RawMagAxes, 0.001*handles.fraw, handles.magraw);
-	title('Magnitude (dB)')
-	ylim(dblim);
-	xlim(freqlim);
+	title(handles.RawMagAxes, 'Magnitude (dB)')
+	ylim(handles.RawMagAxes, dblim);
+	xlim(handles.RawMagAxes, freqlim);
 	set(handles.RawMagAxes, 'XTickLabel', []);
 	
 % 	axes(handles.RawPhaseAxes)
 	plot(handles.RawPhaseAxes, 0.001*handles.fraw, unwrap(handles.phiraw));
-	title('Phase (rad)')
-	xlim(freqlim);
+	title(handles.RawPhaseAxes, 'Phase (rad)')
+	xlim(handles.RawPhaseAxes, freqlim);
 	set(handles.RawPhaseAxes, 'XTickLabel', []);
 	
 % 	axes(handles.RawSpectrumAxes)
@@ -1028,15 +1248,14 @@ function updatePlots(hObject, handles)
 											[], ...
 											handles.SpectrumWindow, ...
 											handles.S.Fs	);
-	save p.mat S F T P -MAT
 	P = 20*log10(P);
 	P(P == -Inf) = min(min(P(P ~= -Inf)));	
 	surf(handles.RawSpectrumAxes, 1000*T, 0.001*F, P, 'edgecolor', 'none');
-	xlim([min(tvec) max(tvec)])
-	ylim(freqlim);
+	xlim(handles.RawSpectrumAxes, [min(tvec) max(tvec)])
+	ylim(handles.RawSpectrumAxes, freqlim);
 	set(handles.RawSpectrumAxes, 'XTick', time_ticks)
-	view(0, 90);
-	title('Time vs. Freq (kHz) vs. dB')
+	view(handles.RawSpectrumAxes, 0, 90);
+	title(handles.RawSpectrumAxes, 'Time vs. Freq (kHz) vs. dB')
 	set(handles.RawSpectrumAxes, 'XTickLabel', []);
 	colormap(handles.RawSpectrumAxes, handles.ColorMap)
 % 	caxis([0.5*min(min(P)) max(max(P))])
@@ -1046,20 +1265,20 @@ function updatePlots(hObject, handles)
 % 	axes(handles.AdjSignalAxes)
 	tvec = 1000 * (0:(length(handles.adj)-1)) ./ handles.S.Fs;
 	plot(handles.AdjSignalAxes, tvec, handles.adj, 'r')
-	xlim([min(tvec) max(tvec)])
-	ylabel('Adj', 'Color', 'r')
-	xlabel('time (ms)')
+	xlim(handles.AdjSignalAxes, [min(tvec) max(tvec)])
+	ylabel(handles.AdjSignalAxes, 'Adj', 'Color', 'r')
+	xlabel(handles.AdjSignalAxes, 'time (ms)')
 	
 % 	axes(handles.AdjMagAxes)
 	plot(handles.AdjMagAxes, 0.001*handles.fadj, handles.magadj, 'r');
-	ylim(dblim);
-	xlim(freqlim);
-	xlabel('freq (kHz)');
+	ylim(handles.AdjMagAxes, dblim);
+	xlim(handles.AdjMagAxes, freqlim);
+	xlabel(handles.AdjMagAxes, 'freq (kHz)');
 	
 % 	axes(handles.AdjPhaseAxes)
 	plot(handles.AdjPhaseAxes, 0.001*handles.fadj, unwrap(handles.phiadj), 'r');
-	xlim(freqlim);
-	xlabel('freq (kHz)');
+	xlim(handles.AdjPhaseAxes, freqlim);
+	xlabel(handles.AdjPhaseAxes, 'freq (kHz)');
 
 % 	axes(handles.AdjSpectrumAxes)
 % 	[S, F, T, P] = spectrogram(	handles.adj, ...
@@ -1075,11 +1294,11 @@ function updatePlots(hObject, handles)
 	P = 20*log10(P);
 	P(P == -Inf) = min(min(P(P ~= -Inf)));	
 	surf(handles.AdjSpectrumAxes, 1000*T, 0.001*F, P, 'edgecolor', 'none');
-	xlim([min(tvec) max(tvec)])
-	ylim(freqlim);
+	xlim(handles.AdjSpectrumAxes, [min(tvec) max(tvec)])
+	ylim(handles.AdjSpectrumAxes, freqlim);
 	set(handles.AdjSpectrumAxes, 'XTick', time_ticks)	
-	view(0, 90);
-	xlabel('Time (ms)')
+	view(handles.AdjSpectrumAxes, 0, 90);
+	xlabel(handles.AdjSpectrumAxes, 'Time (ms)')
 	colormap(handles.AdjSpectrumAxes, handles.ColorMap)
 % 	caxis([min(min(P)) max(max(P))])
 
@@ -1194,7 +1413,6 @@ function LoadCalMenuItem_Callback(hObject, eventdata, handles)
 	end
 	guidata(hObject, handles);
 %-------------------------------------------------------------------------
-
 
 %-------------------------------------------------------------------------
 function FlatCalMenuItem_Callback(hObject, eventdata, handles)
@@ -1490,11 +1708,25 @@ function SmoothVal2Ctrl_CreateFcn(hObject, eventdata, handles)
 	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
 	    set(hObject,'BackgroundColor','white');
 	end
+function PreFilterRangeCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function PostFilterRangeCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function CorrectionLimitValCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function SmoothEdgesValCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end	
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
-
-
 
 
 
