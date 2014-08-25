@@ -71,7 +71,8 @@ Sadj = invdb(SdBmag);
 
 % scale for length of signal and divide by 2 to scale for conversion to 
 % full FFT before inverse FFT
-Sadj = slen * Sadj ./ 2;
+Sadj = slen * Sadj;
+%Sadj = slen * Sadj ./ 2;
 %Sadj = NFFT * Sadj ./ 2;
 %Sadj = NFFT * Sadj;
 
@@ -82,15 +83,15 @@ sadj = sadj(1:slen);
 
 % plot s and spectrum of s
 [fraw, magraw] = daqdbfft(s, Fs, length(s));
-figure(2)
+figure(1)
 tvec = 1000 * (0:(length(s)-1)) ./ Fs;
-subplot(221)
+subplot(231)
 plot(tvec, s)
 title('Test signal')
 xlabel('time (milliseconds)')
 ylabel('V')
 ylim(max(abs(s)) * [-1 1])
-subplot(222)
+subplot(232)
 plot(0.001*fraw, magraw);
 title('Test Signal Spectrum')
 xlabel('freq (kHz)')
@@ -98,27 +99,8 @@ ylabel('dB')
 ylim([-120 -40])
 xlim([0 0.001*Fs/2])
 
-% plot s, sadj 
-[fadj, magadj] = daqdbfft(sadj, Fs, length(sadj));
-figure(2)
-subplot(223)
-plot(tvec, sadj)
-ylim(max(abs(s)) * [-1 1])
-title('Compensated Signal')
-xlabel('time (milliseconds)')
-ylabel('V')
-
-subplot(224)
-plot(0.001*fadj, magadj);
-title('processed test signal')
-xlabel('freq (kHz)')
-ylabel('dB')
-ylim([-120 -40])
-xlim([0 0.001*Fs/2])
-
 % spectrogram plot
-figure(3)
-subplot(211)
+subplot(233)
 [S, F, T, P] = spectrogram(	s, ...
 										specwin, ...
 										[], ...
@@ -132,7 +114,24 @@ xlim([min(tvec) max(tvec)])
 ylim([0 0.001*Fs/2]);
 colormap(gray)
 
-subplot(212)
+% plot s, sadj 
+[fadj, magadj] = daqdbfft(sadj, Fs, length(sadj));
+subplot(234)
+plot(tvec, sadj)
+ylim(max(abs(s)) * [-1 1])
+title('Compensated Signal')
+xlabel('time (milliseconds)')
+ylabel('V')
+
+subplot(235)
+plot(0.001*fadj, magadj);
+title('processed test signal')
+xlabel('freq (kHz)')
+ylabel('dB')
+ylim([-120 -40])
+xlim([0 0.001*Fs/2])
+
+subplot(236)
 [S, F, T, P] = spectrogram(	sadj, ...
 										specwin, ...
 										[], ...
@@ -148,7 +147,6 @@ xlabel('Time (ms)')
 colormap(gray)
 % 	caxis([min(min(P)) max(max(P))])
 
-
 %------------------------------------------------------------------------
 %% test with real signal
 %------------------------------------------------------------------------
@@ -157,7 +155,7 @@ colormap(gray)
 [b, Fs, nbits, opts] = wavread(fullfile(CALLPATH, callname));
 % b = normalize(b)';
 b = b';
-b = sin2array(b, 1, Fs);
+b = sin2array(b, 0.5, Fs);
 
 % get spectrum of s signal
 % length of signal
@@ -181,14 +179,13 @@ tmp(tmp==0) = ZERO_VAL;
 BdBmag = db(tmp);
 clear tmp;
 
-%  BdBmag(30000:40000) = -40;
-
 % convert back to linear scale...
 Badj = invdb(BdBmag);
 
 % scale for length of signal and divide by 2 to scale for conversion to 
 % full FFT before inverse FFT
-Badj = blen * Badj ./ 2;
+Badj = blen * Badj;
+%Badj = blen * Badj ./ 2;
 %Badj = NFFT * Badj ./ 2;
 %Badj = NFFT * Badj;
 
@@ -199,42 +196,26 @@ badj = badj(1:blen);
 
 % plot b and spectrum of b
 [fraw, magraw] = daqdbfft(b, Fs, length(b));
-figure(4)
+figure(2)
+
+% raw signal plot
 tvec = 1000 * (0:(length(b)-1)) ./ Fs;
-subplot(221)
+subplot(231)
 plot(tvec, b)
 title('WAV signal')
 xlabel('time (milliseconds)')
 ylabel('V')
 ylim(max(abs(b)) * [-1 1])
-subplot(222)
+% raw signal magnitude spectrum plot
+subplot(232)
 plot(0.001*fraw, magraw);
 title('WAV Spectrum')
 xlabel('freq (kHz)')
 ylabel('dB')
 ylim([-120 -40])
 xlim([0 0.001*Fs/2])
-
-% plot b, badj 
-[fadj, magadj] = daqdbfft(badj, Fs, length(badj));
-subplot(223)
-plot(tvec, badj)
-ylim(max(abs(b)) * [-1 1])
-title('Compensated Signal')
-xlabel('time (milliseconds)')
-ylabel('V')
-
-subplot(224)
-plot(0.001*fadj, magadj);
-title('processed test signal')
-xlabel('freq (kHz)')
-ylabel('dB')
-ylim([-120 -40])
-xlim([0 0.001*Fs/2])
-
-% spectrogram plot
-figure(3)
-subplot(211)
+% raw signal spectrogram plot
+subplot(233)
 [S, F, T, P] = spectrogram(	b, ...
 										specwin, ...
 										[], ...
@@ -248,7 +229,26 @@ xlim([min(tvec) max(tvec)])
 ylim([0 0.001*Fs/2]);
 colormap(gray)
 
-subplot(212)
+
+% plot b, badj 
+[fadj, magadj] = daqdbfft(badj, Fs, length(badj));
+% adj signal plot
+subplot(234)
+plot(tvec, badj)
+ylim(max(abs(b)) * [-1 1])
+title('Compensated Signal')
+xlabel('time (milliseconds)')
+ylabel('V')
+% adj mag spectrum plot
+subplot(235)
+plot(0.001*fadj, magadj);
+title('processed test signal')
+xlabel('freq (kHz)')
+ylabel('dB')
+ylim([-120 -40])
+xlim([0 0.001*Fs/2])
+% adj spectrogram plot
+subplot(236)
 [S, F, T, P] = spectrogram(	badj, ...
 										specwin, ...
 										[], ...
