@@ -572,7 +572,7 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 														length(handles.adj(bin(1):bin(2))) );
 	guidata(hObject, handles);
 	% update front panel plots
-	updatePlots(hObject, handles);
+	updatePlots(hObject, eventdata, handles);
 	% save variables in workspace
 	guidata(hObject, handles);
 	disp('....updating complete');
@@ -581,13 +581,15 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
 function PlayRawSignalCtrl_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
-	PlaySignal(hObject, eventdata, handles);
+	[hObject, handles] = PlaySignal(hObject, eventdata, handles);
+	guidata(hObject, handles);
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
 function PlayAdjSignalCtrl_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
-	PlaySignal(hObject, eventdata, handles);
+	[hObject, handles] = PlaySignal(hObject, eventdata, handles);
+	guidata(hObject, handles);
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
@@ -1393,8 +1395,10 @@ function updateGuiFromSynth(hObject, handles)
 	Nsynthparam = handles.S.Nparam(sindx);
 	% loop through parameters for this signal
 	for n = 1:Nsynthparam
-		update_ui_str(handles.(handles.S.TextTags{n}), [handles.S.Text{sindx}{n} ':']);
-		update_ui_str(handles.(handles.S.CtrlTags{n}), handles.synth.(handles.S.Param{sindx}{n}));
+		update_ui_str(handles.(handles.S.TextTags{n}), ...
+															[handles.S.Text{sindx}{n} ':']);
+		update_ui_str(handles.(handles.S.CtrlTags{n}), ...
+											handles.synth.(handles.S.Param{sindx}{n}));
 		show_uictrl(handles.(handles.S.TextTags{n}));
 		show_uictrl(handles.(handles.S.CtrlTags{n}));
 	end
@@ -1424,7 +1428,7 @@ function updateSynthFromGui(hObject, handles)
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
-function updatePlots(hObject, handles)
+function updatePlots(hObject, eventdata, handles)
 	% plotting limits
 	% limits for Mag and Phase plots
 	dbmax = 0;
@@ -1517,6 +1521,8 @@ function updatePlots(hObject, handles)
 % 	caxis([min(min(P)) max(max(P))])
 
 	guidata(hObject, handles);
+	
+	dBPlotCtrl_Callback(hObject, eventdata, handles);
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
@@ -1551,7 +1557,8 @@ function [atten_val] = figure_atten(spl_val, rms_val, caldata)
 %------------------------------------------------------------------------------
 %-------------------------------------------------------------------------
 function SaveFigureMenuItem_Callback(hObject, eventdata, handles)
-	[figfile, figpath] = uiputfile('*.fig','Save plot and figure in .fig file...');
+	[figfile, figpath] = ...
+							uiputfile('*.fig','Save plot and figure in .fig file...');
 	if figfile ~=0
 		figfile = fullfile(figpath, figfile);
 		saveas(handles.axes1, figfile, 'fig');
@@ -1615,7 +1622,7 @@ function QuitMenuItem_Callback(hObject, eventdata, handles)
 function LoadCalMenuItem_Callback(hObject, eventdata, handles)
 %-------------------------------------------------------------------------
 	[calfile, calpath] = uigetfile( {'*.cal'; '*_cal.mat'}, ...
-												'Load headphone calibration data from file...');
+										'Load headphone calibration data from file...');
 	if calfile ~=0
 		datafile = fullfile(calpath, calfile);	
 		handles.cal = load_headphone_cal(datafile);
@@ -1638,7 +1645,8 @@ function FlatCalMenuItem_Callback(hObject, eventdata, handles)
 	handles.cal = fake_caldata('freqs', (1:10:(handles.S.Fs / 2)));
 	handles.cal.mag = 90 * handles.cal.mag;
 	guidata(hObject, handles);
-	plot(handles.CalibrationAxes, 0.001*handles.cal.freq, handles.cal.mag(1, :), '.-');
+	plot(handles.CalibrationAxes, 0.001*handles.cal.freq, ...
+																handles.cal.mag(1, :), '.-');
 	ylim(handles.CalibrationAxes, [0 100]);
 %-------------------------------------------------------------------------
 
@@ -1844,6 +1852,8 @@ function RMSWindowMenuItem_Callback(hObject, eventdata, handles)
 		handles.PeakRMSWindow = newVal;
 	end
 	guidata(hObject, handles);
+	updateDBplots(hObject, eventdata, handles)
+	guidata(hObject, handles);
 %-------------------------------------------------------------------------
 
 %******************************************************************************
@@ -1858,113 +1868,140 @@ function RMSWindowMenuItem_Callback(hObject, eventdata, handles)
 %******************************************************************************
 %******************************************************************************
 function CompMethodCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		  set(hObject,'BackgroundColor','white');
 	end
-	set(hObject, 'String', {'plot(rand(5))', 'plot(sin(1:0.01:25))', 'bar(1:.5:10)', 'plot(membrane)', 'surf(peaks)'});
+	set(hObject, 'String', {'plot(rand(5))', 'plot(sin(1:0.01:25))', ...
+		'bar(1:.5:10)', 'plot(membrane)', 'surf(peaks)'});
 function WavFilenameCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function SynthTypeCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function FsCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function p1Ctrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function p2Ctrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function p3Ctrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function p4Ctrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function p5Ctrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function p6Ctrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function TargetSPLCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function LowCutFreqCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function SpectrumWindowCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function CorrFminCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function CorrFmaxCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function NormalizePeakCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function AnalysisStartCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function AnalysisEndCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function SmoothVal1Ctrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
-
 function CalSmoothMethodCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		set(hObject,'BackgroundColor','white');
 	end
 function SmoothVal2Ctrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 	    set(hObject,'BackgroundColor','white');
 	end
 function PreFilterRangeCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function PostFilterRangeCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function CorrectionLimitValCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function SmoothEdgesValCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function PeakTimeRawCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function PeakTimeAdjCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 %******************************************************************************
@@ -1972,10 +2009,676 @@ function PeakTimeAdjCtrl_CreateFcn(hObject, eventdata, handles)
 %******************************************************************************
 
 
+
+function varargout = PlaySignal(hObject, eventdata, handles)
+%------------------------------------------------------------------------------
+% PlaySignal
+%------------------------------------------------------------------------------
+% sets up NI data acquisition toolbox parameters and plays signal
+%------------------------------------------------------------------------------
+	%-----------------------------------------------------------------------
+	%-----------------------------------------------------------------------
+	% Check Inputs
+	%-----------------------------------------------------------------------
+	%-----------------------------------------------------------------------
+	%--------------------------------------------------
+	% find who called us
+	%--------------------------------------------------
+	ButtonID = read_ui_str(hObject);
+	% check to make sure output signal isn't crazy
+	if strcmpi(ButtonID, 'Play Raw') 
+		if isempty(handles.raw)	
+			warndlg('RAW signal empty!');
+			return
+		end
+	end
+	if strcmpi(ButtonID, 'Play Adj')
+		if isempty(handles.adj)
+			warndlg('ADJ signal empty!');
+			return
+		end
+	end
+	%-----------------------------------------------------------------------
+	%-----------------------------------------------------------------------
+	% setup output figures
+	%-----------------------------------------------------------------------
+	%-----------------------------------------------------------------------
+	% if figure has not been created, do so
+	if isempty(handles.IOfigure) || ~ishandle(handles.IOfigure)
+		handles.IOfigure = figure;
+		set(handles.IOfigure, 'Position', [10 235 973 500]);
+		% create subplot axes
+	% 	subplot('Position',[left bottom width height]) creates an axes at the
+	% 	position specified by a four-element vector. left, bottom, width, and
+	% 	height are in normalized coordinates in the range from 0.0 to 1.0
+		pw = 0.19;
+		ph = 0.375;
+		x1 = 0.052;
+		x2 = 0.3;
+		x3 = 0.55;
+		x4 = 0.8;
+		y1 = 0.55;
+		y2 = 0.09;
+
+		handles.P.rsig =	subplot('Position', [x1	y1	pw	ph]);
+		handles.P.rmag =	subplot('Position', [x2	y1	pw	ph]);
+		handles.P.rphi =	subplot('Position', [x3	y1	pw	ph]);
+		handles.P.rspec =	subplot('Position', [x4	y1	pw	ph]);
+
+		handles.P.asig =	subplot('Position', [x1	y2	pw	ph]);
+		handles.P.amag =	subplot('Position', [x2	y2	pw	ph]);
+		handles.P.aphi =	subplot('Position', [x3	y2	pw	ph]);
+		handles.P.aspec =	subplot('Position', [x4	y2	pw	ph]);
+		guidata(hObject, handles);
+
+	else
+		% otherwise, make it active
+		figure(handles.IOfigure);
+	end
+
+	%-----------------------------------------------------------------------
+	%-----------------------------------------------------------------------
+	% play sound out of selected output device
+	%-----------------------------------------------------------------------
+	%-----------------------------------------------------------------------
+	% SOUND CARD OUTPUT
+	if strcmpi(handles.OutputDevice, 'WINSOUND')
+		if (handles.S.Fs == 44100)
+			if strcmpi(ButtonID, 'Play Raw') && ~isempty(handles.raw)
+				% play raw sound
+				disable_ui(hObject);
+				pause(0.5);
+				sound(sin2array(handles.raw, 1, handles.S.Fs), handles.S.Fs);
+				pause(1);
+				enable_ui(hObject);
+				update_ui_str(handles.RawdBText, sprintf('Raw dB SPL: ---'));
+				hide_uictrl(handles.RawdBText);
+				hide_uictrl(handles.AdjdBText);
+			elseif strcmpi(ButtonID, 'Play Adj') && ~isempty(handles.adj)
+				% play adj sound
+				disable_ui(hObject);
+				pause(0.5);
+				sound(sin2array(handles.adj, 1, handles.S.Fs), handles.S.Fs);
+				pause(1);
+				enable_ui(hObject);
+				update_ui_str(handles.AdjdBText, sprintf('Adj dB SPL: ---'));
+				hide_uictrl(handles.RawdBText);
+				hide_uictrl(handles.AdjdBText);		
+			end
+		else
+			errordlg(sprintf('Invalid sample rate %.2f for WINSOUND', handles.S.Fs), ...
+									'FlatWav Error');
+		end
+	% NIDAQ OUTPUT
+	elseif strcmpi(handles.OutputDevice, 'NIDAQ')
+		% play selected sound, get response
+		if strcmpi(ButtonID, 'Play Raw') && ~isempty(handles.raw)
+			% play raw sound
+			disable_ui(hObject);
+			[resp, Fs] = NIplaysignal(hObject, handles, handles.raw);
+			enable_ui(hObject);		
+		elseif strcmpi(ButtonID, 'Play Adj') && ~isempty(handles.adj)
+			% play adj sound
+			disable_ui(hObject);
+			[resp, Fs] = NIplaysignal(hObject, handles, handles.adj);
+			show_uictrl(handles.AdjdBText);		
+			enable_ui(hObject);
+		end
+	% ERROR
+	else
+		errordlg(sprintf('unknown io device %s', handles.OutputDevice), 'FlatWav Error');
+	end
+	handles.respFs = Fs;
+	guidata(hObject, handles);
+
+	%-----------------------------------------------------------------------
+	%-----------------------------------------------------------------------
+	% process response data (if NIDAQ selected)
+	%-----------------------------------------------------------------------
+	%-----------------------------------------------------------------------
+	if strcmpi(handles.OutputDevice, 'NIDAQ')
+
+		%-----------------------------------------------------------------------
+		% update bandpass filter for processing the data
+		%-----------------------------------------------------------------------
+		% Nyquist frequency
+		fnyq = Fs / 2;
+		% passband definition
+		fband = [handles.HPFc handles.LPFc] ./ fnyq;
+		% filter coefficients using a butterworth bandpass filter
+		[handles.fcoeffb, handles.fcoeffa] = butter(handles.FilterOrder, ...
+																				fband, 'bandpass');
+		%--------------------------------------------------
+		% filter data using input filter settings
+		%--------------------------------------------------
+		resp = filtfilt(handles.fcoeffb, handles.fcoeffa, resp);
+
+		%--------------------------------------------------
+		% update analysis window
+		%--------------------------------------------------
+		% check if analysis window is beyond length of signal
+		if  ms2samples(handles.Awindow(2), Fs) > length(resp)
+			% if so, reset to duration of signal
+			handles.Awindow(2) = floor(bin2ms(length(resp), Fs));
+			update_ui_str(handles.AnalysisEndCtrl, handles.Awindow(2));
+			guidata(hObject, handles);
+			fprintf('warning: Analysis End > length of signal!!!!');
+		end
+		% find bins for analysis
+		bin = ms2samples(handles.Awindow, Fs);
+		if bin(1) == 0
+			bin(1) = 1;
+		end
+
+		%--------------------------------------------------
+		% analyze data
+		%--------------------------------------------------
+		% compute RMS
+		resp_RMS = rms(resp(bin(1):bin(2)));
+		% compute dB SPL
+		resp_dBSPL = dbspl(handles.VtoPa*resp_RMS);
+		% take fft of raw and adj response data
+		[fresp, magresp, phiresp] = daqdbfullfft(	resp(bin(1):bin(2)), ...
+																Fs, ...
+																length(resp(bin(1):bin(2))) );
+
+		%--------------------------------------------------
+		% assign data to handles containers, update display
+		%--------------------------------------------------
+		if strcmpi(ButtonID, 'Play Raw')
+			handles.rawresp = resp;
+			handles.rawRMS = resp_RMS;
+			handles.rawdBSPL = resp_dBSPL;
+			handles.rawfresp = fresp;
+			handles.rawmag = magresp;
+			handles.rawphi = phiresp;
+			% update display
+			dbtext = sprintf('Raw dB SPL: %.2f  [%d - %d]\n', ...
+																handles.rawdBSPL, ...
+																handles.Awindow(1), ...
+																handles.Awindow(2));
+			fprintf('%s\n', dbtext);
+			update_ui_str(handles.RawdBText, dbtext);
+			show_uictrl(handles.RawdBText);
+
+		elseif strcmpi(ButtonID, 'Play Adj')
+			handles.adjresp = resp;
+			handles.adjRMS = resp_RMS;
+			handles.adjdBSPL = resp_dBSPL;
+			handles.adjfresp = fresp;
+			handles.adjmag = magresp;
+			handles.adjphi = phiresp;
+			% update display
+			% update display
+			dbtext = sprintf('Raw dB SPL: %.2f  [%d - %d]\n', ...
+																handles.adjdBSPL, ...
+																handles.Awindow(1), ...
+																handles.Awindow(2));
+			fprintf('%s\n', dbtext);
+			update_ui_str(handles.AdjdBText, dbtext);
+			show_uictrl(handles.AdjdBText);
+		end
+		guidata(hObject, handles);
+		handles.Awindow
+		%-----------------------------------------------------------------------
+		% plot data
+		%-----------------------------------------------------------------------
+		% set limits for Mag and Phase plots
+		dblim = [min(magresp) max(magresp)];
+		freqlim = 0.001*[0 Fs/2];
+
+		if strcmpi(ButtonID, 'Play Raw')
+			% raw plots
+			subplot(handles.P.rsig)
+			tvec = 1000 * (0:(length(resp)-1)) ./ Fs;
+			plot(handles.P.rsig, tvec, resp)
+			title(handles.P.rsig, 'Response (V)')
+			ylabel(handles.P.rsig, 'Raw', 'Color', 'b')
+			set(handles.P.rsig, 'XTickLabel', []);
+
+			subplot(handles.P.rmag)
+			plot(handles.P.rmag, 0.001*fresp, magresp);
+			title(handles.P.rmag, 'Magnitude (dB)')
+			ylim(handles.P.rmag, dblim);
+			xlim(handles.P.rmag, freqlim);
+			set(handles.P.rmag, 'XTickLabel', []);
+
+			subplot(handles.P.rphi)
+			plot(handles.P.rphi, 0.001*fresp, unwrap(phiresp));
+			title(handles.P.rphi, 'Phase (rad)')
+			xlim(handles.P.rphi, freqlim);
+			set(handles.P.rphi, 'XTickLabel', []);
+
+			subplot(handles.P.rspec)
+			[S, F, T, P] = spectrogram(	resp, ...
+													handles.SpectrumWindow, ...
+													floor(0.95*handles.SpectrumWindow), ...
+													512, ...
+													Fs	);
+			surf(handles.P.rspec, 1000*T, 0.001*F, 20*log10(P), 'edgecolor', 'none');
+			ylim(handles.P.rspec, freqlim);
+			axis(handles.P.rspec, 'tight');
+			view(handles.P.rspec, 0, 90);
+			title(handles.P.rspec, 'Time vs. Freq (kHz) vs. dB')
+			set(handles.P.rspec, 'XTickLabel', []);
+			colormap(handles.P.rspec, handles.ColorMap)
+			guidata(hObject, handles);
+			updateDBplots(hObject, eventdata, handles);
+			if handles.dBPlot
+				updateDBplots(hObject, eventdata, handles);
+			end
+			guidata(hObject, handles);
+
+		elseif strcmpi(ButtonID, 'Play Adj')
+			% Update adj plots
+			subplot(handles.P.asig)
+			tvec = 1000 * (0:(length(resp)-1)) ./ Fs;
+			plot(handles.P.asig, tvec, resp, 'r')
+			ylabel(handles.P.asig, 'Adj', 'Color', 'r')
+			xlabel(handles.P.asig, 'time (ms)')
+
+			subplot(handles.P.amag)
+			plot(handles.P.amag, 0.001*fresp, magresp, 'r');
+			ylim(handles.P.amag, dblim);
+			xlim(handles.P.amag, freqlim);
+			xlabel(handles.P.amag, 'freq (kHz)');
+
+			subplot(handles.P.aphi)
+			plot(handles.P.aphi, 0.001*fresp, unwrap(phiresp), 'r');
+			xlim(handles.P.aphi, freqlim);
+			xlabel(handles.P.aphi, 'freq (kHz)');
+
+			subplot(handles.P.aspec)
+			[S, F, T, P] = spectrogram(	resp, ...
+													handles.SpectrumWindow, ...
+													floor(0.95*handles.SpectrumWindow), ...
+													512, ...
+													Fs	);
+			surf(handles.P.aspec, 1000*T, 0.001*F, 20*log10(P), 'edgecolor', 'none');
+			ylim(handles.P.aspec, freqlim);
+			axis(handles.P.aspec, 'tight')
+			view(handles.P.aspec, 0, 90);
+			xlabel(handles.P.aspec, 'Time (ms)')
+			colormap(handles.P.aspec, handles.ColorMap);
+			guidata(hObject, handles);
+			if handles.dBPlot
+				dBPlotCtrl_Callback(hObject, eventdata, handles);
+			end
+			guidata(hObject, handles);
+		end
+		%------------------------------------------------------------------------
+	end
+
+	% assign outputs
+	varargout{1} = hObject;
+	varargout{2} = handles;
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+
+
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
 function dBPlotCtrl_Callback(hObject, eventdata, handles)
-	handles.dBPlot = read_ui_val(hObject);
+%------------------------------------------------------------------------------
+% displays dB level along with response signal
+	handles.dBPlot = read_ui_val(handles.dBPlotCtrl);
+	guidata(hObject, handles);
 	if handles.dBPlot
-		updateDBplots(hObject, eventdata, handles);
+		[dBfigure, dBaxes] = updateDBplots(hObject, eventdata, handles);
+		% store returned handles
+		if ~isempty(dBfigure)
+			handles.dBFigure = dBfigure;
+		end
+		if ~isempty(dBaxes.rawdb)
+			handles.P.rawdb = dBaxes.rawdb;
+		end
+		if ~isempty(dBaxes.adjdb)
+			handles.P.adjdb = dBaxes.adjdb;
+		end
 	end
 	guidata(hObject, handles);
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+function [dBFigure, dBAxes] = updateDBplots(hObject, eventdata, handles)
+%------------------------------------------------------------------------------
+% updates dB plot
+%
+%	should probably decimate data plots!
+%	
+%------------------------------------------------------------------------
+	%------------------------------------------------------------------------
+	% check to make sure there are data in the handles...
+	%------------------------------------------------------------------------
+	if any(	[	isempty(handles.respFs) ...
+					(isempty(handles.rawresp) && isempty(handles.adjresp))	])
+		warning('FlatWav:Data', 'No data for db analysis');
+		dBFigure = [];
+		dBAxes = [];
+	end
+	%------------------------------------------------------------------------	
+	% if dB figure has not been created, do so
+	%------------------------------------------------------------------------
+	if isempty(handles.dBFigure) || ~ishandle(handles.dBFigure)
+		fprintf('Creating dBFigure\n\n');
+		dBFigure = figure;
+	else
+		dBFigure = handles.dBFigure;
+		figure(dBFigure);
+	end
+	%------------------------------------------------------------------------
+	% if subplots don't exist, create them
+	%------------------------------------------------------------------------
+	if (~isfield(handles.P, 'rawdb') || ~isfield(handles.P, 'adjdb'))
+		dBAxes.rawdb =	subplot(211);
+		dBAxes.adjdb = subplot(212);
+	elseif (~ishandle(handles.P.rawdb) || ~ishandle(handles.P.adjdb))
+		dBAxes.rawdb =	subplot(211);
+		dBAxes.adjdb = subplot(212);
+	else
+		dBAxes.rawdb = handles.P.rawdb;
+		dBAxes.adjdb = handles.P.adjdb;
+	end
+	%------------------------------------------------------------------------
+	% compute rmsbins window
+	%------------------------------------------------------------------------
+	if ~isempty(handles.respFs)
+		rmsbins = ms2samples(handles.PeakRMSWindow, handles.respFs);
+	else
+		error('updateDBplots: handles.respFs is empty!\n\n');
+	end
+
+	%------------------------------------------------------------------------
+	% compute rms of raw response, plot
+	%------------------------------------------------------------------------
+	if ~isempty(handles.rawresp)
+		 plotSignalAnddB(	handles.rawresp, ...
+								handles.PeakRMSWindow, ...
+								handles.respFs, ...
+								'Axes', dBAxes.rawdb, ...
+								'dBSPL', handles.VtoPa, ...
+								'SignalName', 'Raw', ...
+								'SignalColor', 'b', ...
+								'dBMarkerColor', 'b');		
+%{
+		[rawrms, startbins, endbins] = block_rms(handles.rawresp, rmsbins);
+		% find peak and peak index of rms values
+		[maxval, maxindx] = max(rawrms);
+		% compute peak dB SPL
+		rawdBSPL = dbspl(handles.VtoPa*maxval);
+		% update display
+		dbtext = sprintf('Peak Raw dB SPL: %.2f\n', rawdBSPL);
+		fprintf('%s\n', dbtext);
+		
+		% find max point (in milliseconds)
+		xval = rmsbins * maxindx + (rmsbins ./ 2);
+		xval = fix(bin2ms(xval, handles.respFs));
+		
+		% plot RAW
+		% build trace for dB SPL data
+		nrms = length(rawrms);
+		x = zeros(2*nrms, 1);
+		y = zeros(2*nrms, 1);
+		for n = 1:nrms
+			x(2 * (n - 1) + 1) = startbins(n);
+			x(2 * (n - 1) + 2) = endbins(n);
+			y(2 * (n - 1) + 1) = rawrms(n);
+			y(2 * (n - 1) + 2) = rawrms(n);
+		end
+		x = bin2ms(x, handles.respFs);
+		y = dbspl(handles.VtoPa*y);
+		% raw response data
+		tvec = bin2ms( (1:length(handles.rawresp))-1, handles.respFs);
+		yresp = max(y) * normalize(handles.rawresp);
+		xlimits = [min(tvec) max(tvec)];
+		ylimits = [min(yresp) 1.05*max(y)];
+		subplot(dBAxes.rawdb)
+		plot(dBAxes.rawdb, tvec, yresp, 'b-');
+		hold(dBAxes.rawdb, 'on')
+			plot(dBAxes.rawdb, x, y, 'k-', 'LineWidth', 2);
+			plot(dBAxes.rawdb, xval, ylimits(2), 'b*', 'MarkerSize', 10);
+		hold(dBAxes.rawdb, 'off')
+		ylabel(dBAxes.rawdb, 'Raw', 'Color', 'r')
+		xlim(dBAxes.rawdb, xlimits);
+		ylim(dBAxes.rawdb, ylimits);
+		grid(dBAxes.rawdb, 'on');
+		th = text(xval, 1.05*ylimits(2), sprintf('  %.2f', rawdBSPL), ...
+																		'Parent', dBAxes.rawdb);
+		set(th, 'FontSize', 12, 'FontWeight', 'bold', 'Interpreter', 'none');
+%}
+	end
+	
+		% compute rms of adj response, plot
+	if ~isempty(handles.adjresp)
+		
+		 plotSignalAnddB(	handles.adjresp, ...
+								handles.PeakRMSWindow, ...
+								handles.respFs, ...
+								'Axes', dBAxes.adjdb, ...
+								'dBSPL', handles.VtoPa, ...
+								'SignalName', 'Adj', ...
+								'SignalColor', 'r', ...
+								'dBMarkerColor', 'r');
+%{
+		 
+		[adjrms, startbins, endbins] = block_rms(handles.adjresp, rmsbins);
+		% find peak and peak index of rms values
+		[maxval, maxindx] = max(adjrms);
+		% compute peak dB SPL
+		adjdBSPL = dbspl(handles.VtoPa*maxval);
+		% update display
+		dbtext = sprintf('Peak Adj dB SPL: %.2f\n', adjdBSPL);
+		fprintf('%s\n', dbtext);
+		
+		% find max point (in milliseconds)
+		xval = rmsbins * maxindx + (rmsbins ./ 2);
+		xval = fix(bin2ms(xval, handles.respFs));
+		
+		% plot ADJ
+		% build trace for dB SPL data
+		nrms = length(adjrms);
+		x = zeros(2*nrms, 1);
+		y = zeros(2*nrms, 1);
+		for n = 1:nrms
+			x(2 * (n - 1) + 1) = startbins(n);
+			x(2 * (n - 1) + 2) = endbins(n);
+			y(2 * (n - 1) + 1) = adjrms(n);
+			y(2 * (n - 1) + 2) = adjrms(n);
+		end
+		x = bin2ms(x, handles.respFs);
+		y = dbspl(handles.VtoPa*y);
+		% ADJ response data 
+		tvec = bin2ms( (1:length(handles.adjresp))-1, handles.respFs);
+		yresp = max(y) * normalize(handles.adjresp);
+		xlimits = [min(tvec) max(tvec)];
+		ylimits = [min(yresp) 1.05*max(y)];
+		subplot(dBAxes.adjdb)
+		plot(dBAxes.adjdb, tvec, yresp, 'r-');
+		hold(dBAxes.adjdb, 'on')
+			plot(dBAxes.adjdb, x, y, 'k-', 'LineWidth', 2);
+			plot(dBAxes.adjdb, xval, ylimits(2), 'r*', 'MarkerSize', 10);
+		hold(dBAxes.adjdb, 'off')
+		xlim(dBAxes.adjdb, xlimits);
+		ylim(dBAxes.adjdb, ylimits);
+		grid(dBAxes.adjdb, 'on');
+		th = text(xval, 1.05*ylimits(2), sprintf('  %.2f', adjdBSPL), ...
+																		'Parent', dBAxes.adjdb);
+		set(th, 'FontSize', 12, 'FontWeight', 'demi', 'Color', 'r', ...
+																		'Interpreter', 'none');
+								
+%}
+	end
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+
+
+function varargout = plotSignalAnddB(signal, rmswin, Fs, varargin)
+
+	% definitions
+	VtoPa = 0;
+	sigName = '';
+	sigColor = 'b';
+	sigStyle = '-';
+	dBColor = 'k';
+	dBStyle = '-';
+	dBLineWidth = 2;
+	dBMarker = '*';
+	dBMarkerSize = 10;
+	dBMarkerColor = dBColor;
+	
+	% check input arguments
+	nvararg = length(varargin);
+	if nvararg
+		aindex = 1;
+		while aindex <= nvararg
+			switch(upper(varargin{aindex}))
+
+				% select axes
+				case 'AXES'
+					if ~ishandle(varargin{aindex + 1})
+						error('%s: invalid axes handle', mfilename);
+					end
+					dBAxes = varargin{aindex + 1};
+					aindex = aindex + 2;
+
+				% set dBSPL option
+				case 'DBSPL'
+					% store conversion factor
+					VtoPa = varargin{aindex + 1};
+					aindex = aindex + 2;
+
+				% set signal trace name
+				case 'SIGNALNAME'
+					sigName = varargin{aindex + 1};
+					aindex = aindex + 2;
+					
+				% set signal trace color
+				case 'SIGNALCOLOR'
+					sigColor = varargin{aindex + 1};
+					aindex = aindex + 2;				
+					
+				% set signal trace style
+				case 'SIGNALSTYLE'
+					sigStyle = varargin{aindex + 1};
+					aindex = aindex + 2;				
+
+				% set dB trace color
+				case 'DBCOLOR'
+					dbColor = varargin{aindex + 1};
+					aindex = aindex + 2;				
+					
+				% set db trace style
+				case 'DBSTYLE'
+					dbStyle = varargin{aindex + 1};
+					aindex = aindex + 2;				
+				
+				% set db trace line width
+				case 'DBLINEWIDTH'
+					dBLineWidth = varargin{aindex + 1};
+					aindex = aindex + 2;				
+				
+				% set db peak marker symbol
+				case 'DBMARKER'
+					dBMarker = varargin{aindex + 1};
+					aindex = aindex + 2;				
+
+				% set db peak marker size (points)
+				case 'DBMARKERSIZE'
+					dBMarkerSize = varargin{aindex + 1};
+					aindex = aindex + 2;
+				
+				% set db peak marker size (points)
+				case 'DBMARKERCOLOR'
+					dBMarkerColor = varargin{aindex + 1};
+					aindex = aindex + 2;				
+
+				otherwise
+					error('%s: Unknown option %s', mfilename, varargin{aindex});
+			end		% END SWITCH
+		end		% END WHILE aindex
+
+	else
+		dBFigure = figure;
+		dBAxes = axes;	
+	end		% END IF nvararg
+	
+	% comvert rmswindow from milliseconds to # of bins
+	rmsbins = ms2samples(rmswin, Fs);
+	% compute rms of  response, plot
+	[rawrms, startbins, endbins] = block_rms(signal, rmsbins);
+	% find peak and peak index of rms values
+	[maxval, maxindx] = max(rawrms);
+	
+	if VtoPa
+		% compute peak dB SPL
+		sigdBSPL = dbspl(VtoPa*maxval);
+		% display value
+		dbtext = sprintf('%s Peak dB SPL: %.2f\n', sigName, sigdBSPL);
+		fprintf('%s\n', dbtext);
+	else
+		% just use dB
+		sigdBSPL = db(maxval);
+		% display value
+		dbtext = sprintf('%s Peak dB: %.2f\n', sigName, sigdBSPL);
+		fprintf('%s\n', dbtext);
+	end
+		
+	% find max point (in milliseconds)
+	xval = rmsbins * maxindx + (rmsbins ./ 2);
+	xval = fix(bin2ms(xval, Fs));
+
+	% build trace for dB data
+	nrms = length(rawrms);
+	x = zeros(2*nrms, 1);
+	y = zeros(2*nrms, 1);
+	for n = 1:nrms
+		x(2 * (n - 1) + 1) = startbins(n);
+		x(2 * (n - 1) + 2) = endbins(n);
+		y(2 * (n - 1) + 1) = rawrms(n);
+		y(2 * (n - 1) + 2) = rawrms(n);
+	end
+	x = bin2ms(x, Fs);
+	if VtoPa
+		y = dbspl(VtoPa*y);
+	else
+		y = db(y);
+	end
+	
+	% response data
+	tvec = bin2ms( (1:length(signal))-1, Fs);
+	yresp = max(y) * normalize(signal);
+	xlimits = [min(tvec) max(tvec)];
+	ylimits = [min(yresp) 1.05*max(y)];
+	
+	% plot signal data
+	plot(dBAxes, tvec, yresp, [sigColor sigStyle]);
+	
+	hold(dBAxes, 'on')
+		% plot dB data
+		plot(dBAxes, x, y, [dBColor dBStyle], 'LineWidth', dBLineWidth);
+		% plot dB peak
+		plot(dBAxes, xval, ylimits(2), [dBMarkerColor dBMarker], ...
+													'MarkerSize', dBMarkerSize);
+	hold(dBAxes, 'off')
+	ylabel(dBAxes, sigName, 'Color', sigColor)
+	xlim(dBAxes, xlimits);
+	ylim(dBAxes, ylimits);
+	grid(dBAxes, 'on');
+	th = text(xval, 1.05*ylimits(2), sprintf('  %.2f', sigdBSPL), ...
+																	'Parent', dBAxes);
+	set(th,	'FontSize', 12, ...
+				'FontWeight', 'bold', ...
+				'Color', sigColor, ...
+				'Interpreter', 'none');
+
+	if nargout
+		varargout{1} = dBFigure;
+		varargout{2} = dBAxes;
+	end
+	
+
+
+
 

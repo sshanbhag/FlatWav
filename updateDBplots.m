@@ -2,8 +2,7 @@ function updateDBplots(hObject, eventdata, handles)
 
 
 	if any(	[	isempty(handles.respFs) ...
-					isempty(handles.rawresp) ...
-					isempty(handles.adjresp)	])
+					(isempty(handles.rawresp) && isempty(handles.adjresp))	])
 		error('No data for db analysis');
 	end
 	
