@@ -282,7 +282,7 @@ if PREFILTER
 	% passband definition
 	fband = pre_frange ./ (Fs / 2);
 	% filter coefficients using a butterworth bandpass filter
-	[pref_b, pref_a] = butter(5, fband, 'bandpass');
+	[pref_b, pref_a] = butter(6, fband, 'bandpass');
 	% filter data using input filter settings
 	s = filtfilt(pref_b, pref_a, s);
 end
@@ -343,27 +343,25 @@ end
 %------------------------------------------------------------------------
 %------------------------------------------------------------------------
 if SMOOTHEDGES
-	if LOWCUT
-		smoothedges_win = SMOOTHEDGES(1) * [LOWCUT corr_frange];
-	else
-		smoothedges_win = SMOOTHEDGES(1) * corr_frange;
-	end
+	smoothedges_win = SMOOTHEDGES(1) * corr_frange;
 	
 	% get midpoints for smooth windows
 	midpoints = floor(smoothedges_win ./ 2);
 
 	% indices for center of smoothing will be given by valid_indices.
 	% use this to determine indices of Sadj to be smoothed
-	% check if lowcut?
-	if LOWCUT
-		lcindx = max(lowcutindices);
-		sindx{1} = (lcindx - midpoints(1)):(lcindx + midpoints(1));
-		sindx{2} = (valid_indices(1) - midpoints(1)):(valid_indices(1) + midpoints(1));
-		sindx{3} = (valid_indices(end) - midpoints(2)):(valid_indices(end) + midpoints(2));
-	else
-		sindx{1} = (valid_indices(1) - midpoints(1)):(valid_indices(1) + midpoints(1));
-		sindx{2} = (valid_indices(end) - midpoints(2)):(valid_indices(end) + midpoints(2));
-	end
+% 	% check if lowcut?
+% 	if LOWCUT
+% 		lcindx = max(lowcutindices);
+% 		sindx{1} = (lcindx - midpoints(1)):(lcindx + midpoints(1));
+% 		sindx{2} = (valid_indices(1) - midpoints(1)):(valid_indices(1) + midpoints(1));
+% 		sindx{3} = (valid_indices(end) - midpoints(2)):(valid_indices(end) + midpoints(2));
+% 	else
+% 		sindx{1} = (valid_indices(1) - midpoints(1)):(valid_indices(1) + midpoints(1));
+% 		sindx{2} = (valid_indices(end) - midpoints(2)):(valid_indices(end) + midpoints(2));
+% 	end
+	sindx{1} = (valid_indices(1) - midpoints(1)):(valid_indices(1) + midpoints(1));
+	sindx{2} = (valid_indices(end) - midpoints(2)):(valid_indices(end) + midpoints(2));
 end
 
 %****************************************************************************
@@ -411,11 +409,6 @@ if strcmpi(COMPMETHOD, 'BOOST')
 	% apply correction
 	SdBadj(valid_indices) = SdBadj(valid_indices) + corr_vals;
 
-	% set freqs below LOWCUT to MINDB
-	if (LOWCUT > 0) && ~isempty(lowcutindices)
-		SdBadj(lowcutindices) = MIN_DB;
-	end
-	
 	% smooth transitions at edges
 	if SMOOTHEDGES
 		spiece = cell(3, 1);
@@ -475,11 +468,11 @@ if strcmpi(COMPMETHOD, 'ATTEN')
 	% apply correction
 	SdBadj(valid_indices) = SdBadj(valid_indices) + corr_vals;
 
-	% set freqs below LOWCUT to MINDB
-	if (LOWCUT > 0) && ~isempty(lowcutindices)
-		SdBadj(lowcutindices) = MIN_DB;
-	end
-
+% 	% set freqs below LOWCUT to MINDB
+% 	if (LOWCUT > 0) && ~isempty(lowcutindices)
+% 		SdBadj(lowcutindices) = MIN_DB;
+% 	end
+% 
 	% smooth transitions at edges
 	if SMOOTHEDGES
 		spiece = cell(3, 1);
@@ -564,10 +557,10 @@ if strcmpi(COMPMETHOD, 'COMPRESS')
 	% apply correction
 	SdBadj(valid_indices) = SdBadj(valid_indices) + corr_vals;
 
-	% set freqs below LOWCUT to MINDB
-	if (LOWCUT > 0) && ~isempty(lowcutindices)
-		SdBadj(lowcutindices) = MIN_DB;
-	end
+% 	% set freqs below LOWCUT to MINDB
+% 	if (LOWCUT > 0) && ~isempty(lowcutindices)
+% 		SdBadj(lowcutindices) = MIN_DB;
+% 	end
 	
 	% smooth transitions at edges
 	if SMOOTHEDGES
@@ -581,7 +574,6 @@ if strcmpi(COMPMETHOD, 'COMPRESS')
 	% convert back to linear scale...
 	Sadj = invdb(SdBadj);
 
-
 	% scale for length of signal and divide by 2 to scale for conversion to 
 	% full FFT before inverse FFT
 	Sadj = Nsignal * Sadj ./ 2;
@@ -592,6 +584,20 @@ if strcmpi(COMPMETHOD, 'COMPRESS')
 	sadj = sadj(1:Nsignal);
 end
 
+%------------------------------------------------------------------------
+%------------------------------------------------------------------------
+% lowcut? define filter
+%------------------------------------------------------------------------
+%------------------------------------------------------------------------
+if LOWCUT
+	% build highpass filter
+	% passband definition
+	lcfc = LOWCUT ./ (Fs / 2);
+	% filter coefficients using a butterworth highpass filter
+	[lcf_b, lcf_a] = butter(7, lcfc, 'high');
+	% filter data using input filter settings
+	sadj = filtfilt(lcf_b, lcf_a, sadj);
+end
 
 %------------------------------------------------------------------------
 %------------------------------------------------------------------------
