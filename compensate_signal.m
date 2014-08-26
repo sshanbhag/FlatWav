@@ -547,11 +547,11 @@ if strcmpi(COMPMETHOD, 'COMPRESS')
 	if CORRLIMIT
 		if all(Magnorm < CORRLIMIT)
 			warning('CompensateSignal:CORRLIMIT', 'CORRLIMIT > all values');
-			fprintf('\tConsider lowering the Target SPL level\n');
+			fprintf('\tConsider raising the Target SPL level\n');
 			fprintf('\tin order to balance correction amount!\n\n');
 		elseif all(Magnorm > CORRLIMIT)
 			warning('CompensateSignal:CORRLIMIT', 'CORRLIMIT < all values');
-			fprintf('\tConsider raising the Target SPL level\n');
+			fprintf('\tConsider lowering the Target SPL level\n');
 			fprintf('\tin order to balance correction amount!\n\n');
 		end
 		Magnorm(Magnorm > CORRLIMIT) = CORRLIMIT;
