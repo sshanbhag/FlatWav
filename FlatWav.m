@@ -22,7 +22,7 @@ function varargout = FlatWav(varargin)
 
 % Edit the above text to modify the response to help FlatWav
 
-% Last Modified by GUIDE v2.5 25-Aug-2014 18:40:46
+% Last Modified by GUIDE v2.5 26-Aug-2014 15:36:23
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -460,7 +460,39 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 														handles.S.Fs, ...
 														length(handles.raw(bin(1):bin(2))));
 	guidata(hObject, handles);
-
+	
+	%--------------------------------------------------------------------
+	% next, check the calibration curve and smooth if necessary
+	%--------------------------------------------------------------------
+	if read_ui_val(handles.SmoothCalCtrl)
+		% get value of smooth method
+		smoothmethod = read_ui_val(handles.CalSmoothMethodCtrl);
+		switch(smoothmethod)
+			% moving-window average
+			case 1
+				% smooth the calibration mag data, store in mag_smooth
+				window_len = read_ui_str(handles.SmoothVal1Ctrl, 'n');
+				handles.mag_smooth = smooth_calibration_data(...
+																		smoothmethod, ...
+																		handles.cal, ...
+																		window_len);
+			% Savitzky-Golay filter
+			case 2
+				% smooth the calibration mag data, store in mag_smooth
+				sg_order = read_ui_str(handles.SmoothVal1Ctrl, 'n');
+				sg_framesize = read_ui_str(handles.SmoothVal2Ctrl, 'n');
+				handles.mag_smooth = smooth_calibration_data( ...	
+																		smoothmethod, ...
+																		handles.cal, ...
+																		sg_order, ...
+																		sg_framesize);
+		end
+		guidata(hObject, handles);
+		mags = handles.mag_smooth;
+	else
+		mags = handles.cal.mag;
+	end
+	
 	%--------------------------------------------------------------------
 	% apply compensation method
 	% CompMethod is value of 1, 2, 3, 4 (value of CompMethodCtrl) which 
@@ -526,9 +558,10 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 		handles.adj = handles.NormalizeValue * normalize(handles.raw);
 		
 	elseif strcmpi(handles.Normalize, 'off')
-		handles.adj = compensate_signal(	handles.raw, ...
+		[handles.adj, tmp, handles.compcurve] = compensate_signal(	...
+											handles.raw, ...
 											handles.cal.freq, ...
-											handles.cal.mag(1, :), ...
+											mags(1, :), ...
 											handles.S.Fs, ...
 											handles.CorrFrange, ...
 											'Method', method, ...
@@ -540,11 +573,13 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 											'Rangelimit', rangelimit, ...
 											'Corrlimit', corrlimit, ...
 											'SmoothEdges', smoothedges	);
+		clear tmp
 
 	else
-		handles.adj = compensate_signal(	handles.raw, ...
+		[handles.adj, tmp, handles.compcurve] = compensate_signal(	...
+											handles.raw, ...
 											handles.cal.freq, ...
-											handles.cal.mag(1, :), ...
+											mags(1, :), ...
 											handles.S.Fs, ...
 											handles.CorrFrange, ...
 											'Method', method, ...
@@ -556,6 +591,7 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 											'Rangelimit', rangelimit, ...
 											'Corrlimit', corrlimit, ...
 											'SmoothEdges', smoothedges	);
+		clear tmp
 	end
 	
 	if strcmpi(handles.SignalMode, 'SYNTH')
@@ -1135,7 +1171,25 @@ function SmoothEdgesValCtrl_Callback(hObject, eventdata, handles)
 		fprintf('error in SmoothEdgesValCtrl_Callback');
 	end
 %------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function PlotCompensationCurveCtrl_Callback(hObject, eventdata, handles)
+	if ~isfield(handles, 'cal')
+		return
+	elseif isempty(handles.cal)
+		return
+	elseif ~isfield(handles, 'compcurve')
+		return
+	elseif isempty(handles.compcurve)
+		return
+	end
 	
+	figure
+	plot(handles.compcurve, 'k.-');
+	
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+
 %------------------------------------------------------------------------------
 %******************************************************************************
 %******************************************************************************
@@ -1536,480 +1590,6 @@ function [atten_val] = figure_atten(spl_val, rms_val, caldata)
 	end
 %------------------------------------------------------------------------------
 
-
-%******************************************************************************
-%******************************************************************************
-%******************************************************************************
-
-
-%******************************************************************************
-%******************************************************************************
-%******************************************************************************
-% MENU Callbacks
-%******************************************************************************
-%******************************************************************************
-%******************************************************************************
-
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
-% FlatWav Menu
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
-%-------------------------------------------------------------------------
-function SaveFigureMenuItem_Callback(hObject, eventdata, handles)
-	[figfile, figpath] = ...
-							uiputfile('*.fig','Save plot and figure in .fig file...');
-	if figfile ~=0
-		figfile = fullfile(figpath, figfile);
-		saveas(handles.axes1, figfile, 'fig');
-	end
-%-------------------------------------------------------------------------
-
-%-------------------------------------------------------------------------
-function IndividualPlotMenuItem_Callback(hObject, eventdata, handles)
-	% create new figure
-	figure	
-	% copy 
-	a = axes;
-	ax2ax(handles.axes1, a)
-	plotStrings = read_ui_str(handles.PlotMenu);
-	plotVal = read_ui_val(handles.PlotMenu);
-	
-	if isfield(handles.caldata, 'settings')
-		if isfield(handles.caldata.settings, 'calfile')
-			[pname, fname, tmp] = fileparts(handles.caldata.settings.calfile);
-		else
-			fname = {};
-		end
-	else
-		fname = {};
-	end	
-
-	if ~isempty(fname)
-		tstr = {plotStrings{plotVal}, fname};
-	else
-		tstr = plotStrings{plotVal};
-	end
-	
-	title(tstr, 'Interpreter', 'none')
-%-------------------------------------------------------------------------
-
-%-------------------------------------------------------------------------
-function PrintMenuItem_Callback(hObject, eventdata, handles)
-%-------------------------------------------------------------------------
-	printdlg(handles.figure1)
-%-------------------------------------------------------------------------
-
-%-------------------------------------------------------------------------
-function QuitMenuItem_Callback(hObject, eventdata, handles)
-%-------------------------------------------------------------------------
-	selection = questdlg(['Close ' get(handles.figure1,'Name') '?'],...
-								['Close ' get(handles.figure1,'Name') '...'],...
-								'Yes','No','Yes');
-	if strcmp(selection,'No')
-		 return;
-	end
-	delete(handles.figure1);
-%------------------------------------------------------------------------------
-
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
-% Cal Menu
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
-
-%-------------------------------------------------------------------------
-function LoadCalMenuItem_Callback(hObject, eventdata, handles)
-%-------------------------------------------------------------------------
-	[calfile, calpath] = uigetfile( {'*.cal'; '*_cal.mat'}, ...
-										'Load headphone calibration data from file...');
-	if calfile ~=0
-		datafile = fullfile(calpath, calfile);	
-		handles.cal = load_headphone_cal(datafile);
-		plot(	handles.CalibrationAxes, ...
-				0.001*handles.cal.freq, ...
-				handles.cal.mag(1, :), '.-');
-		ylim(handles.CalibrationAxes, ...
-				[0.9*min(handles.cal.mag(1, :)) 1.1*max(handles.cal.mag(1, :))]);
-		grid(	handles.CalibrationAxes, 'on');
-	end
-	guidata(hObject, handles);
-	SmoothCalCtrl_Callback(hObject, eventdata, handles);
-%-------------------------------------------------------------------------
-
-%-------------------------------------------------------------------------
-function FlatCalMenuItem_Callback(hObject, eventdata, handles)
-%--------------------------------------------------
-% fake cal data
-%--------------------------------------------------
-	handles.cal = fake_caldata('freqs', (1:10:(handles.S.Fs / 2)));
-	handles.cal.mag = 90 * handles.cal.mag;
-	guidata(hObject, handles);
-	plot(handles.CalibrationAxes, 0.001*handles.cal.freq, ...
-																handles.cal.mag(1, :), '.-');
-	ylim(handles.CalibrationAxes, [0 100]);
-%-------------------------------------------------------------------------
-
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
-% Wav Menu
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
-
-%-------------------------------------------------------------------------
-function LoadWavMenuItem_Callback(hObject, eventdata, handles)
-%-------------------------------------------------------------------------
-	WavFilenameCtrl_Callback(hObject, eventdata, handles);
-%-------------------------------------------------------------------------	
-
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
-% Signal Menu
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
-
-%-------------------------------------------------------------------------
-function SaveAdjSignalMenuItem_Callback(hObject, eventdata, handles)
-%-------------------------------------------------------------------------
-	if isempty(handles.adj)
-		warndlg(sprintf('%s: adj vector is empty!  aborting save', mfilename));
-		return
-	end
-	
-	[tmppath, tmpname, tmpext] = fileparts(handles.wavdata.datafile);
-	tmpfile = fullfile(tmppath, [tmpname '_adj' tmpext]);
-	
-	[adjfile, adjpath] = uiputfile(	'*.wav', ...
-												'Save adj signal to wav file...', tmpfile);
-	if adjfile ~=0
-		datafile = fullfile(adjpath, adjfile);
-		peakval = max(handles.adj);
-		if peakval >= 1
-			fprintf('!!!!!!!\nPoints in adj are >= 1\nFile will be normalized\n');
-			wavwrite(0.9*normalize(handles.adj), handles.S.Fs, datafile);
-% 			peakfile = [datafile(1:(end-4)) '_PeakVal.txt'];
-% 			save(peakfile, peakval, '-ascii');
-		else
-			wavwrite(handles.adj, handles.S.Fs, datafile);
-		end
-	end
-	guidata(hObject, handles);
-%-------------------------------------------------------------------------
-
-%-------------------------------------------------------------------------
-function SaveRawSignalMenuItem_Callback(hObject, eventdata, handles)
-%-------------------------------------------------------------------------
-	if isempty(handles.raw)
-		warndlg(sprintf('%s: raw vector is empty!  aborting save', mfilename));
-		return
-	end
-	
-	[rawfile, rawpath] = uiputfile(	'*.wav', ...
-												'Save raw signal to wav file...');
-	if rawfile ~=0
-		datafile = fullfile(rawpath, rawfile);
-		peakval = max(handles.raw);
-		if peakval >= 1
-			fprintf('!!!!!!!\nPoints in raw are >= 1\nFile will be normalized\n');
-			wavwrite(0.9*normalize(handles.raw), handles.S.Fs, datafile);
-			peakfile = [datafile(1:(end-4)) '_PeakVal.txt'];
-			save(peakfile, peakval, '-ascii');
-		else
-			wavwrite(handles.raw, handles.S.Fs, datafile);
-		end
-	end
-%-------------------------------------------------------------------------
-
-%-------------------------------------------------------------------------
-function SaveAllSignalsMenuItem_Callback(hObject, eventdata, handles)
-%-------------------------------------------------------------------------
-	[matfile, matpath] = uiputfile(	'*.mat', ...
-												'Save signals to mat file...');
-	if matfile ~= 0
-		raw = handles.raw;
-		adj = handles.adj;
-		S = handles.S;
-		if strcmpi(handles.SignalMode, 'WAV')
-			wavdata = handles.wavdata;
-			save(fullfile(matpath, matfile), 'raw', 'adj', 'S', 'wavdata', '-MAT');
-			clear raw adj S wavdata;
-		else
-			synth = handles.synth;
-			save(fullfile(matpath, matfile), 'raw', 'adj', 'Fs', 'synth', '-MAT');
-			clear raw adj S synth;
-		end
-	end
-%-------------------------------------------------------------------------
-
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
-% SETTINGS Menu
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
-
-%-------------------------------------------------------------------------
-%-------------------------------------------------------------------------
-function MicSensitivityMenuItem_Callback(hObject, eventdata, handles)
-	newVal = uiaskvalue(	'Value',				handles.MicSensitivity,			...
-								'ValueText',		'Mic Sensitivity (V/Pa)',		...
-								'QuestionText',	'Enter value from NEXXUS',		...
-								'FigureName',		''	);
-	handles.MicSensitivity = newVal;
-	% pre-compute the V -> Pa conversion factor
-	handles.VtoPa = (1/handles.MicGain) * (1/handles.MicSensitivity);
-	guidata(hObject, handles);
-%-------------------------------------------------------------------------
-%-------------------------------------------------------------------------
-
-%-------------------------------------------------------------------------
-%-------------------------------------------------------------------------
-function MicrophoneGainMenuItem_Callback(hObject, eventdata, handles)
-	newVal = uiaskvalue(	'Value',				handles.MicGaindB,			...
-								'ValueText',		'Mic Gain (dB)',		...
-								'QuestionText',	'Enter mic gain (0 dB for NEXXUS)',...
-								'FigureName',		''	);
-	handles.MicGaindB = newVal;
-	handles.MicGain = invdb(handles.MicGaindB);
-	% pre-compute the V -> Pa conversion factor
-	handles.VtoPa = (1/handles.MicGain) * (1/handles.MicSensitivity);
-	guidata(hObject, handles);
-%-------------------------------------------------------------------------
-%-------------------------------------------------------------------------
-
-%-------------------------------------------------------------------------
-%-------------------------------------------------------------------------
-function InputFilterMenuItem_Callback(hObject, eventdata, handles)
-	% get new low pass cutoff frequency
-	newVal = uiaskvalue(	...
-					'Value',				handles.LPFc,			...
-					'ValueText',		'Lowpass Filter Fc (Hz)',		...
-					'QuestionText',	'Input LowPass Filter Cutoff Frequency', ...
-					'FigureName',		''	);
-	handles.LPFc = newVal;
-	% get new highpass cutoff frequency
-	newVal = uiaskvalue(	...
-					'Value',				handles.HPFc,			...
-					'ValueText',		'Highpass Filter Fc (Hz)',		...
-					'QuestionText',	'Input HighPass Filter Cutoff Frequency', ...
-					'FigureName',		''	);
-	%{
-	handles.HPFc = newVal;
-	newVal = uiaskvalue(	'Value',				handles.FilterOrder,			...
-								'ValueText',		'Filter Order (>0)',		...
-								'QuestionText',	'Input Filter Order', ...
-								'FigureName',		''	);
-	handles.FilterOrder = newVal;
-	%}
-
-	%--------------------------------------------------------------
-	% Define new bandpass filter coeffs for processing the data
-	%--------------------------------------------------------------
-	% Nyquist frequency
-	fnyq = handles.S.Fs / 2;
-	% passband definition
-	fband = [handles.HPFc handles.LPFc] ./ fnyq;
-	% filter coefficients using a butterworth bandpass filter
-	[handles.fcoeffb, handles.fcoeffa] = butter( handles.FilterOrder, ...
-																fband, 'bandpass');
-	% store settings
-	guidata(hObject, handles);
-%-------------------------------------------------------------------------
-
-%-------------------------------------------------------------------------
-%-------------------------------------------------------------------------
-function SpectrumWindowMenuItem_Callback(hObject, eventdata, handles)
-	% get new spectrum window
-	newVal = uiaskvalue(	...
-					'Value',				handles.SpectrumWindow,			...
-					'ValueText',		'Spectrum Window (pts)',		...
-					'QuestionText',	'Input Window Size for Spectrum', ...
-					'FigureName',		''	);
-	if ~isnumeric(newVal)
-		warndlg('Spectrum Window size must be a number!', 'FlatWav')
-	elseif ~between(newVal, 2, 1e6)
-		warndlg('Spectrum Window size must be between 2 and 1e6!', 'FlatWav')
-	else
-		handles.SpectrumWindow = newVal;
-	end
-	guidata(hObject, handles);
-	updatePlots(hObject, handles);
-%-------------------------------------------------------------------------
-
-
-%-------------------------------------------------------------------------
-function RMSWindowMenuItem_Callback(hObject, eventdata, handles)
-	% get new spectrum window
-	newVal = uiaskvalue(	...
-					'Value',				handles.PeakRMSWindow,			...
-					'ValueText',		'RMS window (ms)',		...
-					'QuestionText',	'Input Window Size for Level Calculation', ...
-					'FigureName',		''	);
-	if ~isnumeric(newVal)
-		warndlg('RMS size must be a number!', 'FlatWav')
-	elseif ~between(newVal, 1, 1e6)
-		warndlg('RMS Window size must be between 1 and 1e6!', 'FlatWav')
-	else
-		handles.PeakRMSWindow = newVal;
-	end
-	guidata(hObject, handles);
-	updateDBplots(hObject, eventdata, handles)
-	guidata(hObject, handles);
-%-------------------------------------------------------------------------
-
-%******************************************************************************
-%******************************************************************************
-%******************************************************************************
-
-%******************************************************************************
-%******************************************************************************
-%******************************************************************************
-% Executes during object creation, after setting all properties.
-%******************************************************************************
-%******************************************************************************
-%******************************************************************************
-function CompMethodCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), ...
-			get(0,'defaultUicontrolBackgroundColor'))
-		  set(hObject,'BackgroundColor','white');
-	end
-	set(hObject, 'String', {'plot(rand(5))', 'plot(sin(1:0.01:25))', ...
-		'bar(1:.5:10)', 'plot(membrane)', 'surf(peaks)'});
-function WavFilenameCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), ...
-			get(0,'defaultUicontrolBackgroundColor'))
-		 set(hObject,'BackgroundColor','white');
-	end
-function SynthTypeCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), ...
-			get(0,'defaultUicontrolBackgroundColor'))
-		 set(hObject,'BackgroundColor','white');
-	end
-function FsCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), ...
-			get(0,'defaultUicontrolBackgroundColor'))
-		 set(hObject,'BackgroundColor','white');
-	end
-function p1Ctrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), ...
-			get(0,'defaultUicontrolBackgroundColor'))
-		 set(hObject,'BackgroundColor','white');
-	end
-function p2Ctrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), ...
-			get(0,'defaultUicontrolBackgroundColor'))
-		 set(hObject,'BackgroundColor','white');
-	end
-function p3Ctrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), ...
-			get(0,'defaultUicontrolBackgroundColor'))
-		 set(hObject,'BackgroundColor','white');
-	end
-function p4Ctrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), ...
-			get(0,'defaultUicontrolBackgroundColor'))
-		 set(hObject,'BackgroundColor','white');
-	end
-function p5Ctrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), ...
-			get(0,'defaultUicontrolBackgroundColor'))
-		 set(hObject,'BackgroundColor','white');
-	end
-function p6Ctrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), ...
-			get(0,'defaultUicontrolBackgroundColor'))
-		 set(hObject,'BackgroundColor','white');
-	end
-function TargetSPLCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), ...
-			get(0,'defaultUicontrolBackgroundColor'))
-		 set(hObject,'BackgroundColor','white');
-	end
-function LowCutFreqCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), ...
-			get(0,'defaultUicontrolBackgroundColor'))
-		 set(hObject,'BackgroundColor','white');
-	end
-function SpectrumWindowCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), ...
-			get(0,'defaultUicontrolBackgroundColor'))
-		 set(hObject,'BackgroundColor','white');
-	end
-function CorrFminCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), ...
-			get(0,'defaultUicontrolBackgroundColor'))
-		 set(hObject,'BackgroundColor','white');
-	end
-function CorrFmaxCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), ...
-			get(0,'defaultUicontrolBackgroundColor'))
-		 set(hObject,'BackgroundColor','white');
-	end
-function NormalizePeakCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), ...
-			get(0,'defaultUicontrolBackgroundColor'))
-		 set(hObject,'BackgroundColor','white');
-	end
-function AnalysisStartCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), ...
-			get(0,'defaultUicontrolBackgroundColor'))
-		 set(hObject,'BackgroundColor','white');
-	end
-function AnalysisEndCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), ...
-			get(0,'defaultUicontrolBackgroundColor'))
-		 set(hObject,'BackgroundColor','white');
-	end
-function SmoothVal1Ctrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), ...
-			get(0,'defaultUicontrolBackgroundColor'))
-		 set(hObject,'BackgroundColor','white');
-	end
-function CalSmoothMethodCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), ...
-			get(0,'defaultUicontrolBackgroundColor'))
-		set(hObject,'BackgroundColor','white');
-	end
-function SmoothVal2Ctrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), ...
-			get(0,'defaultUicontrolBackgroundColor'))
-	    set(hObject,'BackgroundColor','white');
-	end
-function PreFilterRangeCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), ...
-			get(0,'defaultUicontrolBackgroundColor'))
-		 set(hObject,'BackgroundColor','white');
-	end
-function PostFilterRangeCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), ...
-			get(0,'defaultUicontrolBackgroundColor'))
-		 set(hObject,'BackgroundColor','white');
-	end
-function CorrectionLimitValCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), ...
-			get(0,'defaultUicontrolBackgroundColor'))
-		 set(hObject,'BackgroundColor','white');
-	end
-function SmoothEdgesValCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), ...
-			get(0,'defaultUicontrolBackgroundColor'))
-		 set(hObject,'BackgroundColor','white');
-	end
-function PeakTimeRawCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), ...
-			get(0,'defaultUicontrolBackgroundColor'))
-		 set(hObject,'BackgroundColor','white');
-	end
-function PeakTimeAdjCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), ...
-			get(0,'defaultUicontrolBackgroundColor'))
-		 set(hObject,'BackgroundColor','white');
-	end
-%******************************************************************************
-%******************************************************************************
-%******************************************************************************
-
-
-
 function varargout = PlaySignal(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
 % PlaySignal
@@ -2389,7 +1969,6 @@ function [dBFigure, dBAxes] = updateDBplots(hObject, eventdata, handles)
 	else
 		error('updateDBplots: handles.respFs is empty!\n\n');
 	end
-
 	%------------------------------------------------------------------------
 	% compute rms of raw response, plot
 	%------------------------------------------------------------------------
@@ -2402,55 +1981,10 @@ function [dBFigure, dBAxes] = updateDBplots(hObject, eventdata, handles)
 								'SignalName', 'Raw', ...
 								'SignalColor', 'b', ...
 								'dBMarkerColor', 'b');		
-%{
-		[rawrms, startbins, endbins] = block_rms(handles.rawresp, rmsbins);
-		% find peak and peak index of rms values
-		[maxval, maxindx] = max(rawrms);
-		% compute peak dB SPL
-		rawdBSPL = dbspl(handles.VtoPa*maxval);
-		% update display
-		dbtext = sprintf('Peak Raw dB SPL: %.2f\n', rawdBSPL);
-		fprintf('%s\n', dbtext);
-		
-		% find max point (in milliseconds)
-		xval = rmsbins * maxindx + (rmsbins ./ 2);
-		xval = fix(bin2ms(xval, handles.respFs));
-		
-		% plot RAW
-		% build trace for dB SPL data
-		nrms = length(rawrms);
-		x = zeros(2*nrms, 1);
-		y = zeros(2*nrms, 1);
-		for n = 1:nrms
-			x(2 * (n - 1) + 1) = startbins(n);
-			x(2 * (n - 1) + 2) = endbins(n);
-			y(2 * (n - 1) + 1) = rawrms(n);
-			y(2 * (n - 1) + 2) = rawrms(n);
-		end
-		x = bin2ms(x, handles.respFs);
-		y = dbspl(handles.VtoPa*y);
-		% raw response data
-		tvec = bin2ms( (1:length(handles.rawresp))-1, handles.respFs);
-		yresp = max(y) * normalize(handles.rawresp);
-		xlimits = [min(tvec) max(tvec)];
-		ylimits = [min(yresp) 1.05*max(y)];
-		subplot(dBAxes.rawdb)
-		plot(dBAxes.rawdb, tvec, yresp, 'b-');
-		hold(dBAxes.rawdb, 'on')
-			plot(dBAxes.rawdb, x, y, 'k-', 'LineWidth', 2);
-			plot(dBAxes.rawdb, xval, ylimits(2), 'b*', 'MarkerSize', 10);
-		hold(dBAxes.rawdb, 'off')
-		ylabel(dBAxes.rawdb, 'Raw', 'Color', 'r')
-		xlim(dBAxes.rawdb, xlimits);
-		ylim(dBAxes.rawdb, ylimits);
-		grid(dBAxes.rawdb, 'on');
-		th = text(xval, 1.05*ylimits(2), sprintf('  %.2f', rawdBSPL), ...
-																		'Parent', dBAxes.rawdb);
-		set(th, 'FontSize', 12, 'FontWeight', 'bold', 'Interpreter', 'none');
-%}
 	end
-	
-		% compute rms of adj response, plot
+	%------------------------------------------------------------------------	
+	% compute rms of adj response, plot
+	%------------------------------------------------------------------------
 	if ~isempty(handles.adjresp)
 		
 		 plotSignalAnddB(	handles.adjresp, ...
@@ -2461,61 +1995,14 @@ function [dBFigure, dBAxes] = updateDBplots(hObject, eventdata, handles)
 								'SignalName', 'Adj', ...
 								'SignalColor', 'r', ...
 								'dBMarkerColor', 'r');
-%{
-		 
-		[adjrms, startbins, endbins] = block_rms(handles.adjresp, rmsbins);
-		% find peak and peak index of rms values
-		[maxval, maxindx] = max(adjrms);
-		% compute peak dB SPL
-		adjdBSPL = dbspl(handles.VtoPa*maxval);
-		% update display
-		dbtext = sprintf('Peak Adj dB SPL: %.2f\n', adjdBSPL);
-		fprintf('%s\n', dbtext);
-		
-		% find max point (in milliseconds)
-		xval = rmsbins * maxindx + (rmsbins ./ 2);
-		xval = fix(bin2ms(xval, handles.respFs));
-		
-		% plot ADJ
-		% build trace for dB SPL data
-		nrms = length(adjrms);
-		x = zeros(2*nrms, 1);
-		y = zeros(2*nrms, 1);
-		for n = 1:nrms
-			x(2 * (n - 1) + 1) = startbins(n);
-			x(2 * (n - 1) + 2) = endbins(n);
-			y(2 * (n - 1) + 1) = adjrms(n);
-			y(2 * (n - 1) + 2) = adjrms(n);
-		end
-		x = bin2ms(x, handles.respFs);
-		y = dbspl(handles.VtoPa*y);
-		% ADJ response data 
-		tvec = bin2ms( (1:length(handles.adjresp))-1, handles.respFs);
-		yresp = max(y) * normalize(handles.adjresp);
-		xlimits = [min(tvec) max(tvec)];
-		ylimits = [min(yresp) 1.05*max(y)];
-		subplot(dBAxes.adjdb)
-		plot(dBAxes.adjdb, tvec, yresp, 'r-');
-		hold(dBAxes.adjdb, 'on')
-			plot(dBAxes.adjdb, x, y, 'k-', 'LineWidth', 2);
-			plot(dBAxes.adjdb, xval, ylimits(2), 'r*', 'MarkerSize', 10);
-		hold(dBAxes.adjdb, 'off')
-		xlim(dBAxes.adjdb, xlimits);
-		ylim(dBAxes.adjdb, ylimits);
-		grid(dBAxes.adjdb, 'on');
-		th = text(xval, 1.05*ylimits(2), sprintf('  %.2f', adjdBSPL), ...
-																		'Parent', dBAxes.adjdb);
-		set(th, 'FontSize', 12, 'FontWeight', 'demi', 'Color', 'r', ...
-																		'Interpreter', 'none');
-								
-%}
 	end
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
 
-
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
 function varargout = plotSignalAnddB(signal, rmswin, Fs, varargin)
-
+%------------------------------------------------------------------------------
 	% definitions
 	VtoPa = 0;
 	sigName = '';
@@ -2626,7 +2113,7 @@ function varargout = plotSignalAnddB(signal, rmswin, Fs, varargin)
 	end
 		
 	% find max point (in milliseconds)
-	xval = rmsbins * maxindx + (rmsbins ./ 2);
+	xval = rmsbins * maxindx - (rmsbins ./ 2);
 	xval = fix(bin2ms(xval, Fs));
 
 	% build trace for dB data
@@ -2677,7 +2164,480 @@ function varargout = plotSignalAnddB(signal, rmswin, Fs, varargin)
 		varargout{1} = dBFigure;
 		varargout{2} = dBAxes;
 	end
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
+
+
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
+% MENU Callbacks
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
+
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+% FlatWav Menu
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+%-------------------------------------------------------------------------
+function SaveFigureMenuItem_Callback(hObject, eventdata, handles)
+	[figfile, figpath] = ...
+							uiputfile('*.fig','Save plot and figure in .fig file...');
+	if figfile ~=0
+		figfile = fullfile(figpath, figfile);
+		saveas(handles.axes1, figfile, 'fig');
+	end
+%-------------------------------------------------------------------------
+
+%-------------------------------------------------------------------------
+function IndividualPlotMenuItem_Callback(hObject, eventdata, handles)
+	% create new figure
+	figure	
+	% copy 
+	a = axes;
+	ax2ax(handles.axes1, a)
+	plotStrings = read_ui_str(handles.PlotMenu);
+	plotVal = read_ui_val(handles.PlotMenu);
 	
+	if isfield(handles.caldata, 'settings')
+		if isfield(handles.caldata.settings, 'calfile')
+			[pname, fname, tmp] = fileparts(handles.caldata.settings.calfile);
+		else
+			fname = {};
+		end
+	else
+		fname = {};
+	end	
+
+	if ~isempty(fname)
+		tstr = {plotStrings{plotVal}, fname};
+	else
+		tstr = plotStrings{plotVal};
+	end
+	
+	title(tstr, 'Interpreter', 'none')
+%-------------------------------------------------------------------------
+
+%-------------------------------------------------------------------------
+function PrintMenuItem_Callback(hObject, eventdata, handles)
+%-------------------------------------------------------------------------
+	printdlg(handles.figure1)
+%-------------------------------------------------------------------------
+
+%-------------------------------------------------------------------------
+function QuitMenuItem_Callback(hObject, eventdata, handles)
+%-------------------------------------------------------------------------
+	selection = questdlg(['Close ' get(handles.figure1,'Name') '?'],...
+								['Close ' get(handles.figure1,'Name') '...'],...
+								'Yes','No','Yes');
+	if strcmp(selection,'No')
+		 return;
+	end
+	delete(handles.figure1);
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+% Cal Menu
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+
+%-------------------------------------------------------------------------
+function LoadCalMenuItem_Callback(hObject, eventdata, handles)
+%-------------------------------------------------------------------------
+	[calfile, calpath] = uigetfile( {'*.cal'; '*_cal.mat'}, ...
+										'Load headphone calibration data from file...');
+	if calfile ~=0
+		datafile = fullfile(calpath, calfile);	
+		handles.cal = load_headphone_cal(datafile);
+		plot(	handles.CalibrationAxes, ...
+				0.001*handles.cal.freq, ...
+				handles.cal.mag(1, :), '.-');
+		ylim(handles.CalibrationAxes, ...
+				[0.9*min(handles.cal.mag(1, :)) 1.1*max(handles.cal.mag(1, :))]);
+		grid(	handles.CalibrationAxes, 'on');
+	end
+	guidata(hObject, handles);
+	SmoothCalCtrl_Callback(hObject, eventdata, handles);
+%-------------------------------------------------------------------------
+
+%-------------------------------------------------------------------------
+function FlatCalMenuItem_Callback(hObject, eventdata, handles)
+%--------------------------------------------------
+% fake cal data
+%--------------------------------------------------
+	handles.cal = fake_caldata('freqs', (1:10:(handles.S.Fs / 2)));
+	handles.cal.mag = 90 * handles.cal.mag;
+	guidata(hObject, handles);
+	plot(handles.CalibrationAxes, 0.001*handles.cal.freq, ...
+																handles.cal.mag(1, :), '.-');
+	ylim(handles.CalibrationAxes, [0 100]);
+%-------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+% Wav Menu
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+
+%-------------------------------------------------------------------------
+function LoadWavMenuItem_Callback(hObject, eventdata, handles)
+%-------------------------------------------------------------------------
+	WavFilenameCtrl_Callback(hObject, eventdata, handles);
+%-------------------------------------------------------------------------	
+
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+% Signal Menu
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+
+%-------------------------------------------------------------------------
+function SaveAdjSignalMenuItem_Callback(hObject, eventdata, handles)
+%-------------------------------------------------------------------------
+	if isempty(handles.adj)
+		warndlg(sprintf('%s: adj vector is empty!  aborting save', mfilename));
+		return
+	end
+	
+	[tmppath, tmpname, tmpext] = fileparts(handles.wavdata.datafile);
+	tmpfile = fullfile(tmppath, [tmpname '_adj' tmpext]);
+	
+	[adjfile, adjpath] = uiputfile(	'*.wav', ...
+												'Save adj signal to wav file...', tmpfile);
+	if adjfile ~=0
+		datafile = fullfile(adjpath, adjfile);
+		peakval = max(handles.adj);
+		if peakval >= 1
+			fprintf('!!!!!!!\nPoints in adj are >= 1\nFile will be normalized\n');
+			wavwrite(0.9*normalize(handles.adj), handles.S.Fs, datafile);
+% 			peakfile = [datafile(1:(end-4)) '_PeakVal.txt'];
+% 			save(peakfile, peakval, '-ascii');
+		else
+			wavwrite(handles.adj, handles.S.Fs, datafile);
+		end
+	end
+	guidata(hObject, handles);
+%-------------------------------------------------------------------------
+
+%-------------------------------------------------------------------------
+function SaveRawSignalMenuItem_Callback(hObject, eventdata, handles)
+%-------------------------------------------------------------------------
+	if isempty(handles.raw)
+		warndlg(sprintf('%s: raw vector is empty!  aborting save', mfilename));
+		return
+	end
+	
+	[rawfile, rawpath] = uiputfile(	'*.wav', ...
+												'Save raw signal to wav file...');
+	if rawfile ~=0
+		datafile = fullfile(rawpath, rawfile);
+		peakval = max(handles.raw);
+		if peakval >= 1
+			fprintf('!!!!!!!\nPoints in raw are >= 1\nFile will be normalized\n');
+			wavwrite(0.9*normalize(handles.raw), handles.S.Fs, datafile);
+			peakfile = [datafile(1:(end-4)) '_PeakVal.txt'];
+			save(peakfile, peakval, '-ascii');
+		else
+			wavwrite(handles.raw, handles.S.Fs, datafile);
+		end
+	end
+%-------------------------------------------------------------------------
+
+%-------------------------------------------------------------------------
+function SaveAllSignalsMenuItem_Callback(hObject, eventdata, handles)
+%-------------------------------------------------------------------------
+	[matfile, matpath] = uiputfile(	'*.mat', ...
+												'Save signals to mat file...');
+	if matfile ~= 0
+		raw = handles.raw;
+		adj = handles.adj;
+		S = handles.S;
+		if strcmpi(handles.SignalMode, 'WAV')
+			wavdata = handles.wavdata;
+			save(fullfile(matpath, matfile), 'raw', 'adj', 'S', 'wavdata', '-MAT');
+			clear raw adj S wavdata;
+		else
+			synth = handles.synth;
+			save(fullfile(matpath, matfile), 'raw', 'adj', 'Fs', 'synth', '-MAT');
+			clear raw adj S synth;
+		end
+	end
+%-------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+% SETTINGS Menu
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+
+%-------------------------------------------------------------------------
+%-------------------------------------------------------------------------
+function MicSensitivityMenuItem_Callback(hObject, eventdata, handles)
+	newVal = uiaskvalue(	'Value',				handles.MicSensitivity,			...
+								'ValueText',		'Mic Sensitivity (V/Pa)',		...
+								'QuestionText',	'Enter value from NEXXUS',		...
+								'FigureName',		''	);
+	handles.MicSensitivity = newVal;
+	% pre-compute the V -> Pa conversion factor
+	handles.VtoPa = (1/handles.MicGain) * (1/handles.MicSensitivity);
+	guidata(hObject, handles);
+%-------------------------------------------------------------------------
+%-------------------------------------------------------------------------
+
+%-------------------------------------------------------------------------
+%-------------------------------------------------------------------------
+function MicrophoneGainMenuItem_Callback(hObject, eventdata, handles)
+	newVal = uiaskvalue(	'Value',				handles.MicGaindB,			...
+								'ValueText',		'Mic Gain (dB)',		...
+								'QuestionText',	'Enter mic gain (0 dB for NEXXUS)',...
+								'FigureName',		''	);
+	handles.MicGaindB = newVal;
+	handles.MicGain = invdb(handles.MicGaindB);
+	% pre-compute the V -> Pa conversion factor
+	handles.VtoPa = (1/handles.MicGain) * (1/handles.MicSensitivity);
+	guidata(hObject, handles);
+%-------------------------------------------------------------------------
+%-------------------------------------------------------------------------
+
+%-------------------------------------------------------------------------
+%-------------------------------------------------------------------------
+function InputFilterMenuItem_Callback(hObject, eventdata, handles)
+	% get new low pass cutoff frequency
+	newVal = uiaskvalue(	...
+					'Value',				handles.LPFc,			...
+					'ValueText',		'Lowpass Filter Fc (Hz)',		...
+					'QuestionText',	'Input LowPass Filter Cutoff Frequency', ...
+					'FigureName',		''	);
+	handles.LPFc = newVal;
+	% get new highpass cutoff frequency
+	newVal = uiaskvalue(	...
+					'Value',				handles.HPFc,			...
+					'ValueText',		'Highpass Filter Fc (Hz)',		...
+					'QuestionText',	'Input HighPass Filter Cutoff Frequency', ...
+					'FigureName',		''	);
+	handles.HPFc = newVal;
+	%{
+	newVal = uiaskvalue(	'Value',				handles.FilterOrder,			...
+								'ValueText',		'Filter Order (>0)',		...
+								'QuestionText',	'Input Filter Order', ...
+								'FigureName',		''	);
+	handles.FilterOrder = newVal;
+	%}
+
+	%--------------------------------------------------------------
+	% Define new bandpass filter coeffs for processing the data
+	%--------------------------------------------------------------
+	% Nyquist frequency
+	fnyq = handles.S.Fs / 2;
+	% passband definition
+	fband = [handles.HPFc handles.LPFc] ./ fnyq;
+	% filter coefficients using a butterworth bandpass filter
+	[handles.fcoeffb, handles.fcoeffa] = butter( handles.FilterOrder, ...
+																fband, 'bandpass');
+	% store settings
+	guidata(hObject, handles);
+%-------------------------------------------------------------------------
+
+%-------------------------------------------------------------------------
+%-------------------------------------------------------------------------
+function SpectrumWindowMenuItem_Callback(hObject, eventdata, handles)
+	% get new spectrum window
+	newVal = uiaskvalue(	...
+					'Value',				handles.SpectrumWindow,			...
+					'ValueText',		'Spectrum Window (pts)',		...
+					'QuestionText',	'Input Window Size for Spectrum', ...
+					'FigureName',		''	);
+	if ~isnumeric(newVal)
+		warndlg('Spectrum Window size must be a number!', 'FlatWav')
+	elseif ~between(newVal, 2, 1e6)
+		warndlg('Spectrum Window size must be between 2 and 1e6!', 'FlatWav')
+	else
+		handles.SpectrumWindow = newVal;
+	end
+	guidata(hObject, handles);
+	updatePlots(hObject, handles);
+%-------------------------------------------------------------------------
+
+
+%-------------------------------------------------------------------------
+function RMSWindowMenuItem_Callback(hObject, eventdata, handles)
+	% get new spectrum window
+	newVal = uiaskvalue(	...
+					'Value',				handles.PeakRMSWindow,			...
+					'ValueText',		'RMS window (ms)',		...
+					'QuestionText',	'Input Window Size for Level Calculation', ...
+					'FigureName',		''	);
+	if ~isnumeric(newVal)
+		warndlg('RMS size must be a number!', 'FlatWav')
+	elseif ~between(newVal, 1, 1e6)
+		warndlg('RMS Window size must be between 1 and 1e6!', 'FlatWav')
+	else
+		handles.PeakRMSWindow = newVal;
+	end
+	guidata(hObject, handles);
+	updateDBplots(hObject, eventdata, handles)
+	guidata(hObject, handles);
+%-------------------------------------------------------------------------
+
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
+
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
+% Executes during object creation, after setting all properties.
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
+function CompMethodCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		  set(hObject,'BackgroundColor','white');
+	end
+	set(hObject, 'String', {'plot(rand(5))', 'plot(sin(1:0.01:25))', ...
+		'bar(1:.5:10)', 'plot(membrane)', 'surf(peaks)'});
+function WavFilenameCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function SynthTypeCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function FsCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function p1Ctrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function p2Ctrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function p3Ctrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function p4Ctrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function p5Ctrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function p6Ctrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function TargetSPLCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function LowCutFreqCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function SpectrumWindowCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function CorrFminCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function CorrFmaxCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function NormalizePeakCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function AnalysisStartCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function AnalysisEndCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function SmoothVal1Ctrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function CalSmoothMethodCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		set(hObject,'BackgroundColor','white');
+	end
+function SmoothVal2Ctrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+	    set(hObject,'BackgroundColor','white');
+	end
+function PreFilterRangeCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function PostFilterRangeCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function CorrectionLimitValCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function SmoothEdgesValCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function PeakTimeRawCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function PeakTimeAdjCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
+
 
 
 
