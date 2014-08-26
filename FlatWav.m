@@ -22,7 +22,11 @@ function varargout = FlatWav(varargin)
 
 % Edit the above text to modify the response to help FlatWav
 
+<<<<<<< HEAD
 % Last Modified by GUIDE v2.5 21-Aug-2014 16:40:14
+=======
+% Last Modified by GUIDE v2.5 26-Aug-2014 15:36:23
+>>>>>>> evaluation
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -77,9 +81,15 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 		% directory when using installed version:
 		pdir = ['C:\TytoLogy\TytoLogySettings\' getenv('USERNAME')];
 		% development tree
+<<<<<<< HEAD
 		% pdir = ['C:\Users\sshanbhag\Code\Matlab\TytoLogy\TytoLogySettings\' getenv('USERNAME')];
+=======
+		pdir = ['C:\Users\sshanbhag\Code\Matlab\TytoLogy\TytoLogySettings\' ...
+							getenv('USERNAME')];
+>>>>>>> evaluation
 	else ismac
-		pdir = ['~/Work/Code/Matlab/dev/TytoLogy/TytoLogySettings/' getenv('USER')];
+		pdir = ['~/Work/Code/Matlab/dev/TytoLogy/TytoLogySettings/' ...
+							getenv('USER')];
 	end
 			
 	if isempty(which('ms2samples'))
@@ -107,31 +117,56 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	typenum = 1;
 	handles.Tone.type = handles.S.Types{typenum};
 	for n = 1:handles.S.Nparam(typenum);
-		handles.Tone.(handles.S.Param{typenum}{n}) = handles.S.DefaultVals{typenum}(n);
+		handles.Tone.(handles.S.Param{typenum}{n}) = ...
+															handles.S.DefaultVals{typenum}(n);
 	end
 	typenum = 2;
 	handles.Noise.type = handles.S.Types{typenum};
 	for n = 1:handles.S.Nparam(typenum);
-		handles.Noise.(handles.S.Param{typenum}{n}) = handles.S.DefaultVals{typenum}(n);
+		handles.Noise.(handles.S.Param{typenum}{n}) = ...
+															handles.S.DefaultVals{typenum}(n);
 	end
 	typenum = 3;
 	handles.Sweep.type = handles.S.Types{typenum};
 	for n = 1:handles.S.Nparam(typenum);
-		handles.Sweep.(handles.S.Param{typenum}{n}) = handles.S.DefaultVals{typenum}(n);
+		handles.Sweep.(handles.S.Param{typenum}{n}) = ...
+															handles.S.DefaultVals{typenum}(n);
 	end
 	% set current synth object to Noise
 	handles.synth = handles.Noise;
 	handles.SynthIndex = 2;
 	handles.SynthType = handles.S.Types{handles.SynthIndex};
-	% set Analysis window
-	handles.Awindow = [0 handles.S.DefaultVals{typenum}(1)];
 
+	guidata(hObject, handles);
+	
+	%--------------------------------------------------
+	%--------------------------------------------------
+	% initialize signals/storage
+	%--------------------------------------------------
+	%--------------------------------------------------
+	handles.raw = [];
+	handles.adj = [];
+	handles.resp = [];
+	handles.rawresp = [];
+	handles.rawRMS = [];
+	handles.rawdBSPL = [];
+	handles.rawfresp = [];
+	handles.rawmag = [];
+	handles.rawphi = [];
+	handles.adjresp = [];
+	handles.adjRMS = [];
+	handles.adjdBSPL = [];
+	handles.adjfresp = [];
+	handles.adjmag = [];
+	handles.adjphi = [];
+	handles.respFs = [];
+	guidata(hObject, handles);
+	
 	%--------------------------------------------------
 	%--------------------------------------------------
 	% update GUI and synth
 	%--------------------------------------------------
 	%--------------------------------------------------
-	guidata(hObject, handles);
 	updateGuiFromSynth(hObject, handles)
 	guidata(hObject, handles);
 	updateSynthFromGui(hObject, handles);
@@ -147,14 +182,18 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	handles.IOfigure = [];
 	guidata(hObject, handles);
 	
+<<<<<<< HEAD
 	
+=======
+>>>>>>> evaluation
 	%--------------------------------------------------
 	%--------------------------------------------------
 	% COMPENSATION SETTINGS
 	%--------------------------------------------------
 	%--------------------------------------------------
 	% reset string in CompMethodCtrl
-	set(handles.CompMethodCtrl, 'string', 'none|normalize|atten|boost|compress');
+	set(handles.CompMethodCtrl, 'string', ...
+												'none|normalize|atten|boost|compress');
 	% set compensation method to 1 ('atten')
 	handles.CompMethod = 1;
 	update_ui_val(handles.CompMethodCtrl, handles.CompMethod);
@@ -172,6 +211,7 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	% default LowCut options
 	handles.LowCut = 'off';
 	handles.LowCutFreq = read_ui_str(handles.LowCutFreqCtrl, 'n');
+	update_ui_val(handles.LowCutCtrl, handles.LowCut);
 	if strcmpi(handles.LowCut, 'off')
 		disable_ui(handles.LowCutFreqText);
 		disable_ui(handles.LowCutFreqCtrl);
@@ -179,6 +219,55 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	% target SPL
 	handles.TargetSPL = 65;
 	update_ui_str(handles.TargetSPLCtrl, handles.TargetSPL);
+	% pre-filter range
+	handles.PreFilter = 'off';
+	handles.PreFilterRange = handles.CorrFrange;
+	update_ui_val(handles.PreFilterCtrl, handles.PreFilter);
+	update_ui_str(handles.PreFilterRangeCtrl, ...
+											['[' num2str(handles.PreFilterRange) ']']);
+	disable_ui(handles.PreFilterRangeCtrl);
+	guidata(hObject, handles);
+	% post-filter range
+	handles.PostFilter = 'off';
+	handles.PostFilterRange = handles.CorrFrange;
+	update_ui_val(handles.PostFilterCtrl, handles.PostFilter);
+	update_ui_str(handles.PostFilterRangeCtrl, ...
+											['[' num2str(handles.PostFilterRange) ']']);
+	if strcmpi(handles.PostFilter, 'off')
+		disable_ui(handles.PostFilterRangeCtrl);
+	else
+		enable_ui(handles.PostFilterRangeCtrl);
+	end
+
+	guidata(hObject, handles);
+	% range limit
+	handles.RangeLimit = 'off';
+	update_ui_val(handles.RangeLimitCtrl, handles.RangeLimit);
+	guidata(hObject, handles);
+	% CorrectionLimit
+	handles.CorrectionLimit = 'off';
+	handles.CorrectionLimitValue = 5;
+	update_ui_val(handles.CorrectionLimitCtrl, handles.CorrectionLimit);
+	update_ui_str(handles.CorrectionLimitValCtrl, handles.CorrectionLimitValue);
+	if strcmpi(handles.CorrectionLimit, 'off')
+		disable_ui(handles.CorrectionLimitValCtrl);
+		disable_ui(handles.CorrectionLimitText);
+	else
+		enable_ui(handles.CorrectionLimitValCtrl);
+		enable_ui(handles.CorrectionLimitText);
+	end
+	guidata(hObject, handles);
+	% SmoothEdges
+	handles.SmoothEdges= 'off';
+	handles.SmoothEdgesValue = [1 5];
+	update_ui_val(handles.SmoothEdgesCtrl, handles.SmoothEdges);
+	update_ui_str(handles.SmoothEdgesValCtrl, ...
+											['[' num2str(handles.SmoothEdgesValue) ']']);
+	if strcmpi(handles.SmoothEdges, 'off')
+		disable_ui(handles.SmoothEdgesValCtrl);
+	else
+		enable_ui(handles.SmoothEdgesValCtrl);
+	end
 	guidata(hObject, handles);
 
 	%--------------------------------------------------
@@ -212,8 +301,15 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	handles.cal = fake_caldata('freqs', 1:10:(handles.S.Fs / 2));
 	handles.cal.mag = 90 * handles.cal.mag;
 	guidata(hObject, handles);
+<<<<<<< HEAD
 	plot(handles.CalibrationAxes, 0.001*handles.cal.freq, handles.cal.mag(1, :), '.-');
 	ylim([0 100]);
+=======
+	plot(	handles.CalibrationAxes, ...
+			0.001*handles.cal.freq, ...
+			handles.cal.mag(1, :), '.-');
+	ylim(handles.CalibrationAxes, [0 100]);
+>>>>>>> evaluation
 	
 	%--------------------------------------------------
 	%--------------------------------------------------
@@ -243,8 +339,28 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	handles.MicGain = invdb(handles.MicGaindB);
 	handles.VtoPa = (1/handles.MicGain) * (1/handles.MicSensitivity);
 	guidata(hObject, handles);
+<<<<<<< HEAD
 
 	
+=======
+		
+	%--------------------------------------------------
+	%--------------------------------------------------
+	% analysis settings
+	%--------------------------------------------------
+	%--------------------------------------------------
+	% set Analysis window
+	handles.Awindow = [0 handles.S.DefaultVals{typenum}(1)];
+	update_ui_str(handles.AnalysisStartCtrl, handles.Awindow(1));
+	update_ui_str(handles.AnalysisEndCtrl, handles.Awindow(2));
+	% window for finding RMS peak, in milliseconds
+	handles.PeakRMSWindow = 5;
+	handles.dBPlot = 0;
+	handles.dBFigure = [];
+	guidata(hObject, handles);
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+>>>>>>> evaluation
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
@@ -273,7 +389,7 @@ function varargout = FlatWav_OutputFcn(hObject, eventdata, handles)
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
-% ACTION BUTTON CONTROL Callbacks
+% ACTION BUTTON CONTROL Callbacks (on upper left side of GUI)
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
@@ -364,7 +480,40 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 														handles.S.Fs, ...
 														length(handles.raw(bin(1):bin(2))));
 	guidata(hObject, handles);
-
+	
+	%--------------------------------------------------------------------
+	% next, check the calibration curve and smooth if necessary
+	%--------------------------------------------------------------------
+	if read_ui_val(handles.SmoothCalCtrl)
+		% get value of smooth method
+		smoothmethod = read_ui_val(handles.CalSmoothMethodCtrl);
+		switch(smoothmethod)
+			% moving-window average
+			case 1
+				% smooth the calibration mag data, store in mag_smooth
+				window_len = read_ui_str(handles.SmoothVal1Ctrl, 'n');
+				handles.mag_smooth = smooth_calibration_data(...
+																		smoothmethod, ...
+																		handles.cal, ...
+																		window_len);
+			% Savitzky-Golay filter
+			case 2
+				% smooth the calibration mag data, store in mag_smooth
+				sg_order = read_ui_str(handles.SmoothVal1Ctrl, 'n');
+				sg_framesize = read_ui_str(handles.SmoothVal2Ctrl, 'n');
+				handles.mag_smooth = smooth_calibration_data( ...	
+																		smoothmethod, ...
+																		handles.cal, ...
+																		sg_order, ...
+																		sg_framesize);
+		end
+		guidata(hObject, handles);
+		mags = handles.mag_smooth;
+	else
+		% use unsmoothed mags
+		mags = handles.cal.mag;
+	end
+	
 	%--------------------------------------------------------------------
 	% apply compensation method
 	% CompMethod is value of 1, 2, 3, 4 (value of CompMethodCtrl) which 
@@ -384,43 +533,96 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 	end
 	
 	% check low freq cutoff setting
+<<<<<<< HEAD
 	if strcmp(handles.LowCut, 'off')
+=======
+	if strcmpi(handles.LowCut, 'off')
+>>>>>>> evaluation
 		lowcut = 'off';
 	else
 		lowcut = handles.LowCutFreq;
 	end
+	% check pre-filter
+	if strcmpi(handles.PreFilter, 'off')
+		prefilter = 'off';
+	else
+		prefilter = handles.PreFilterRange;
+	end
+	% check post-filter
+	if strcmpi(handles.PostFilter, 'off')
+		postfilter = 'off';
+	else
+		postfilter = handles.PostFilterRange;
+	end
+	% check rangelimit
+	if strcmpi(handles.RangeLimit, 'off')
+		rangelimit = 'off';
+	else
+		rangelimit = 'on';
+	end
+	% check Correction Limit
+	if strcmpi(handles.CorrectionLimit, 'off')
+		corrlimit = 'off';
+	else
+		corrlimit = handles.CorrectionLimitValue;
+	end
+	% check SmoothEdges
+	if strcmpi(handles.SmoothEdges, 'off')
+		smoothedges = 'off';
+	else
+		smoothedges = handles.SmoothEdgesValue;
+	end
 	
+	% compensate signal by method
 	if strcmpi(method, 'NONE')
+		% no compensation, just copy raw to adj
 		handles.adj = handles.raw;
 	
 	elseif strcmpi(method, 'NORMALIZE')
-		% normalize only
+		% normalize only, using Normalize Value
 		handles.adj = handles.NormalizeValue * normalize(handles.raw);
 		
 	elseif strcmpi(handles.Normalize, 'off')
-		handles.adj = compensate_signal(	handles.raw, ...
+		% kludge to deal with Normalize OFF vs. on
+		[handles.adj, tmp, handles.compcurve] = compensate_signal(	...
+											handles.raw, ...
 											handles.cal.freq, ...
-											handles.cal.mag(1, :), ...
+											mags(1, :), ...
 											handles.S.Fs, ...
 											handles.CorrFrange, ...
 											'Method', method, ...
 											'Normalize', 'off', ...
 											'Lowcut', lowcut, ...
-											'Level', handles.TargetSPL);
+											'Level', handles.TargetSPL, ...
+											'Prefilter', prefilter, ...
+											'Postfilter', postfilter, ...
+											'Rangelimit', rangelimit, ...
+											'Corrlimit', corrlimit, ...
+											'SmoothEdges', smoothedges	);
+		clear tmp
+
 	else
-		handles.adj = compensate_signal(	handles.raw, ...
+		% use normalization
+		[handles.adj, tmp, handles.compcurve] = compensate_signal(	...
+											handles.raw, ...
 											handles.cal.freq, ...
-											handles.cal.mag(1, :), ...
+											mags(1, :), ...
 											handles.S.Fs, ...
 											handles.CorrFrange, ...
 											'Method', method, ...
 											'Normalize', handles.NormalizeValue, ...
 											'Lowcut', lowcut, ...
-											'Level', handles.TargetSPL);
+											'Level', handles.TargetSPL, ...
+											'Prefilter', prefilter, ...
+											'Postfilter', postfilter, ...
+											'Rangelimit', rangelimit, ...
+											'Corrlimit', corrlimit, ...
+											'SmoothEdges', smoothedges	);
+		clear tmp
 	end
 	
 	if strcmpi(handles.SignalMode, 'SYNTH')
-		% apply ramp to stimuli
+		% apply ramp to stimuli if it was synthesized
 		handles.raw = sin2array(handles.raw, synth.ramp, handles.S.Fs);
 		handles.adj = sin2array(handles.adj, synth.ramp, handles.S.Fs);
 	end
@@ -433,7 +635,7 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 														length(handles.adj(bin(1):bin(2))) );
 	guidata(hObject, handles);
 	% update front panel plots
-	updatePlots(hObject, handles);
+	updatePlots(hObject, eventdata, handles);
 	% save variables in workspace
 	guidata(hObject, handles);
 	disp('....updating complete');
@@ -442,25 +644,145 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
 function PlayRawSignalCtrl_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
-	PlaySignal(hObject, handles);
+	[hObject, handles] = PlaySignal(hObject, eventdata, handles);
+	guidata(hObject, handles);
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
 function PlayAdjSignalCtrl_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
-	PlaySignal(hObject, handles);
-%------------------------------------------------------------------------------
-
-%------------------------------------------------------------------------------
-function LoadCalCtrl_Callback(hObject, eventdata, handles)
-	% use the menu item callback
-	LoadCalMenuItem_Callback(hObject, eventdata, handles)
+	[hObject, handles] = PlaySignal(hObject, eventdata, handles);
+	guidata(hObject, handles);
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
 function SaveSoundCtrl_Callback(hObject, eventdata, handles)
 	% use the menu item callback
 	SaveAdjSignalMenuItem_Callback(hObject, eventdata, handles);
+%------------------------------------------------------------------------------
+
+
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
+
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
+% CALIBRATION DATA CONTROLS
+%******************************************************************************
+%******************************************************************************
+%******************************************************************************
+%------------------------------------------------------------------------------
+function SmoothCalCtrl_Callback(hObject, eventdata, handles)
+	% check value of handles.SmoothCalCtrl
+	if read_ui_val(handles.SmoothCalCtrl)
+		% if 1 (selected), enable the method text and control...
+		enable_ui(handles.CalSmoothMethodText);
+		enable_ui(handles.CalSmoothMethodCtrl);
+		% ... and call the smoothmethod control callback
+		CalSmoothMethodCtrl_Callback(hObject, eventdata, handles);
+	else
+		% if 0 (unselected), disable appropriate controls...
+		disable_ui(handles.CalSmoothMethodText);
+		disable_ui(handles.CalSmoothMethodCtrl);
+		disable_ui(handles.SmoothVal1Text);
+		disable_ui(handles.SmoothVal1Ctrl);
+		% and plot original cal mag data
+		plot(handles.CalibrationAxes, ...
+				0.001*handles.cal.freq, ...
+				handles.cal.mag(1, :), 'b.-');
+		ylim(handles.CalibrationAxes,...
+					[	(0.9 * min(handles.cal.mag(1, :))) ...
+					(1.1 * max(handles.cal.mag(1, :)))		]);
+		grid(handles.CalibrationAxes, 'on');
+	end
+	guidata(hObject, handles);
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function CalSmoothMethodCtrl_Callback(hObject, eventdata, handles)
+%------------------------------------------------------------------------------
+	% get value of smooth method
+	smoothmethod = read_ui_val(handles.CalSmoothMethodCtrl);
+	% based on smoothmethod, adjust UI controls/display
+	switch(smoothmethod)
+		case 1
+			% moving-window average
+			enable_ui(handles.SmoothVal1Text);
+			update_ui_str(handles.SmoothVal1Text, 'Window Size');
+			enable_ui(handles.SmoothVal1Ctrl);
+			disable_ui(handles.SmoothVal2Text);
+			disable_ui(handles.SmoothVal2Ctrl);
+			% smooth the calibration mag data, store in mag_smooth
+			window_len = read_ui_str(handles.SmoothVal1Ctrl, 'n');
+			mag_smooth = smooth_calibration_data(	smoothmethod, ...
+																handles.cal, ...
+																window_len);
+		case 2
+			% Savitzky-Golay filter
+			enable_ui(handles.SmoothVal1Text);
+			update_ui_str(handles.SmoothVal1Text, 'Order');
+			enable_ui(handles.SmoothVal1Ctrl);
+			enable_ui(handles.SmoothVal2Text);
+			update_ui_str(handles.SmoothVal2Text, 'Frame Size');
+			enable_ui(handles.SmoothVal2Ctrl);
+			% smooth the calibration mag data, store in mag_smooth
+			sg_order = read_ui_str(handles.SmoothVal1Ctrl, 'n');
+			sg_framesize = read_ui_str(handles.SmoothVal2Ctrl, 'n');
+			mag_smooth = smooth_calibration_data(	smoothmethod, ...
+																handles.cal, ...
+																sg_order, ...
+																sg_framesize);
+	end
+	
+	% plot the smoothed data
+	plot(handles.CalibrationAxes, ...
+				0.001*handles.cal.freq, ...
+				mag_smooth(1, :), 'b.-');
+	ylim(handles.CalibrationAxes, ...
+		[(0.9 * min(mag_smooth(1, :))) (1.1 * max(mag_smooth(1, :)))]);
+	grid(handles.CalibrationAxes, 'on');
+	% store smoothed data
+	handles.mag_smooth = mag_smooth;
+	guidata(hObject, handles);
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function SmoothVal1Ctrl_Callback(hObject, eventdata, handles)
+	tmp = read_ui_str(handles.SmoothVal1Ctrl, 'n');
+	if tmp > 0
+		handles.SmoothVal1 = tmp;
+	else
+		update_ui_str(handles.SmoothVal1Ctrl, handles.SmoothVal1);
+		errordlg('Value must be greater than 0', 'Flat Wav Error');
+	end
+	CalSmoothMethodCtrl_Callback(hObject, eventdata, handles);
+	guidata(hObject, handles)
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function SmoothVal2Ctrl_Callback(hObject, eventdata, handles)
+	tmp = read_ui_str(handles.SmoothVal2Ctrl, 'n');
+	if tmp > 0
+		if even(tmp)
+			update_ui_str(handles.SmoothVal2Ctrl, handles.SmoothVal2);
+			errordlg('Value must be odd', 'Flat Wav Error');
+		else
+			handles.SmoothVal2 = tmp;
+		end
+	else
+		update_ui_str(handles.SmoothVal2Ctrl, handles.SmoothVal2);
+		errordlg('Value must be greater than 0', 'Flat Wav Error');
+	end
+	CalSmoothMethodCtrl_Callback(hObject, eventdata, handles);
+	guidata(hObject, handles)
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function LoadCalCtrl_Callback(hObject, eventdata, handles)
+	% use the menu item callback
+	LoadCalMenuItem_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
@@ -635,7 +957,6 @@ function y = moving_average(x, w)
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
-
 %------------------------------------------------------------------------------
 function WavSignalButton_Callback(hObject, eventdata, handles)
 	%--------------------------------------------------
@@ -675,7 +996,6 @@ function SynthSignalButton_Callback(hObject, eventdata, handles)
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
-
 
 %******************************************************************************
 %******************************************************************************
@@ -762,7 +1082,8 @@ function WavFilenameCtrl_Callback(hObject, eventdata, handles)
 	clear tmppath tmpfile
 	if wavfile ~= 0
 		wavdata.datafile = fullfile(wavpath, wavfile);
-		[wavdata.raw, wavdata.Fs, wavdata.nbits, wavdata.opts] = wavread(wavdata.datafile);
+		[wavdata.raw, wavdata.Fs, wavdata.nbits, wavdata.opts] = ...
+																	wavread(wavdata.datafile);
 		handles.wavdata = wavdata;
 		update_ui_str(handles.WavFilenameCtrl, handles.wavdata.datafile);
 		ostr = sprintf('Fs: %.2f\nnbits: %d\n', wavdata.Fs, wavdata.nbits);
@@ -786,7 +1107,13 @@ function WavFilenameCtrl_Callback(hObject, eventdata, handles)
 		update_ui_str(handles.WaveInfoCtrl, 'no wav loaded');
 	end
 	guidata(hObject, handles);
-%-------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function LoadWavCtrl_Callback(hObject, eventdata, handles)
+	WavFilenameCtrl_Callback(hObject, eventdata, handles)
+%------------------------------------------------------------------------------
+
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
@@ -799,10 +1126,9 @@ function WavFilenameCtrl_Callback(hObject, eventdata, handles)
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
-
 %------------------------------------------------------------------------------
-% --- Executes on selection change in CompMethodCtrl.
 function CompMethodCtrl_Callback(hObject, eventdata, handles)
+%-------------------------------------------------------------------
 	handles.CompMethod = read_ui_val(handles.CompMethodCtrl);
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
@@ -829,6 +1155,7 @@ function NormalizeCtrl_Callback(hObject, eventdata, handles)
 		handles.Normalize = 'on';
 		enable_ui(handles.NormalizePeakCtrl);
 		enable_ui(handles.NormalizePeakText);
+		NormalizePeakCtrl_Callback(hObject, eventdata, handles);
 	else
 		handles.Normalize = 'off';
 		disable_ui(handles.NormalizePeakCtrl);
@@ -852,6 +1179,7 @@ function NormalizePeakCtrl_Callback(hObject, eventdata, handles)
 
 %------------------------------------------------------------------------------
 function LowCutCtrl_Callback(hObject, eventdata, handles)
+%-------------------------------------------------------------------
 	newVal = read_ui_val(hObject);
 	if newVal
 		enable_ui(handles.LowCutFreqText);
@@ -868,12 +1196,14 @@ function LowCutCtrl_Callback(hObject, eventdata, handles)
 
 %------------------------------------------------------------------------------
 function LowCutFreqCtrl_Callback(hObject, eventdata, handles)
+%-------------------------------------------------------------------
 	handles.LowCutFreq = read_ui_str(hObject, 'n');
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
 function CorrFminCtrl_Callback(hObject, eventdata, handles)
+%-------------------------------------------------------------------
 	newVal = read_ui_str(hObject, 'n');
 	% NEED CHECKS!
 	handles.CorrFrange(1) = newVal;
@@ -882,10 +1212,170 @@ function CorrFminCtrl_Callback(hObject, eventdata, handles)
 
 %------------------------------------------------------------------------------
 function CorrFmaxCtrl_Callback(hObject, eventdata, handles)
+%-------------------------------------------------------------------
 	newVal = read_ui_str(hObject, 'n');
 	% NEED CHECKS!
 	handles.CorrFrange(2) = newVal;
 	guidata(hObject, handles);
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function PreFilterCtrl_Callback(hObject, eventdata, handles)
+%-------------------------------------------------------------------
+	newVal = read_ui_val(handles.PreFilterCtrl);
+	if newVal
+		handles.PreFilter = 'on';
+		enable_ui(handles.PreFilterRangeCtrl);
+		PreFilterRangeCtrl_Callback(hObject, eventdata, handles);
+	else
+		handles.PreFilter = 'off';
+		disable_ui(handles.PreFilterRangeCtrl);
+	end
+	guidata(hObject, handles)
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function PreFilterRangeCtrl_Callback(hObject, eventdata, handles)
+%-------------------------------------------------------------------
+	try
+		tmpstr = read_ui_str(handles.PreFilterRangeCtrl);
+		newVal = eval(tmpstr);
+		if newVal(1) > newVal(2)
+			errordlg('Bad filter range', 'Flat Wav Error');
+			update_ui_str(hObject, ['[' num2str(handles.PreFilterRange) ']']);
+		else
+			handles.PreFilterRange = newVal;
+			guidata(hObject, handles);
+		end
+	catch err
+		fprintf('error in PreFilterRangeCtrl_Callback');
+	end
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function PostFilterCtrl_Callback(hObject, eventdata, handles)
+	newVal = read_ui_val(handles.PostFilterCtrl);
+	if newVal
+		handles.PostFilter = 'on';
+		enable_ui(handles.PostFilterRangeCtrl);
+		PostFilterRangeCtrl_Callback(hObject, eventdata, handles);
+	else
+		handles.PostFilter = 'off';
+		disable_ui(handles.PostFilterRangeCtrl);
+	end
+	guidata(hObject, handles)
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function PostFilterRangeCtrl_Callback(hObject, eventdata, handles)
+%-------------------------------------------------------------------
+	try
+		tmpstr = read_ui_str(handles.PostFilterRangeCtrl);
+		newVal = eval(tmpstr);
+		if newVal(1) > newVal(2)
+			errordlg('Bad filter range', 'Flat Wav Error');
+			update_ui_str(hObject, ['[' num2str(handles.PostFilterRange) ']']);
+		else
+			handles.PostFilterRange = newVal;
+			guidata(hObject, handles);
+		end
+	catch err
+		fprintf('error in PostFilterRangeCtrl_Callback');
+	end
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function RangeLimitCtrl_Callback(hObject, eventdata, handles)
+%-------------------------------------------------------------------
+	newVal = read_ui_val(hObject);
+	if newVal
+		handles.RangeLimit = 'on';
+	else
+		handles.RangeLimit = 'off';
+	end
+	guidata(hObject, handles);
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function CorrectionLimitCtrl_Callback(hObject, eventdata, handles)
+%-------------------------------------------------------------------
+	newVal = read_ui_val(hObject);
+	if newVal
+		handles.CorrectionLimit = 'on';
+		enable_ui(handles.CorrectionLimitValCtrl);
+	else
+		handles.CorrectionLimit = 'off';
+		disable_ui(handles.CorrectionLimitValCtrl);
+	end
+	guidata(hObject, handles)
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function CorrectionLimitValCtrl_Callback(hObject, eventdata, handles)
+%-------------------------------------------------------------------
+	try
+		newVal = read_ui_str(hObject, 'n');
+		if newVal <= 0
+			errordlg('Bad Correction Limit', 'Flat Wav Error');
+			update_ui_str(hObject, handles.CorrectionLimitValue);
+		else
+			handles.CorrectionLimitValue = newVal;
+			guidata(hObject, handles);
+		end
+	catch err
+		fprintf('error in CorrectionLimitValCtrl_Callback');
+	end
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function SmoothEdgesCtrl_Callback(hObject, eventdata, handles)
+%-------------------------------------------------------------------
+	newVal = read_ui_val(hObject);
+	if newVal
+		handles.SmoothEdges = 'on';
+		enable_ui(handles.SmoothEdgesValCtrl);
+	else
+		handles.SmoothEdges = 'off';
+		disable_ui(handles.SmoothEdgesValCtrl);
+	end
+	guidata(hObject, handles)
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function SmoothEdgesValCtrl_Callback(hObject, eventdata, handles)
+%-------------------------------------------------------------------
+	try
+		tmpstr = read_ui_str(hObject);
+		newVal = eval(tmpstr);
+		if newVal(1) > newVal(2)
+			errordlg('Bad SmoothEdges values', 'Flat Wav Error');
+			update_ui_str(hObject, ['[' num2str(handles.SmoothEdgesValue) ']']);
+		else
+			handles.SmoothEdgesValue = newVal;
+			guidata(hObject, handles);
+		end
+	catch err
+		fprintf('error in SmoothEdgesValCtrl_Callback');
+	end
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+function PlotCompensationCurveCtrl_Callback(hObject, eventdata, handles)
+	if ~isfield(handles, 'cal')
+		return
+	elseif isempty(handles.cal)
+		return
+	elseif ~isfield(handles, 'compcurve')
+		return
+	elseif isempty(handles.compcurve)
+		return
+	end
+	figure
+	plot(0.001 * handles.cal.freq, handles.compcurve, 'k.-');
+	xlabel('Frequency (kHz)')
+	ylabel('dB');
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
 %******************************************************************************
 %******************************************************************************
@@ -898,23 +1388,175 @@ function CorrFmaxCtrl_Callback(hObject, eventdata, handles)
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
+function update_analysis(hObject, eventdata, handles)
+	if ~isempty(handles.respFs)
+		rmsbins = ms2samples(handles.PeakRMSWindow, handles.respFs);
+	else
+		fprintf('\n\nupdate_analysis: handles.respFs is empty!\n\n');
+		return
+	end
+	%--------------------------------------------------
+	% update analysis window
+	%--------------------------------------------------
+	% find max value of raw response
+	if ~isempty(handles.rawresp) 
+		% check if analysis window is beyond length of signal
+		if  ms2samples(handles.Awindow(2), handles.respFs) > ...
+										length(handles.rawresp)
+			% if so, reset to duration of signal
+			handles.Awindow(2) = floor(bin2ms(length(handles.rawresp), ...
+													handles.respFs));
+			update_ui_str(handles.AnalysisEndCtrl, handles.Awindow(2));
+			guidata(hObject, handles);
+			fprintf('warning: Analysis End > length of raw signal!!!!');
+		end
+		% find bins for analysis
+		bin = ms2samples(handles.Awindow, handles.respFs);
+		if bin(1) == 0
+			bin(1) = 1;
+		end
+		%--------------------------------------------------
+		% analyze data
+		%--------------------------------------------------
+		% compute RMS
+		resp_RMS = rms(handles.rawresp(bin(1):bin(2)));
+		% compute dB SPL
+		 handles.rawdBSPL = dbspl(handles.VtoPa*resp_RMS);
+		% update display
+		dbtext = sprintf('Raw dB SPL: %.2f  [%d - %d]\n', ...
+															handles.rawdBSPL, ...
+															handles.Awindow(1), ...
+															handles.Awindow(2));
+		fprintf('%s\n', dbtext);
+		update_ui_str(handles.RawdBText, dbtext);
+		show_uictrl(handles.RawdBText);
+	end
+	%--------------------------------------------------
+	% update analysis window
+	%--------------------------------------------------
+	% find max value of raw response
+	if ~isempty(handles.adjresp)
+		% check if analysis window is beyond length of signal
+		if  ms2samples(handles.Awindow(2), handles.respFs) > ...
+							length(handles.adjresp)
+			% if so, reset to duration of signal
+			handles.Awindow(2) = floor(bin2ms(length(handles.adjresp), ...
+								handles.respFs));
+			update_ui_str(handles.AnalysisEndCtrl, handles.Awindow(2));
+			guidata(hObject, handles);
+			fprintf('warning: Analysis End > length of adj signal!!!!');
+		end
+		% find bins for analysis
+		bin = ms2samples(handles.Awindow, handles.respFs);
+		if bin(1) == 0
+			bin(1) = 1;
+		end
+		%--------------------------------------------------
+		% analyze data
+		%--------------------------------------------------
+		% compute RMS
+		resp_RMS = rms(handles.adjresp(bin(1):bin(2)));
+		% compute dB SPL
+		 handles.adjdBSPL = dbspl(handles.VtoPa*resp_RMS);
+		% update display
+		dbtext = sprintf('Raw dB SPL: %.2f  [%d - %d]\n', ...
+															handles.adjdBSPL, ...
+															handles.Awindow(1), ...
+															handles.Awindow(2));
+		fprintf('%s\n', dbtext);
+		update_ui_str(handles.AdjdBText, dbtext);
+		show_uictrl(handles.AdjdBText);
+	end
+	guidata(hObject, handles);
+%------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
 function AnalysisStartCtrl_Callback(hObject, eventdata, handles)
+%-------------------------------------------------------------------
 	newVal = read_ui_str(hObject, 'n');
-	% NEED CHECKS!
-	handles.Awindow(1) = newVal;
+	if ~isnumeric(newVal)
+		update_ui_str(hObject, handles.handles.Awindow(1));
+		errordlg('AnalysisStart: Value must be a number', 'Flat Wav Error');
+	elseif newVal <= 0
+		update_ui_str(hObject, handles.handles.Awindow(1));
+		errordlg('AnalysisStart: Value must > 0', 'Flat Wav Error');
+	end
+	handles.Awindow(1) = newVal;	
 	guidata(hObject, handles);
+	update_analysis(hObject, eventdata, handles);
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
 function AnalysisEndCtrl_Callback(hObject, eventdata, handles)
+%-------------------------------------------------------------------
 	newVal = read_ui_str(hObject, 'n');
-	% NEED CHECKS!
-	handles.Awindow(2) = newVal;
+	if ~isnumeric(newVal)
+		update_ui_str(hObject, handles.handles.Awindow(2));
+		errordlg('AnalysisEnd: Value must be a number', 'Flat Wav Error');
+	elseif newVal <= 0
+		update_ui_str(hObject, handles.handles.Awindow(2));
+		errordlg('AnalysisEnd: Value must > 0', 'Flat Wav Error');
+	else
+		handles.Awindow(2) = newVal;
+	end
 	guidata(hObject, handles);
+	update_analysis(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
 
+%------------------------------------------------------------------------------
+function FindPeakCtrl_Callback(hObject, eventdata, handles)
+%-------------------------------------------------------------------
+	if ~isempty(handles.respFs)
+		rmsbins = ms2samples(handles.PeakRMSWindow, handles.respFs);
+	else
+		fprintf('\n\nFindPeakCtrl_Callback: handles.respFs is empty!\n\n');
+		return
+	end
+	% find max value of raw response
+	if ~isempty(handles.rawresp)
+		tmprms = block_rms(handles.rawresp, rmsbins);
+		% find peak and peak index of rms values
+		[handles.rawrespmax.val, handles.rawrespmax.indx] = max(tmprms);
+		clear temprms
+		% compute peak dB SPL
+		rawdBSPL = dbspl(handles.VtoPa*handles.rawrespmax.val);
+		% update display
+		dbtext = sprintf('Raw dB SPL: %.2f  [%d - %d]\n', ...
+															rawdBSPL, ...
+															handles.Awindow(1), ...
+															handles.Awindow(2));
+		fprintf('%s\n', dbtext);
+		update_ui_str(handles.RawdBText, dbtext);
+		show_uictrl(handles.RawdBText);
+		% find max point (in milliseconds)
+		xval = rmsbins * handles.rawrespmax.indx + (rmsbins ./ 2);
+		xval = fix(bin2ms(xval, handles.respFs));
+		update_ui_str(handles.PeakTimeRawCtrl, xval);
+		guidata(hObject, handles);
+	end
+	% find max value of adj response
+	if ~isempty(handles.adjresp)
+		tmprms = block_rms(handles.adjresp, rmsbins);
+		% find peak and peak index of rms values
+		[handles.adjrespmax.val, handles.adjrespmax.indx] = max(tmprms);
+		clear temprms
+		% compute peak dB SPL
+		adjdBSPL = dbspl(handles.VtoPa*handles.rawrespmax.val);
+		% update display
+		dbtext = sprintf('Raw dB SPL: %.2f  [%d - %d]\n', ...
+															adjdBSPL, ...
+															handles.Awindow(1), ...
+															handles.Awindow(2));
+		fprintf('%s\n', dbtext);
+		update_ui_str(handles.AdjdBText, dbtext);
+		show_uictrl(handles.AdjdBText);
+		% find max point (in milliseconds)
+		xval = rmsbins * handles.adjrespmax.indx + (rmsbins ./ 2);
+		xval = fix(bin2ms(xval, handles.respFs));
+		update_ui_str(handles.PeakTimeAdjCtrl, xval);
+		guidata(hObject, handles);
+	end
+%------------------------------------------------------------------------------
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
@@ -927,9 +1569,6 @@ function AnalysisEndCtrl_Callback(hObject, eventdata, handles)
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
-
-%------------------------------------------------------------------------------
-% --- Executes on button press in SoundCardButton.
 %------------------------------------------------------------------------------
 function SoundCardButton_Callback(hObject, eventdata, handles)
 	%--------------------------------------------------
@@ -948,9 +1587,6 @@ function SoundCardButton_Callback(hObject, eventdata, handles)
 	guidata(hObject, handles);
 	UpdateInputFilter(hObject, eventdata, handles);
 %------------------------------------------------------------------------------
-
-%------------------------------------------------------------------------------
-% --- Executes on button press in NIDAQButton.
 %------------------------------------------------------------------------------
 function NIDAQButton_Callback(hObject, eventdata, handles)
 	%--------------------------------------------------
@@ -988,8 +1624,10 @@ function updateGuiFromSynth(hObject, handles)
 	Nsynthparam = handles.S.Nparam(sindx);
 	% loop through parameters for this signal
 	for n = 1:Nsynthparam
-		update_ui_str(handles.(handles.S.TextTags{n}), [handles.S.Text{sindx}{n} ':']);
-		update_ui_str(handles.(handles.S.CtrlTags{n}), handles.synth.(handles.S.Param{sindx}{n}));
+		update_ui_str(handles.(handles.S.TextTags{n}), ...
+															[handles.S.Text{sindx}{n} ':']);
+		update_ui_str(handles.(handles.S.CtrlTags{n}), ...
+											handles.synth.(handles.S.Param{sindx}{n}));
 		show_uictrl(handles.(handles.S.TextTags{n}));
 		show_uictrl(handles.(handles.S.CtrlTags{n}));
 	end
@@ -1019,7 +1657,7 @@ function updateSynthFromGui(hObject, handles)
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
-function updatePlots(hObject, handles)
+function updatePlots(hObject, eventdata, handles)
 	% plotting limits
 	% limits for Mag and Phase plots
 	dbmax = 0;
@@ -1028,35 +1666,40 @@ function updatePlots(hObject, handles)
 	freqlim = 0.001*[0 handles.S.Fs/2];
 	
 	% update raw plots
-	axes(handles.RawSignalAxes)
+	% plot raw signal
 	tvec = 1000 * (0:(length(handles.raw)-1)) ./ handles.S.Fs;
-	plot(tvec, handles.raw)
-	title('Signal (V)')
-	ylabel('Raw', 'Color', 'b')
+	plot(handles.RawSignalAxes, tvec, handles.raw)
+	title(handles.RawSignalAxes, 'Signal (V)')
+	ylabel(handles.RawSignalAxes, 'Raw', 'Color', 'b')
 	set(handles.RawSignalAxes, 'XTickLabel', []);
+<<<<<<< HEAD
 	xlim([min(tvec) max(tvec)])
+=======
+	xlim(handles.RawSignalAxes, [min(tvec) max(tvec)])
+>>>>>>> evaluation
 	% get ticks
 	time_ticks = get(handles.RawSignalAxes, 'XTick');
 	
-	axes(handles.RawMagAxes)
-	plot(0.001*handles.fraw, handles.magraw);
-	title('Magnitude (dB)')
-	ylim(dblim);
-	xlim(freqlim);
+	% plot raw magnitude
+	plot(handles.RawMagAxes, 0.001*handles.fraw, handles.magraw);
+	title(handles.RawMagAxes, 'Magnitude (dB)')
+	ylim(handles.RawMagAxes, dblim);
+	xlim(handles.RawMagAxes, freqlim);
 	set(handles.RawMagAxes, 'XTickLabel', []);
 	
-	axes(handles.RawPhaseAxes)
-	plot(0.001*handles.fraw, unwrap(handles.phiraw));
-	title('Phase (rad)')
-	xlim(freqlim);
+	% plot raw phase
+	plot(handles.RawPhaseAxes, 0.001*handles.fraw, unwrap(handles.phiraw));
+	title(handles.RawPhaseAxes, 'Phase (rad)')
+	xlim(handles.RawPhaseAxes, freqlim);
 	set(handles.RawPhaseAxes, 'XTickLabel', []);
 	
-	axes(handles.RawSpectrumAxes)
+% 	plot raw spectrogram
 	[S, F, T, P] = spectrogram(	handles.raw, ...
 											handles.SpectrumWindow, ...
 											[], ...
 											handles.SpectrumWindow, ...
 											handles.S.Fs	);
+<<<<<<< HEAD
 	save p.mat S F T P -MAT
 	P = 20*log10(P);
 	P(P == -Inf) = min(min(P(P ~= -Inf)));	
@@ -1069,33 +1712,56 @@ function updatePlots(hObject, handles)
 	set(handles.RawSpectrumAxes, 'XTickLabel', []);
 	colormap(handles.RawSpectrumAxes, handles.ColorMap)
 % 	caxis([0.5*min(min(P)) max(max(P))])
+=======
+	P = 20*log10(P);
+	P(P == -Inf) = min(min(P(P ~= -Inf)));	
+	surf(handles.RawSpectrumAxes, 1000*T, 0.001*F, P, 'edgecolor', 'none');
+	xlim(handles.RawSpectrumAxes, [min(tvec) max(tvec)])
+	ylim(handles.RawSpectrumAxes, freqlim);
+	set(handles.RawSpectrumAxes, 'XTick', time_ticks)
+	view(handles.RawSpectrumAxes, 0, 90);
+	title(handles.RawSpectrumAxes, 'Time vs. Freq (kHz) vs. dB')
+	set(handles.RawSpectrumAxes, 'XTickLabel', []);
+	colormap(handles.RawSpectrumAxes, handles.ColorMap)
+>>>>>>> evaluation
 	guidata(hObject, handles)
 	
 	% Update adj plots
-	axes(handles.AdjSignalAxes)
+	% plot adj signal
 	tvec = 1000 * (0:(length(handles.adj)-1)) ./ handles.S.Fs;
+<<<<<<< HEAD
 	plot(tvec, handles.adj, 'r')
 	xlim([min(tvec) max(tvec)])
 	ylabel('Adj', 'Color', 'r')
 	xlabel('time (ms)')
+=======
+	plot(handles.AdjSignalAxes, tvec, handles.adj, 'r')
+	xlim(handles.AdjSignalAxes, [min(tvec) max(tvec)])
+	ylabel(handles.AdjSignalAxes, 'Adj', 'Color', 'r')
+	xlabel(handles.AdjSignalAxes, 'time (ms)')
+>>>>>>> evaluation
 	
-	axes(handles.AdjMagAxes)
-	plot(0.001*handles.fadj, handles.magadj, 'r');
-	ylim(dblim);
-	xlim(freqlim);
-	xlabel('freq (kHz)');
+	% plot adj mag spectrum
+	plot(handles.AdjMagAxes, 0.001*handles.fadj, handles.magadj, 'r');
+	ylim(handles.AdjMagAxes, dblim);
+	xlim(handles.AdjMagAxes, freqlim);
+	xlabel(handles.AdjMagAxes, 'freq (kHz)');
 	
-	axes(handles.AdjPhaseAxes)
-	plot(0.001*handles.fadj, unwrap(handles.phiadj), 'r');
-	xlim(freqlim);
-	xlabel('freq (kHz)');
+	% plot adj phase spectrum
+	plot(handles.AdjPhaseAxes, 0.001*handles.fadj, unwrap(handles.phiadj), 'r');
+	xlim(handles.AdjPhaseAxes, freqlim);
+	xlabel(handles.AdjPhaseAxes, 'freq (kHz)');
 
+<<<<<<< HEAD
 	axes(handles.AdjSpectrumAxes)
 % 	[S, F, T, P] = spectrogram(	handles.adj, ...
 % 											handles.SpectrumWindow, ...
 % 											floor(0.95*handles.SpectrumWindow), ...
 % 											512, ...
 % 											handles.S.Fs	);
+=======
+	% plot adj spectrogram
+>>>>>>> evaluation
 	[S, F, T, P] = spectrogram(	handles.adj, ...
 											handles.SpectrumWindow, ...
 											[], ...
@@ -1103,6 +1769,7 @@ function updatePlots(hObject, handles)
 											handles.S.Fs	);
 	P = 20*log10(P);
 	P(P == -Inf) = min(min(P(P ~= -Inf)));	
+<<<<<<< HEAD
 	surf(1000*T, 0.001*F, P, 'edgecolor', 'none');
 	xlim([min(tvec) max(tvec)])
 	ylim(freqlim);
@@ -1112,7 +1779,19 @@ function updatePlots(hObject, handles)
 	colormap(handles.AdjSpectrumAxes, handles.ColorMap)
 % 	caxis([min(min(P)) max(max(P))])
 
+=======
+	surf(handles.AdjSpectrumAxes, 1000*T, 0.001*F, P, 'edgecolor', 'none');
+	xlim(handles.AdjSpectrumAxes, [min(tvec) max(tvec)])
+	ylim(handles.AdjSpectrumAxes, freqlim);
+	set(handles.AdjSpectrumAxes, 'XTick', time_ticks)	
+	view(handles.AdjSpectrumAxes, 0, 90);
+	xlabel(handles.AdjSpectrumAxes, 'Time (ms)')
+	colormap(handles.AdjSpectrumAxes, handles.ColorMap)
+>>>>>>> evaluation
 	guidata(hObject, handles);
+	
+% 	dBPlotCtrl_Callback(hObject, eventdata, handles);
+% 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
@@ -1126,7 +1805,575 @@ function [atten_val] = figure_atten(spl_val, rms_val, caldata)
 	end
 %------------------------------------------------------------------------------
 
+function varargout = PlaySignal(hObject, eventdata, handles)
+%------------------------------------------------------------------------------
+% PlaySignal
+%------------------------------------------------------------------------------
+% sets up NI data acquisition toolbox parameters and plays signal
+%------------------------------------------------------------------------------
+	%-----------------------------------------------------------------------
+	%-----------------------------------------------------------------------
+	% Check Inputs
+	%-----------------------------------------------------------------------
+	%-----------------------------------------------------------------------
+	%--------------------------------------------------
+	% find who called us
+	%--------------------------------------------------
+	ButtonID = read_ui_str(hObject);
+	% check to make sure output signal isn't crazy
+	if strcmpi(ButtonID, 'Play Raw') 
+		if isempty(handles.raw)	
+			warndlg('RAW signal empty!');
+			return
+		end
+	end
+	if strcmpi(ButtonID, 'Play Adj')
+		if isempty(handles.adj)
+			warndlg('ADJ signal empty!');
+			return
+		end
+	end
+	%-----------------------------------------------------------------------
+	%-----------------------------------------------------------------------
+	% setup output figures
+	%-----------------------------------------------------------------------
+	%-----------------------------------------------------------------------
+	% if figure has not been created, do so
+	if isempty(handles.IOfigure) || ~ishandle(handles.IOfigure)
+		handles.IOfigure = figure;
+		set(handles.IOfigure, 'Position', [10 235 973 500]);
+		% create subplot axes
+		% 	subplot('Position',[left bottom width height]) creates an axes at the
+		% 	position specified by a four-element vector. left, bottom, width, and
+		% 	height are in normalized coordinates in the range from 0.0 to 1.0
+		pw = 0.19;		% plot width
+		ph = 0.375;		% plot height
+		x1 = 0.052;
+		x2 = 0.3;
+		x3 = 0.55;
+		x4 = 0.8;
+		y1 = 0.55;
+		y2 = 0.09;
+		handles.P.rsig =	subplot('Position', [x1	y1	pw	ph]);
+		handles.P.rmag =	subplot('Position', [x2	y1	pw	ph]);
+		handles.P.rphi =	subplot('Position', [x3	y1	pw	ph]);
+		handles.P.rspec =	subplot('Position', [x4	y1	pw	ph]);
+		handles.P.asig =	subplot('Position', [x1	y2	pw	ph]);
+		handles.P.amag =	subplot('Position', [x2	y2	pw	ph]);
+		handles.P.aphi =	subplot('Position', [x3	y2	pw	ph]);
+		handles.P.aspec =	subplot('Position', [x4	y2	pw	ph]);
+		guidata(hObject, handles);
+	else
+		% otherwise, make it active
+		figure(handles.IOfigure);
+	end
 
+	%-----------------------------------------------------------------------
+	%-----------------------------------------------------------------------
+	% play sound out of selected output device
+	%-----------------------------------------------------------------------
+	%-----------------------------------------------------------------------
+	% SOUND CARD OUTPUT
+	if strcmpi(handles.OutputDevice, 'WINSOUND')
+		if (handles.S.Fs == 44100)
+			if strcmpi(ButtonID, 'Play Raw') && ~isempty(handles.raw)
+				% play raw sound
+				disable_ui(hObject);
+				pause(0.5);
+				sound(sin2array(handles.raw, 1, handles.S.Fs), handles.S.Fs);
+				pause(1);
+				enable_ui(hObject);
+				update_ui_str(handles.RawdBText, sprintf('Raw dB SPL: ---'));
+				hide_uictrl(handles.RawdBText);
+				hide_uictrl(handles.AdjdBText);
+			elseif strcmpi(ButtonID, 'Play Adj') && ~isempty(handles.adj)
+				% play adj sound
+				disable_ui(hObject);
+				pause(0.5);
+				sound(sin2array(handles.adj, 1, handles.S.Fs), handles.S.Fs);
+				pause(1);
+				enable_ui(hObject);
+				update_ui_str(handles.AdjdBText, sprintf('Adj dB SPL: ---'));
+				hide_uictrl(handles.RawdBText);
+				hide_uictrl(handles.AdjdBText);		
+			end
+		else
+			errordlg(sprintf('Invalid sample rate %.2f for WINSOUND', handles.S.Fs), ...
+									'FlatWav Error');
+		end
+	% NIDAQ OUTPUT
+	elseif strcmpi(handles.OutputDevice, 'NIDAQ')
+		% play selected sound, get response
+		if strcmpi(ButtonID, 'Play Raw') && ~isempty(handles.raw)
+			% play raw sound
+			disable_ui(hObject);
+			[resp, Fs] = NIplaysignal(hObject, handles, handles.raw);
+			enable_ui(hObject);		
+		elseif strcmpi(ButtonID, 'Play Adj') && ~isempty(handles.adj)
+			% play adj sound
+			disable_ui(hObject);
+			[resp, Fs] = NIplaysignal(hObject, handles, handles.adj);
+			show_uictrl(handles.AdjdBText);		
+			enable_ui(hObject);
+		end
+	% ERROR
+	else
+		errordlg(sprintf('unknown io device %s', handles.OutputDevice), 'FlatWav Error');
+	end
+	handles.respFs = Fs;
+	guidata(hObject, handles);
+
+	%-----------------------------------------------------------------------
+	%-----------------------------------------------------------------------
+	% process response data (if NIDAQ selected)
+	%-----------------------------------------------------------------------
+	%-----------------------------------------------------------------------
+	if strcmpi(handles.OutputDevice, 'NIDAQ')
+		%-----------------------------------------------------------------------
+		% update bandpass filter for processing the data
+		%-----------------------------------------------------------------------
+		% Nyquist frequency
+		fnyq = Fs / 2;
+		% passband definition
+		fband = [handles.HPFc handles.LPFc] ./ fnyq;
+		% filter coefficients using a butterworth bandpass filter
+		[handles.fcoeffb, handles.fcoeffa] = butter(handles.FilterOrder, ...
+																				fband, 'bandpass');
+		%--------------------------------------------------
+		% filter data using input filter settings
+		%--------------------------------------------------
+		resp = filtfilt(handles.fcoeffb, handles.fcoeffa, resp);
+		%--------------------------------------------------
+		% update analysis window
+		%--------------------------------------------------
+		% check if analysis window is beyond length of signal
+		if  ms2samples(handles.Awindow(2), Fs) > length(resp)
+			% if so, reset to duration of signal
+			handles.Awindow(2) = floor(bin2ms(length(resp), Fs));
+			update_ui_str(handles.AnalysisEndCtrl, handles.Awindow(2));
+			guidata(hObject, handles);
+			fprintf('warning: Analysis End > length of signal!!!!');
+		end
+		% find bins for analysis
+		bin = ms2samples(handles.Awindow, Fs);
+		if bin(1) == 0
+			bin(1) = 1;
+		end
+		%--------------------------------------------------
+		% analyze data
+		%--------------------------------------------------
+		% compute RMS
+		resp_RMS = rms(resp(bin(1):bin(2)));
+		% compute dB SPL
+		resp_dBSPL = dbspl(handles.VtoPa*resp_RMS);
+		% take fft of raw and adj response data
+		[fresp, magresp, phiresp] = daqdbfullfft(	resp(bin(1):bin(2)), ...
+																Fs, ...
+																length(resp(bin(1):bin(2))) );
+		%--------------------------------------------------
+		% assign data to handles containers, update display
+		%--------------------------------------------------
+		if strcmpi(ButtonID, 'Play Raw')
+			handles.rawresp = resp;
+			handles.rawRMS = resp_RMS;
+			handles.rawdBSPL = resp_dBSPL;
+			handles.rawfresp = fresp;
+			handles.rawmag = magresp;
+			handles.rawphi = phiresp;
+			% update display
+			dbtext = sprintf('Raw dB SPL: %.2f  [%d - %d]\n', ...
+																handles.rawdBSPL, ...
+																handles.Awindow(1), ...
+																handles.Awindow(2));
+			fprintf('%s\n', dbtext);
+			update_ui_str(handles.RawdBText, dbtext);
+			show_uictrl(handles.RawdBText);
+			guidata(hObject, handles);
+		elseif strcmpi(ButtonID, 'Play Adj')
+			handles.adjresp = resp;
+			handles.adjRMS = resp_RMS;
+			handles.adjdBSPL = resp_dBSPL;
+			handles.adjfresp = fresp;
+			handles.adjmag = magresp;
+			handles.adjphi = phiresp;
+			% update display
+			dbtext = sprintf('Adj dB SPL: %.2f  [%d - %d]\n', ...
+																handles.adjdBSPL, ...
+																handles.Awindow(1), ...
+																handles.Awindow(2));
+			fprintf('%s\n', dbtext);
+			update_ui_str(handles.AdjdBText, dbtext);
+			show_uictrl(handles.AdjdBText);
+			guidata(hObject, handles);
+		end
+		guidata(hObject, handles);
+		handles.Awindow
+		%-----------------------------------------------------------------------
+		% plot data
+		%-----------------------------------------------------------------------
+		% set limits for Mag and Phase plots
+		dblim = [min(magresp) max(magresp)];
+		freqlim = 0.001*[0 Fs/2];
+
+		if strcmpi(ButtonID, 'Play Raw')
+			% raw plots
+			subplot(handles.P.rsig)
+			tvec = 1000 * (0:(length(resp)-1)) ./ Fs;
+			plot(handles.P.rsig, tvec, resp)
+			title(handles.P.rsig, 'Response (V)')
+			ylabel(handles.P.rsig, 'Raw', 'Color', 'b')
+			set(handles.P.rsig, 'XTickLabel', []);
+
+			subplot(handles.P.rmag)
+			plot(handles.P.rmag, 0.001*fresp, magresp);
+			title(handles.P.rmag, 'Magnitude (dB)')
+			ylim(handles.P.rmag, dblim);
+			xlim(handles.P.rmag, freqlim);
+			set(handles.P.rmag, 'XTickLabel', []);
+
+			subplot(handles.P.rphi)
+			plot(handles.P.rphi, 0.001*fresp, unwrap(phiresp));
+			title(handles.P.rphi, 'Phase (rad)')
+			xlim(handles.P.rphi, freqlim);
+			set(handles.P.rphi, 'XTickLabel', []);
+
+			subplot(handles.P.rspec)
+			[S, F, T, P] = spectrogram(	resp, ...
+													handles.SpectrumWindow, ...
+													floor(0.98*handles.SpectrumWindow), ...
+													512, ...
+													Fs	);
+			surf(handles.P.rspec, 1000*T, 0.001*F, 20*log10(P), 'edgecolor', 'none');
+			ylim(handles.P.rspec, freqlim);
+			axis(handles.P.rspec, 'tight');
+			view(handles.P.rspec, 0, 90);
+			title(handles.P.rspec, 'Time vs. Freq (kHz) vs. dB')
+			set(handles.P.rspec, 'XTickLabel', []);
+			colormap(handles.P.rspec, handles.ColorMap)
+			guidata(hObject, handles);
+			updateDBplots(hObject, eventdata, handles);
+			if handles.dBPlot
+				updateDBplots(hObject, eventdata, handles);
+			end
+			guidata(hObject, handles);
+
+		elseif strcmpi(ButtonID, 'Play Adj')
+			% Update adj plots
+			subplot(handles.P.asig)
+			tvec = 1000 * (0:(length(resp)-1)) ./ Fs;
+			plot(handles.P.asig, tvec, resp, 'r')
+			ylabel(handles.P.asig, 'Adj', 'Color', 'r')
+			xlabel(handles.P.asig, 'time (ms)')
+
+			subplot(handles.P.amag)
+			plot(handles.P.amag, 0.001*fresp, magresp, 'r');
+			ylim(handles.P.amag, dblim);
+			xlim(handles.P.amag, freqlim);
+			xlabel(handles.P.amag, 'freq (kHz)');
+
+			subplot(handles.P.aphi)
+			plot(handles.P.aphi, 0.001*fresp, unwrap(phiresp), 'r');
+			xlim(handles.P.aphi, freqlim);
+			xlabel(handles.P.aphi, 'freq (kHz)');
+
+			subplot(handles.P.aspec)
+			[S, F, T, P] = spectrogram(	resp, ...
+													handles.SpectrumWindow, ...
+													floor(0.98*handles.SpectrumWindow), ...
+													512, ...
+													Fs	);
+			surf(handles.P.aspec, 1000*T, 0.001*F, 20*log10(P), 'edgecolor', 'none');
+			ylim(handles.P.aspec, freqlim);
+			axis(handles.P.aspec, 'tight')
+			view(handles.P.aspec, 0, 90);
+			xlabel(handles.P.aspec, 'Time (ms)')
+			colormap(handles.P.aspec, handles.ColorMap);
+			guidata(hObject, handles);
+			if handles.dBPlot
+				dBPlotCtrl_Callback(hObject, eventdata, handles);
+			end
+			guidata(hObject, handles);
+		end
+		%------------------------------------------------------------------------
+	end
+	% assign outputs
+	varargout{1} = hObject;
+	varargout{2} = handles;
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+
+
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+function dBPlotCtrl_Callback(hObject, eventdata, handles)
+%------------------------------------------------------------------------------
+% displays dB level along with response signal
+	handles.dBPlot = read_ui_val(handles.dBPlotCtrl);
+	guidata(hObject, handles);
+	if handles.dBPlot
+		[dBfigure, dBaxes] = updateDBplots(hObject, eventdata, handles);
+		% store returned handles
+		if ~isempty(dBfigure)
+			handles.dBFigure = dBfigure;
+		end
+		if ~isempty(dBaxes.rawdb)
+			handles.P.rawdb = dBaxes.rawdb;
+		end
+		if ~isempty(dBaxes.adjdb)
+			handles.P.adjdb = dBaxes.adjdb;
+		end
+	end
+	guidata(hObject, handles);
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+function [dBFigure, dBAxes] = updateDBplots(hObject, eventdata, handles)
+%------------------------------------------------------------------------------
+% updates dB plot
+%
+%	should probably decimate data plots!
+%	
+%------------------------------------------------------------------------
+	%------------------------------------------------------------------------
+	% check to make sure there are data in the handles...
+	%------------------------------------------------------------------------
+	if any(	[	isempty(handles.respFs) ...
+					(isempty(handles.rawresp) && isempty(handles.adjresp))	])
+		warning('FlatWav:Data', 'No data for db analysis');
+		dBFigure = [];
+		dBAxes = [];
+	end
+	%------------------------------------------------------------------------	
+	% if dB figure has not been created, do so
+	%------------------------------------------------------------------------
+	if isempty(handles.dBFigure) || ~ishandle(handles.dBFigure)
+		fprintf('Creating dBFigure\n\n');
+		dBFigure = figure;
+	else
+		dBFigure = handles.dBFigure;
+		figure(dBFigure);
+	end
+	%------------------------------------------------------------------------
+	% if subplots don't exist, create them
+	%------------------------------------------------------------------------
+	if (~isfield(handles.P, 'rawdb') || ~isfield(handles.P, 'adjdb'))
+		dBAxes.rawdb =	subplot(211);
+		dBAxes.adjdb = subplot(212);
+	elseif (~ishandle(handles.P.rawdb) || ~ishandle(handles.P.adjdb))
+		dBAxes.rawdb =	subplot(211);
+		dBAxes.adjdb = subplot(212);
+	else
+		dBAxes.rawdb = handles.P.rawdb;
+		dBAxes.adjdb = handles.P.adjdb;
+	end
+	%------------------------------------------------------------------------
+	% compute rmsbins window
+	%------------------------------------------------------------------------
+	if ~isempty(handles.respFs)
+		rmsbins = ms2samples(handles.PeakRMSWindow, handles.respFs);
+	else
+		error('updateDBplots: handles.respFs is empty!\n\n');
+	end
+	%------------------------------------------------------------------------
+	% compute rms of raw response, plot
+	%------------------------------------------------------------------------
+	if ~isempty(handles.rawresp)
+		 plotSignalAnddB(	handles.rawresp, ...
+								handles.PeakRMSWindow, ...
+								handles.respFs, ...
+								'Axes', dBAxes.rawdb, ...
+								'dBSPL', handles.VtoPa, ...
+								'SignalName', 'Raw', ...
+								'SignalColor', 'b', ...
+								'dBMarkerColor', 'b');		
+	end
+	%------------------------------------------------------------------------	
+	% compute rms of adj response, plot
+	%------------------------------------------------------------------------
+	if ~isempty(handles.adjresp)
+		
+		 plotSignalAnddB(	handles.adjresp, ...
+								handles.PeakRMSWindow, ...
+								handles.respFs, ...
+								'Axes', dBAxes.adjdb, ...
+								'dBSPL', handles.VtoPa, ...
+								'SignalName', 'Adj', ...
+								'SignalColor', 'r', ...
+								'dBMarkerColor', 'r');
+	end
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+function varargout = plotSignalAnddB(signal, rmswin, Fs, varargin)
+%------------------------------------------------------------------------------
+	% definitions
+	VtoPa = 0;
+	sigName = '';
+	sigColor = 'b';
+	sigStyle = '-';
+	dBColor = 'k';
+	dBStyle = '-';
+	dBLineWidth = 2;
+	dBMarker = '*';
+	dBMarkerSize = 10;
+	dBMarkerColor = dBColor;
+	
+	% check input arguments
+	nvararg = length(varargin);
+	if nvararg
+		aindex = 1;
+		while aindex <= nvararg
+			switch(upper(varargin{aindex}))
+
+				% select axes
+				case 'AXES'
+					if ~ishandle(varargin{aindex + 1})
+						error('%s: invalid axes handle', mfilename);
+					end
+					dBAxes = varargin{aindex + 1};
+					aindex = aindex + 2;
+
+				% set dBSPL option
+				case 'DBSPL'
+					% store conversion factor
+					VtoPa = varargin{aindex + 1};
+					aindex = aindex + 2;
+
+				% set signal trace name
+				case 'SIGNALNAME'
+					sigName = varargin{aindex + 1};
+					aindex = aindex + 2;
+					
+				% set signal trace color
+				case 'SIGNALCOLOR'
+					sigColor = varargin{aindex + 1};
+					aindex = aindex + 2;				
+					
+				% set signal trace style
+				case 'SIGNALSTYLE'
+					sigStyle = varargin{aindex + 1};
+					aindex = aindex + 2;				
+
+				% set dB trace color
+				case 'DBCOLOR'
+					dbColor = varargin{aindex + 1};
+					aindex = aindex + 2;				
+					
+				% set db trace style
+				case 'DBSTYLE'
+					dbStyle = varargin{aindex + 1};
+					aindex = aindex + 2;				
+				
+				% set db trace line width
+				case 'DBLINEWIDTH'
+					dBLineWidth = varargin{aindex + 1};
+					aindex = aindex + 2;				
+				
+				% set db peak marker symbol
+				case 'DBMARKER'
+					dBMarker = varargin{aindex + 1};
+					aindex = aindex + 2;				
+
+				% set db peak marker size (points)
+				case 'DBMARKERSIZE'
+					dBMarkerSize = varargin{aindex + 1};
+					aindex = aindex + 2;
+				
+				% set db peak marker size (points)
+				case 'DBMARKERCOLOR'
+					dBMarkerColor = varargin{aindex + 1};
+					aindex = aindex + 2;				
+
+				otherwise
+					error('%s: Unknown option %s', mfilename, varargin{aindex});
+			end		% END SWITCH
+		end		% END WHILE aindex
+
+	else
+		dBFigure = figure;
+		dBAxes = axes;	
+	end		% END IF nvararg
+	
+	% comvert rmswindow from milliseconds to # of bins
+	rmsbins = ms2samples(rmswin, Fs);
+	% compute rms of  response, plot
+	[rawrms, startbins, endbins] = block_rms(signal, rmsbins);
+	% find peak and peak index of rms values
+	[maxval, maxindx] = max(rawrms);
+	
+	if VtoPa
+		% compute peak dB SPL
+		sigdBSPL = dbspl(VtoPa*maxval);
+		% display value
+		dbtext = sprintf('%s Peak dB SPL: %.2f\n', sigName, sigdBSPL);
+		fprintf('%s\n', dbtext);
+	else
+		% just use dB
+		sigdBSPL = db(maxval);
+		% display value
+		dbtext = sprintf('%s Peak dB: %.2f\n', sigName, sigdBSPL);
+		fprintf('%s\n', dbtext);
+	end
+		
+	% find max point (in milliseconds)
+	xval = rmsbins * maxindx - (rmsbins ./ 2);
+	xval = fix(bin2ms(xval, Fs));
+
+	% build trace for dB data
+	nrms = length(rawrms);
+	x = zeros(2*nrms, 1);
+	y = zeros(2*nrms, 1);
+	for n = 1:nrms
+		x(2 * (n - 1) + 1) = startbins(n);
+		x(2 * (n - 1) + 2) = endbins(n);
+		y(2 * (n - 1) + 1) = rawrms(n);
+		y(2 * (n - 1) + 2) = rawrms(n);
+	end
+	x = bin2ms(x, Fs);
+	if VtoPa
+		y = dbspl(VtoPa*y);
+	else
+		y = db(y);
+	end
+	
+	% response data
+	tvec = bin2ms( (1:length(signal))-1, Fs);
+	yresp = max(y) * normalize(signal);
+	xlimits = [min(tvec) max(tvec)];
+	ylimits = [min(yresp) 1.05*max(y)];
+	
+	% plot signal data
+	plot(dBAxes, tvec, yresp, [sigColor sigStyle]);
+	
+	hold(dBAxes, 'on')
+		% plot dB data
+		plot(dBAxes, x, y, [dBColor dBStyle], 'LineWidth', dBLineWidth);
+		% plot dB peak
+		plot(dBAxes, xval, ylimits(2), [dBMarkerColor dBMarker], ...
+													'MarkerSize', dBMarkerSize);
+	hold(dBAxes, 'off')
+	ylabel(dBAxes, sigName, 'Color', sigColor)
+	xlim(dBAxes, xlimits);
+	ylim(dBAxes, ylimits);
+	grid(dBAxes, 'on');
+	th = text(xval, 1.05*ylimits(2), sprintf('  %.2f', sigdBSPL), ...
+																	'Parent', dBAxes);
+	set(th,	'FontSize', 12, ...
+				'FontWeight', 'bold', ...
+				'Color', sigColor, ...
+				'Interpreter', 'none');
+
+	if nargout
+		varargout{1} = dBFigure;
+		varargout{2} = dBAxes;
+	end
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
@@ -1147,7 +2394,8 @@ function [atten_val] = figure_atten(spl_val, rms_val, caldata)
 %------------------------------------------------------------------------------
 %-------------------------------------------------------------------------
 function SaveFigureMenuItem_Callback(hObject, eventdata, handles)
-	[figfile, figpath] = uiputfile('*.fig','Save plot and figure in .fig file...');
+	[figfile, figpath] = ...
+							uiputfile('*.fig','Save plot and figure in .fig file...');
 	if figfile ~=0
 		figfile = fullfile(figpath, figfile);
 		saveas(handles.axes1, figfile, 'fig');
@@ -1211,19 +2459,25 @@ function QuitMenuItem_Callback(hObject, eventdata, handles)
 function LoadCalMenuItem_Callback(hObject, eventdata, handles)
 %-------------------------------------------------------------------------
 	[calfile, calpath] = uigetfile( {'*.cal'; '*_cal.mat'}, ...
-												'Load headphone calibration data from file...');
+										'Load headphone calibration data from file...');
 	if calfile ~=0
 		datafile = fullfile(calpath, calfile);	
 		handles.cal = load_headphone_cal(datafile);
 		plot(	handles.CalibrationAxes, ...
 				0.001*handles.cal.freq, ...
 				handles.cal.mag(1, :), '.-');
+<<<<<<< HEAD
 		ylim([0.9*min(handles.cal.mag(1, :)) 1.1*max(handles.cal.mag(1, :))]);
 		grid on
+=======
+		ylim(handles.CalibrationAxes, ...
+				[0.9*min(handles.cal.mag(1, :)) 1.1*max(handles.cal.mag(1, :))]);
+		grid(	handles.CalibrationAxes, 'on');
+>>>>>>> evaluation
 	end
 	guidata(hObject, handles);
+	SmoothCalCtrl_Callback(hObject, eventdata, handles);
 %-------------------------------------------------------------------------
-
 
 %-------------------------------------------------------------------------
 function FlatCalMenuItem_Callback(hObject, eventdata, handles)
@@ -1233,8 +2487,9 @@ function FlatCalMenuItem_Callback(hObject, eventdata, handles)
 	handles.cal = fake_caldata('freqs', (1:10:(handles.S.Fs / 2)));
 	handles.cal.mag = 90 * handles.cal.mag;
 	guidata(hObject, handles);
-	plot(handles.CalibrationAxes, 0.001*handles.cal.freq, handles.cal.mag(1, :), '.-');
-	ylim([0 100]);
+	plot(handles.CalibrationAxes, 0.001*handles.cal.freq, ...
+																handles.cal.mag(1, :), '.-');
+	ylim(handles.CalibrationAxes, [0 100]);
 %-------------------------------------------------------------------------
 
 %------------------------------------------------------------------------------
@@ -1379,8 +2634,8 @@ function InputFilterMenuItem_Callback(hObject, eventdata, handles)
 					'ValueText',		'Highpass Filter Fc (Hz)',		...
 					'QuestionText',	'Input HighPass Filter Cutoff Frequency', ...
 					'FigureName',		''	);
-	%{
 	handles.HPFc = newVal;
+	%{
 	newVal = uiaskvalue(	'Value',				handles.FilterOrder,			...
 								'ValueText',		'Filter Order (>0)',		...
 								'QuestionText',	'Input Filter Order', ...
@@ -1422,6 +2677,27 @@ function SpectrumWindowMenuItem_Callback(hObject, eventdata, handles)
 	updatePlots(hObject, handles);
 %-------------------------------------------------------------------------
 
+
+%-------------------------------------------------------------------------
+function RMSWindowMenuItem_Callback(hObject, eventdata, handles)
+	% get new spectrum window
+	newVal = uiaskvalue(	...
+					'Value',				handles.PeakRMSWindow,			...
+					'ValueText',		'RMS window (ms)',		...
+					'QuestionText',	'Input Window Size for Level Calculation', ...
+					'FigureName',		''	);
+	if ~isnumeric(newVal)
+		warndlg('RMS size must be a number!', 'FlatWav')
+	elseif ~between(newVal, 1, 1e6)
+		warndlg('RMS Window size must be between 1 and 1e6!', 'FlatWav')
+	else
+		handles.PeakRMSWindow = newVal;
+	end
+	guidata(hObject, handles);
+	updateDBplots(hObject, eventdata, handles)
+	guidata(hObject, handles);
+%-------------------------------------------------------------------------
+
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
@@ -1434,78 +2710,149 @@ function SpectrumWindowMenuItem_Callback(hObject, eventdata, handles)
 %******************************************************************************
 %******************************************************************************
 function CompMethodCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		  set(hObject,'BackgroundColor','white');
 	end
+<<<<<<< HEAD
 	set(hObject, 'String', {'plot(rand(5))', 'plot(sin(1:0.01:25))', 'bar(1:.5:10)', 'plot(membrane)', 'surf(peaks)'});
 function WavFilenameCtrl_CreateFcn(hObject, eventdata, handles)
 	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+=======
+	set(hObject, 'String', {'plot(rand(5))', 'plot(sin(1:0.01:25))', ...
+		'bar(1:.5:10)', 'plot(membrane)', 'surf(peaks)'});
+function WavFilenameCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+>>>>>>> evaluation
 		 set(hObject,'BackgroundColor','white');
 	end
 function SynthTypeCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function FsCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function p1Ctrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function p2Ctrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function p3Ctrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function p4Ctrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function p5Ctrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function p6Ctrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function TargetSPLCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function LowCutFreqCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function SpectrumWindowCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function CorrFminCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function CorrFmaxCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function NormalizePeakCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function AnalysisStartCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
 function AnalysisEndCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
+function SmoothVal1Ctrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function CalSmoothMethodCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		set(hObject,'BackgroundColor','white');
+	end
+function SmoothVal2Ctrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+	    set(hObject,'BackgroundColor','white');
+	end
+function PreFilterRangeCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function PostFilterRangeCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function CorrectionLimitValCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function SmoothEdgesValCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function PeakTimeRawCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function PeakTimeAdjCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+<<<<<<< HEAD
 function SmoothVal1Ctrl_CreateFcn(hObject, eventdata, handles)
 	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
@@ -1519,6 +2866,8 @@ function SmoothVal2Ctrl_CreateFcn(hObject, eventdata, handles)
 	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
 	    set(hObject,'BackgroundColor','white');
 	end
+=======
+>>>>>>> evaluation
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
@@ -1527,5 +2876,8 @@ function SmoothVal2Ctrl_CreateFcn(hObject, eventdata, handles)
 
 
 
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> evaluation

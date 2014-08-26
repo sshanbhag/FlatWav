@@ -1,4 +1,4 @@
-function varargout = PlaySignal(hObject, handles)
+function varargout = PlaySignal(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
 % PlaySignal
 %------------------------------------------------------------------------------
@@ -41,7 +41,11 @@ end
 
 %-----------------------------------------------------------------------
 %-----------------------------------------------------------------------
+<<<<<<< HEAD
 % setup output figure
+=======
+% setup output figures
+>>>>>>> evaluation
 %-----------------------------------------------------------------------
 %-----------------------------------------------------------------------
 % if figure has not been created, do so
@@ -193,9 +197,19 @@ if strcmpi(handles.OutputDevice, 'NIDAQ')
 		handles.rawfresp = fresp;
 		handles.rawmag = magresp;
 		handles.rawphi = phiresp;
+<<<<<<< HEAD
 		fprintf('Raw dB SPL: %.4f\n', handles.rawdBSPL);
 		update_ui_str(handles.RawdBText, ...
 							sprintf('Raw dB SPL: %.2f', handles.rawdBSPL));
+=======
+		% update display
+		dbtext = sprintf('Raw dB SPL: %.2f  [%d - %d]\n', ...
+															handles.rawdBSPL, ...
+															handles.Awindow(1), ...
+															handles.Awindow(2));
+		fprintf('%s\n', dbtext);
+		update_ui_str(handles.RawdBText, dbtext);
+>>>>>>> evaluation
 		show_uictrl(handles.RawdBText);
 
 	elseif strcmpi(ButtonID, 'Play Adj')
@@ -205,6 +219,7 @@ if strcmpi(handles.OutputDevice, 'NIDAQ')
 		handles.adjfresp = fresp;
 		handles.adjmag = magresp;
 		handles.adjphi = phiresp;
+<<<<<<< HEAD
 		fprintf('Adj dB SPL: %.4f\n', handles.adjdBSPL);
 		update_ui_str(handles.AdjdBText, ...
 							sprintf('Adj dB SPL: %.2f', handles.adjdBSPL));
@@ -212,6 +227,21 @@ if strcmpi(handles.OutputDevice, 'NIDAQ')
 	end
 	guidata(hObject, handles);
 	
+=======
+		% update display
+		% update display
+		dbtext = sprintf('Raw dB SPL: %.2f  [%d - %d]\n', ...
+															handles.adjdBSPL, ...
+															handles.Awindow(1), ...
+															handles.Awindow(2));
+		fprintf('%s\n', dbtext);
+		update_ui_str(handles.AdjdBText, dbtext);
+		show_uictrl(handles.AdjdBText);
+
+	end
+	guidata(hObject, handles);
+	handles.Awindow
+>>>>>>> evaluation
 	%-----------------------------------------------------------------------
 	% plot data
 	%-----------------------------------------------------------------------
@@ -223,6 +253,7 @@ if strcmpi(handles.OutputDevice, 'NIDAQ')
 		% raw plots
 		subplot(handles.P.rsig)
 		tvec = 1000 * (0:(length(resp)-1)) ./ Fs;
+<<<<<<< HEAD
 		plot(tvec, resp)
 		title('Response (V)')
 		ylabel('Raw', 'Color', 'b')
@@ -240,6 +271,25 @@ if strcmpi(handles.OutputDevice, 'NIDAQ')
 		title('Phase (rad)')
 		xlim(freqlim);
 		set(gca,  'XTickLabel', []);
+=======
+		plot(handles.P.rsig, tvec, resp)
+		title(handles.P.rsig, 'Response (V)')
+		ylabel(handles.P.rsig, 'Raw', 'Color', 'b')
+		set(handles.P.rsig, 'XTickLabel', []);
+
+		subplot(handles.P.rmag)
+		plot(handles.P.rmag, 0.001*fresp, magresp);
+		title(handles.P.rmag, 'Magnitude (dB)')
+		ylim(handles.P.rmag, dblim);
+		xlim(handles.P.rmag, freqlim);
+		set(handles.P.rmag, 'XTickLabel', []);
+
+		subplot(handles.P.rphi)
+		plot(handles.P.rphi, 0.001*fresp, unwrap(phiresp));
+		title(handles.P.rphi, 'Phase (rad)')
+		xlim(handles.P.rphi, freqlim);
+		set(handles.P.rphi, 'XTickLabel', []);
+>>>>>>> evaluation
 
 		subplot(handles.P.rspec)
 		[S, F, T, P] = spectrogram(	resp, ...
@@ -247,6 +297,7 @@ if strcmpi(handles.OutputDevice, 'NIDAQ')
 												floor(0.95*handles.SpectrumWindow), ...
 												512, ...
 												Fs	);
+<<<<<<< HEAD
 		surf(1000*T, 0.001*F, 20*log10(P), 'edgecolor', 'none');
 		ylim(freqlim);
 		axis tight;
@@ -255,10 +306,27 @@ if strcmpi(handles.OutputDevice, 'NIDAQ')
 		set(gca,  'XTickLabel', []);
 		colormap(handles.P.rspec, handles.ColorMap)
 
+=======
+		surf(handles.P.rspec, 1000*T, 0.001*F, 20*log10(P), 'edgecolor', 'none');
+		ylim(handles.P.rspec, freqlim);
+		axis(handles.P.rspec, 'tight');
+		view(handles.P.rspec, 0, 90);
+		title(handles.P.rspec, 'Time vs. Freq (kHz) vs. dB')
+		set(handles.P.rspec, 'XTickLabel', []);
+		colormap(handles.P.rspec, handles.ColorMap)
+		guidata(hObject, handles);
+		updateDBplots(hObject, eventdata, handles);
+		if handles.dBPlot
+			updateDBplots(hObject, eventdata, handles);
+		end
+		guidata(hObject, handles);
+		
+>>>>>>> evaluation
 	elseif strcmpi(ButtonID, 'Play Adj')
 		% Update adj plots
 		subplot(handles.P.asig)
 		tvec = 1000 * (0:(length(resp)-1)) ./ Fs;
+<<<<<<< HEAD
 		plot(tvec, resp, 'r')
 		ylabel('Adj', 'Color', 'r')
 		xlabel('time (ms)')
@@ -273,6 +341,22 @@ if strcmpi(handles.OutputDevice, 'NIDAQ')
 		plot(0.001*fresp, unwrap(phiresp), 'r');
 		xlim(freqlim);
 		xlabel('freq (kHz)');
+=======
+		plot(handles.P.asig, tvec, resp, 'r')
+		ylabel(handles.P.asig, 'Adj', 'Color', 'r')
+		xlabel(handles.P.asig, 'time (ms)')
+
+		subplot(handles.P.amag)
+		plot(handles.P.amag, 0.001*fresp, magresp, 'r');
+		ylim(handles.P.amag, dblim);
+		xlim(handles.P.amag, freqlim);
+		xlabel(handles.P.amag, 'freq (kHz)');
+
+		subplot(handles.P.aphi)
+		plot(handles.P.aphi, 0.001*fresp, unwrap(phiresp), 'r');
+		xlim(handles.P.aphi, freqlim);
+		xlabel(handles.P.aphi, 'freq (kHz)');
+>>>>>>> evaluation
 
 		subplot(handles.P.aspec)
 		[S, F, T, P] = spectrogram(	resp, ...
@@ -280,12 +364,26 @@ if strcmpi(handles.OutputDevice, 'NIDAQ')
 												floor(0.95*handles.SpectrumWindow), ...
 												512, ...
 												Fs	);
+<<<<<<< HEAD
 		surf(1000*T, 0.001*F, 20*log10(P), 'edgecolor', 'none');
 		ylim(freqlim);
 		axis tight;
 		view(0, 90);
 		xlabel('Time (ms)')
 		colormap(handles.P.aspec, handles.ColorMap);
+=======
+		surf(handles.P.aspec, 1000*T, 0.001*F, 20*log10(P), 'edgecolor', 'none');
+		ylim(handles.P.aspec, freqlim);
+		axis(handles.P.aspec, 'tight')
+		view(handles.P.aspec, 0, 90);
+		xlabel(handles.P.aspec, 'Time (ms)')
+		colormap(handles.P.aspec, handles.ColorMap);
+		guidata(hObject, handles);
+		if handles.dBPlot
+			updateDBplots(hObject, eventdata, handles);
+		end
+		guidata(hObject, handles);
+>>>>>>> evaluation
 	end
 	%------------------------------------------------------------------------------
 end
