@@ -1775,6 +1775,10 @@ function varargout = PlaySignal(hObject, eventdata, handles)
 											daqdbfullfft(	resp(bin(1):bin(2)), ...
 																Fs, ...
 																length(resp(bin(1):bin(2))) );
+				% set limits for Mag and Phase plots
+				dblim = [min(handles.rawmag) max(handles.rawmag)];
+				freqlim = 0.001*[0 Fs/2];
+
 			else
 				handles.rawfresp = [];
 				handles.rawmag = [];
@@ -1799,6 +1803,10 @@ function varargout = PlaySignal(hObject, eventdata, handles)
 											daqdbfullfft(	resp(bin(1):bin(2)), ...
 																Fs, ...
 																length(resp(bin(1):bin(2))) );
+				% set limits for Mag and Phase plots
+				dblim = [min(handles.adjmag) max(handles.adjmag)];
+				freqlim = 0.001*[0 Fs/2];
+
 			else
 				handles.adjfresp = [];
 				handles.adjmag = [];
@@ -1819,10 +1827,6 @@ function varargout = PlaySignal(hObject, eventdata, handles)
 		%-----------------------------------------------------------------------
 		% plot data
 		%-----------------------------------------------------------------------
-		% set limits for Mag and Phase plots
-		dblim = [min(magresp) max(magresp)];
-		freqlim = 0.001*[0 Fs/2];
-
 		if strcmpi(ButtonID, 'Play Raw')
 			% raw plots
 			subplot(handles.P.rsig)
@@ -1834,14 +1838,14 @@ function varargout = PlaySignal(hObject, eventdata, handles)
 
 			if strcmpi(handles.PlotSpectrum, 'on')
 				subplot(handles.P.rmag)
-				plot(handles.P.rmag, 0.001*fresp, magresp);
+				plot(handles.P.rmag, 0.001*handles.rawfresp, handles.magraw);
 				title(handles.P.rmag, 'Magnitude (dB)')
 				ylim(handles.P.rmag, dblim);
 				xlim(handles.P.rmag, freqlim);
 				set(handles.P.rmag, 'XTickLabel', []);
 
 				subplot(handles.P.rphi)
-				plot(handles.P.rphi, 0.001*fresp, unwrap(phiresp));
+				plot(handles.P.rphi, 0.001*handles.rawfresp, unwrap(handles.rawphi));
 				title(handles.P.rphi, 'Phase (rad)')
 				xlim(handles.P.rphi, freqlim);
 				set(handles.P.rphi, 'XTickLabel', []);
@@ -1884,13 +1888,13 @@ function varargout = PlaySignal(hObject, eventdata, handles)
 
 			if strcmpi(handles.PlotSpectrum, 'on')
 				subplot(handles.P.amag)
-				plot(handles.P.amag, 0.001*fresp, magresp, 'r');
+				plot(handles.P.amag, 0.001*handles.adjfresp, handles.adjmag, 'r');
 				ylim(handles.P.amag, dblim);
 				xlim(handles.P.amag, freqlim);
 				xlabel(handles.P.amag, 'freq (kHz)');
 
 				subplot(handles.P.aphi)
-				plot(handles.P.aphi, 0.001*fresp, unwrap(phiresp), 'r');
+				plot(handles.P.aphi, 0.001*handles.adjfresp, unwrap(handles.adjphi), 'r');
 				xlim(handles.P.aphi, freqlim);
 				xlabel(handles.P.aphi, 'freq (kHz)');
 
@@ -2374,8 +2378,8 @@ function SaveRawSignalMenuItem_Callback(hObject, eventdata, handles)
 		if peakval >= 1
 			fprintf('!!!!!!!\nPoints in raw are >= 1\nFile will be normalized\n');
 			wavwrite(0.9*normalize(handles.raw), handles.S.Fs, datafile);
-			peakfile = [datafile(1:(end-4)) '_PeakVal.txt'];
-			save(peakfile, peakval, '-ascii');
+% 			peakfile = [datafile(1:(end-4)) '_PeakVal.txt'];
+% 			save(peakfile, peakval, '-ascii');
 		else
 			wavwrite(handles.raw, handles.S.Fs, datafile);
 		end
