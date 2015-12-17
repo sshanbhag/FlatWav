@@ -22,7 +22,7 @@ function varargout = FlatWav(varargin)
 
 % Edit the above text to modify the response to help FlatWav
 
-% Last Modified by GUIDE v2.5 26-Aug-2014 15:36:23
+% Last Modified by GUIDE v2.5 17-Dec-2015 13:32:48
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -98,10 +98,10 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	% SYNTH SETTINGS
 	%--------------------------------------------------
 	%--------------------------------------------------
-	% set output signal to synth (vs. wav) and update GUI
-	handles.SignalMode = 'SYNTH';
-	update_ui_val(handles.SynthSignalButton, 1);
-	update_ui_val(handles.WavSignalButton, 0);
+	% set output signal to wav (vs. SYNTH) and update GUI
+	handles.SignalMode = 'WAV';
+	update_ui_val(handles.SynthSignalButton, 0);
+	update_ui_val(handles.WavSignalButton, 1);
 	% initialize S synth parameter structure
 	handles.S = FlatWav_buildS;
 	guidata(hObject, handles);
@@ -263,8 +263,20 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	% spectrum settings
 	%--------------------------------------------------
 	%--------------------------------------------------
+	handles.PlotSpectrum = 'off';
+	set(handles.PlotSpectrumMenuItem, 'Checked', handles.PlotSpectrum);
 	handles.SpectrumWindow = 512;
 	handles.ColorMap = 'gray';
+	guidata(hObject, handles);
+	
+	
+	%--------------------------------------------------
+	%--------------------------------------------------
+	% input filter settings
+	%--------------------------------------------------
+	handles.HPFc = 100; 
+	handles.LPFc = 100000;
+	handles.FilterOrder = 3;
 	guidata(hObject, handles);
 	
 	%--------------------------------------------------
@@ -309,8 +321,10 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	% output settings
 	%--------------------------------------------------
 	% options for Output Device are 'winsound' and 'NI-DAQ'
-	handles.OutputDevice = 'winsound';
+	handles.OutputDevice = 'NIDAQ';
 	handles.IOpause = 0.5;
+	update_ui_val(handles.SoundCardButton, 0);
+	update_ui_val(handles.NIDAQButton, 1);
 	guidata(hObject, handles);
 	
 	%--------------------------------------------------
@@ -1489,35 +1503,41 @@ function updatePlots(hObject, eventdata, handles)
 	% get ticks
 	time_ticks = get(handles.RawSignalAxes, 'XTick');
 	
-	% plot raw magnitude
-	plot(handles.RawMagAxes, 0.001*handles.fraw, handles.magraw);
-	title(handles.RawMagAxes, 'Magnitude (dB)')
-	ylim(handles.RawMagAxes, dblim);
-	xlim(handles.RawMagAxes, freqlim);
-	set(handles.RawMagAxes, 'XTickLabel', []);
-	
-	% plot raw phase
-	plot(handles.RawPhaseAxes, 0.001*handles.fraw, unwrap(handles.phiraw));
-	title(handles.RawPhaseAxes, 'Phase (rad)')
-	xlim(handles.RawPhaseAxes, freqlim);
-	set(handles.RawPhaseAxes, 'XTickLabel', []);
-	
-% 	plot raw spectrogram
-	[S, F, T, P] = spectrogram(	handles.raw, ...
-											handles.SpectrumWindow, ...
-											[], ...
-											handles.SpectrumWindow, ...
-											handles.S.Fs	);
-	P = 20*log10(P);
-	P(P == -Inf) = min(min(P(P ~= -Inf)));	
-	surf(handles.RawSpectrumAxes, 1000*T, 0.001*F, P, 'edgecolor', 'none');
-	xlim(handles.RawSpectrumAxes, [min(tvec) max(tvec)])
-	ylim(handles.RawSpectrumAxes, freqlim);
-	set(handles.RawSpectrumAxes, 'XTick', time_ticks)
-	view(handles.RawSpectrumAxes, 0, 90);
-	title(handles.RawSpectrumAxes, 'Time vs. Freq (kHz) vs. dB')
-	set(handles.RawSpectrumAxes, 'XTickLabel', []);
-	colormap(handles.RawSpectrumAxes, handles.ColorMap)
+	if strcmpi(handles.PlotSpectrum, 'on')
+		% plot raw magnitude
+		plot(handles.RawMagAxes, 0.001*handles.fraw, handles.magraw);
+		title(handles.RawMagAxes, 'Magnitude (dB)')
+		ylim(handles.RawMagAxes, dblim);
+		xlim(handles.RawMagAxes, freqlim);
+		set(handles.RawMagAxes, 'XTickLabel', []);
+
+		% plot raw phase
+		plot(handles.RawPhaseAxes, 0.001*handles.fraw, unwrap(handles.phiraw));
+		title(handles.RawPhaseAxes, 'Phase (rad)')
+		xlim(handles.RawPhaseAxes, freqlim);
+		set(handles.RawPhaseAxes, 'XTickLabel', []);
+
+		% plot raw spectrogram
+		[S, F, T, P] = spectrogram(	handles.raw, ...
+												handles.SpectrumWindow, ...
+												[], ...
+												handles.SpectrumWindow, ...
+												handles.S.Fs	);
+		P = 20*log10(P);
+		P(P == -Inf) = min(min(P(P ~= -Inf)));	
+		surf(handles.RawSpectrumAxes, 1000*T, 0.001*F, P, 'edgecolor', 'none');
+		xlim(handles.RawSpectrumAxes, [min(tvec) max(tvec)])
+		ylim(handles.RawSpectrumAxes, freqlim);
+		set(handles.RawSpectrumAxes, 'XTick', time_ticks)
+		view(handles.RawSpectrumAxes, 0, 90);
+		title(handles.RawSpectrumAxes, 'Time vs. Freq (kHz) vs. dB')
+		set(handles.RawSpectrumAxes, 'XTickLabel', []);
+		colormap(handles.RawSpectrumAxes, handles.ColorMap)
+	else
+		cla(handles.RawMagAxes);
+		cla(handles.RawPhaseAxes);
+		cla(handles.RawSpectrumAxes);
+	end
 	guidata(hObject, handles)
 	
 	% Update adj plots
@@ -1528,32 +1548,38 @@ function updatePlots(hObject, eventdata, handles)
 	ylabel(handles.AdjSignalAxes, 'Adj', 'Color', 'r')
 	xlabel(handles.AdjSignalAxes, 'time (ms)')
 	
-	% plot adj mag spectrum
-	plot(handles.AdjMagAxes, 0.001*handles.fadj, handles.magadj, 'r');
-	ylim(handles.AdjMagAxes, dblim);
-	xlim(handles.AdjMagAxes, freqlim);
-	xlabel(handles.AdjMagAxes, 'freq (kHz)');
-	
-	% plot adj phase spectrum
-	plot(handles.AdjPhaseAxes, 0.001*handles.fadj, unwrap(handles.phiadj), 'r');
-	xlim(handles.AdjPhaseAxes, freqlim);
-	xlabel(handles.AdjPhaseAxes, 'freq (kHz)');
+	if strcmpi(handles.PlotSpectrum, 'on')
+		% plot adj mag spectrum
+		plot(handles.AdjMagAxes, 0.001*handles.fadj, handles.magadj, 'r');
+		ylim(handles.AdjMagAxes, dblim);
+		xlim(handles.AdjMagAxes, freqlim);
+		xlabel(handles.AdjMagAxes, 'freq (kHz)');
 
-	% plot adj spectrogram
-	[S, F, T, P] = spectrogram(	handles.adj, ...
-											handles.SpectrumWindow, ...
-											[], ...
-											handles.SpectrumWindow, ...
-											handles.S.Fs	);
-	P = 20*log10(P);
-	P(P == -Inf) = min(min(P(P ~= -Inf)));	
-	surf(handles.AdjSpectrumAxes, 1000*T, 0.001*F, P, 'edgecolor', 'none');
-	xlim(handles.AdjSpectrumAxes, [min(tvec) max(tvec)])
-	ylim(handles.AdjSpectrumAxes, freqlim);
-	set(handles.AdjSpectrumAxes, 'XTick', time_ticks)	
-	view(handles.AdjSpectrumAxes, 0, 90);
-	xlabel(handles.AdjSpectrumAxes, 'Time (ms)')
-	colormap(handles.AdjSpectrumAxes, handles.ColorMap)
+		% plot adj phase spectrum
+		plot(handles.AdjPhaseAxes, 0.001*handles.fadj, unwrap(handles.phiadj), 'r');
+		xlim(handles.AdjPhaseAxes, freqlim);
+		xlabel(handles.AdjPhaseAxes, 'freq (kHz)');		
+		
+		% plot adj spectrogram
+		[S, F, T, P] = spectrogram(	handles.adj, ...
+												handles.SpectrumWindow, ...
+												[], ...
+												handles.SpectrumWindow, ...
+												handles.S.Fs	);
+		P = 20*log10(P);
+		P(P == -Inf) = min(min(P(P ~= -Inf)));	
+		surf(handles.AdjSpectrumAxes, 1000*T, 0.001*F, P, 'edgecolor', 'none');
+		xlim(handles.AdjSpectrumAxes, [min(tvec) max(tvec)])
+		ylim(handles.AdjSpectrumAxes, freqlim);
+		set(handles.AdjSpectrumAxes, 'XTick', time_ticks)	
+		view(handles.AdjSpectrumAxes, 0, 90);
+		xlabel(handles.AdjSpectrumAxes, 'Time (ms)')
+		colormap(handles.AdjSpectrumAxes, handles.ColorMap)
+	else
+		cla(handles.AdjMagAxes);
+		cla(handles.AdjPhaseAxes);
+		cla(handles.AdjSpectrumAxes);
+	end
 	guidata(hObject, handles);
 	
 % 	dBPlotCtrl_Callback(hObject, eventdata, handles);
@@ -1732,10 +1758,10 @@ function varargout = PlaySignal(hObject, eventdata, handles)
 		resp_RMS = rms(resp(bin(1):bin(2)));
 		% compute dB SPL
 		resp_dBSPL = dbspl(handles.VtoPa*resp_RMS);
-		% take fft of raw and adj response data
-		[fresp, magresp, phiresp] = daqdbfullfft(	resp(bin(1):bin(2)), ...
-																Fs, ...
-																length(resp(bin(1):bin(2))) );
+% 		% take fft of raw and adj response data
+% 		[fresp, magresp, phiresp] = daqdbfullfft(	resp(bin(1):bin(2)), ...
+% 																Fs, ...
+% 																length(resp(bin(1):bin(2))) );
 		%--------------------------------------------------
 		% assign data to handles containers, update display
 		%--------------------------------------------------
@@ -1743,9 +1769,17 @@ function varargout = PlaySignal(hObject, eventdata, handles)
 			handles.rawresp = resp;
 			handles.rawRMS = resp_RMS;
 			handles.rawdBSPL = resp_dBSPL;
-			handles.rawfresp = fresp;
-			handles.rawmag = magresp;
-			handles.rawphi = phiresp;
+			if strcmpi(handles.PlotSpectrum, 'on')
+				% take fft of raw response data
+				[handles.rawfresp, handles.rawmag, handles.rawphi] = ...
+											daqdbfullfft(	resp(bin(1):bin(2)), ...
+																Fs, ...
+																length(resp(bin(1):bin(2))) );
+			else
+				handles.rawfresp = [];
+				handles.rawmag = [];
+				handles.rawphi = [];
+			end
 			% update display
 			dbtext = sprintf('Raw dB SPL: %.2f  [%d - %d]\n', ...
 																handles.rawdBSPL, ...
@@ -1759,9 +1793,17 @@ function varargout = PlaySignal(hObject, eventdata, handles)
 			handles.adjresp = resp;
 			handles.adjRMS = resp_RMS;
 			handles.adjdBSPL = resp_dBSPL;
-			handles.adjfresp = fresp;
-			handles.adjmag = magresp;
-			handles.adjphi = phiresp;
+			if strcmp(handles.PlotSpectrum, 'on')
+				% take fft of response data
+				[handles.adjfresp, handles.adjmag, handles.adjphi] = ...
+											daqdbfullfft(	resp(bin(1):bin(2)), ...
+																Fs, ...
+																length(resp(bin(1):bin(2))) );
+			else
+				handles.adjfresp = [];
+				handles.adjmag = [];
+				handles.adjphi = [];
+			end
 			% update display
 			dbtext = sprintf('Adj dB SPL: %.2f  [%d - %d]\n', ...
 																handles.adjdBSPL, ...
@@ -1790,33 +1832,42 @@ function varargout = PlaySignal(hObject, eventdata, handles)
 			ylabel(handles.P.rsig, 'Raw', 'Color', 'b')
 			set(handles.P.rsig, 'XTickLabel', []);
 
-			subplot(handles.P.rmag)
-			plot(handles.P.rmag, 0.001*fresp, magresp);
-			title(handles.P.rmag, 'Magnitude (dB)')
-			ylim(handles.P.rmag, dblim);
-			xlim(handles.P.rmag, freqlim);
-			set(handles.P.rmag, 'XTickLabel', []);
+			if strcmpi(handles.PlotSpectrum, 'on')
+				subplot(handles.P.rmag)
+				plot(handles.P.rmag, 0.001*fresp, magresp);
+				title(handles.P.rmag, 'Magnitude (dB)')
+				ylim(handles.P.rmag, dblim);
+				xlim(handles.P.rmag, freqlim);
+				set(handles.P.rmag, 'XTickLabel', []);
 
-			subplot(handles.P.rphi)
-			plot(handles.P.rphi, 0.001*fresp, unwrap(phiresp));
-			title(handles.P.rphi, 'Phase (rad)')
-			xlim(handles.P.rphi, freqlim);
-			set(handles.P.rphi, 'XTickLabel', []);
+				subplot(handles.P.rphi)
+				plot(handles.P.rphi, 0.001*fresp, unwrap(phiresp));
+				title(handles.P.rphi, 'Phase (rad)')
+				xlim(handles.P.rphi, freqlim);
+				set(handles.P.rphi, 'XTickLabel', []);
 
-			subplot(handles.P.rspec)
-			[S, F, T, P] = spectrogram(	resp, ...
-													handles.SpectrumWindow, ...
-													floor(0.98*handles.SpectrumWindow), ...
-													512, ...
-													Fs	);
-			surf(handles.P.rspec, 1000*T, 0.001*F, 20*log10(P), 'edgecolor', 'none');
-			ylim(handles.P.rspec, freqlim);
-			axis(handles.P.rspec, 'tight');
-			view(handles.P.rspec, 0, 90);
-			title(handles.P.rspec, 'Time vs. Freq (kHz) vs. dB')
-			set(handles.P.rspec, 'XTickLabel', []);
-			colormap(handles.P.rspec, handles.ColorMap)
+				subplot(handles.P.rspec)
+				[S, F, T, P] = spectrogram(	resp, ...
+														handles.SpectrumWindow, ...
+														floor(0.98*handles.SpectrumWindow), ...
+														512, ...
+														Fs	);
+				surf(handles.P.rspec, 1000*T, 0.001*F, 20*log10(P), ...
+							'edgecolor', 'none');
+				ylim(handles.P.rspec, freqlim);
+				axis(handles.P.rspec, 'tight');
+				view(handles.P.rspec, 0, 90);
+				title(handles.P.rspec, 'Time vs. Freq (kHz) vs. dB')
+				set(handles.P.rspec, 'XTickLabel', []);
+				colormap(handles.P.rspec, handles.ColorMap);
+			else
+				cla(handles.P.rmag);
+				cla(handles.P.rphi);
+				cla(handles.P.rspec);
+			end
 			guidata(hObject, handles);
+			drawnow
+			
 			updateDBplots(hObject, eventdata, handles);
 			if handles.dBPlot
 				updateDBplots(hObject, eventdata, handles);
@@ -1831,30 +1882,38 @@ function varargout = PlaySignal(hObject, eventdata, handles)
 			ylabel(handles.P.asig, 'Adj', 'Color', 'r')
 			xlabel(handles.P.asig, 'time (ms)')
 
-			subplot(handles.P.amag)
-			plot(handles.P.amag, 0.001*fresp, magresp, 'r');
-			ylim(handles.P.amag, dblim);
-			xlim(handles.P.amag, freqlim);
-			xlabel(handles.P.amag, 'freq (kHz)');
+			if strcmpi(handles.PlotSpectrum, 'on')
+				subplot(handles.P.amag)
+				plot(handles.P.amag, 0.001*fresp, magresp, 'r');
+				ylim(handles.P.amag, dblim);
+				xlim(handles.P.amag, freqlim);
+				xlabel(handles.P.amag, 'freq (kHz)');
 
-			subplot(handles.P.aphi)
-			plot(handles.P.aphi, 0.001*fresp, unwrap(phiresp), 'r');
-			xlim(handles.P.aphi, freqlim);
-			xlabel(handles.P.aphi, 'freq (kHz)');
+				subplot(handles.P.aphi)
+				plot(handles.P.aphi, 0.001*fresp, unwrap(phiresp), 'r');
+				xlim(handles.P.aphi, freqlim);
+				xlabel(handles.P.aphi, 'freq (kHz)');
 
-			subplot(handles.P.aspec)
-			[S, F, T, P] = spectrogram(	resp, ...
-													handles.SpectrumWindow, ...
-													floor(0.98*handles.SpectrumWindow), ...
-													512, ...
-													Fs	);
-			surf(handles.P.aspec, 1000*T, 0.001*F, 20*log10(P), 'edgecolor', 'none');
-			ylim(handles.P.aspec, freqlim);
-			axis(handles.P.aspec, 'tight')
-			view(handles.P.aspec, 0, 90);
-			xlabel(handles.P.aspec, 'Time (ms)')
-			colormap(handles.P.aspec, handles.ColorMap);
+				subplot(handles.P.aspec)
+				[S, F, T, P] = spectrogram(	resp, ...
+														handles.SpectrumWindow, ...
+														floor(0.98*handles.SpectrumWindow), ...
+														512, ...
+														Fs	);
+				surf(handles.P.aspec, 1000*T, 0.001*F, 20*log10(P), 'edgecolor', 'none');
+				ylim(handles.P.aspec, freqlim);
+				axis(handles.P.aspec, 'tight')
+				view(handles.P.aspec, 0, 90);
+				xlabel(handles.P.aspec, 'Time (ms)')
+				colormap(handles.P.aspec, handles.ColorMap);
+			else
+				cla(handles.P.amag);
+				cla(handles.P.aphi);
+				cla(handles.P.aspec);
+			end
 			guidata(hObject, handles);
+			drawnow
+			
 			if handles.dBPlot
 				dBPlotCtrl_Callback(hObject, eventdata, handles);
 			end
@@ -2435,7 +2494,7 @@ function SpectrumWindowMenuItem_Callback(hObject, eventdata, handles)
 		handles.SpectrumWindow = newVal;
 	end
 	guidata(hObject, handles);
-	updatePlots(hObject, handles);
+	updatePlots(hObject, eventdata, handles);
 %-------------------------------------------------------------------------
 
 
@@ -2458,6 +2517,21 @@ function RMSWindowMenuItem_Callback(hObject, eventdata, handles)
 	updateDBplots(hObject, eventdata, handles)
 	guidata(hObject, handles);
 %-------------------------------------------------------------------------
+
+
+%-------------------------------------------------------------------------
+function PlotSpectrumMenuItem_Callback(hObject, eventdata, handles)
+	oldval = get(handles.PlotSpectrumMenuItem, 'Checked');
+	if strcmp(oldval, 'on')
+		handles.PlotSpectrum = 'off';
+	else
+		handles.PlotSpectrum = 'on';
+	end
+	set(handles.PlotSpectrumMenuItem, 'Checked', handles.PlotSpectrum);
+	guidata(hObject, handles);
+%-------------------------------------------------------------------------
+
+
 
 %******************************************************************************
 %******************************************************************************
@@ -2610,6 +2684,11 @@ function PeakTimeAdjCtrl_CreateFcn(hObject, eventdata, handles)
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
+
+
+
+
+
 
 
 
