@@ -22,7 +22,7 @@ function varargout = FlatWav(varargin)
 
 % Edit the above text to modify the response to help FlatWav
 
-% Last Modified by GUIDE v2.5 28-Sep-2016 16:33:30
+% Last Modified by GUIDE v2.5 17-Dec-2015 13:32:48
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -199,7 +199,7 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	% default LowCut options
 	handles.LowCut = 'off';
 	handles.LowCutFreq = read_ui_str(handles.LowCutFreqCtrl, 'n');
-	update_ui_val(handles.LowCutCtrl, 0);
+	update_ui_val(handles.LowCutCtrl, handles.LowCut);
 	if strcmpi(handles.LowCut, 'off')
 		disable_ui(handles.LowCutFreqText);
 		disable_ui(handles.LowCutFreqCtrl);
@@ -210,7 +210,7 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	% pre-filter range
 	handles.PreFilter = 'off';
 	handles.PreFilterRange = handles.CorrFrange;
-	update_ui_val(handles.PreFilterCtrl, 0);
+	update_ui_val(handles.PreFilterCtrl, handles.PreFilter);
 	update_ui_str(handles.PreFilterRangeCtrl, ...
 											['[' num2str(handles.PreFilterRange) ']']);
 	disable_ui(handles.PreFilterRangeCtrl);
@@ -218,7 +218,7 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	% post-filter range
 	handles.PostFilter = 'off';
 	handles.PostFilterRange = handles.CorrFrange;
-	update_ui_val(handles.PostFilterCtrl, 0);
+	update_ui_val(handles.PostFilterCtrl, handles.PostFilter);
 	update_ui_str(handles.PostFilterRangeCtrl, ...
 											['[' num2str(handles.PostFilterRange) ']']);
 	if strcmpi(handles.PostFilter, 'off')
@@ -226,15 +226,16 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	else
 		enable_ui(handles.PostFilterRangeCtrl);
 	end
+
 	guidata(hObject, handles);
 	% range limit
 	handles.RangeLimit = 'off';
-	update_ui_val(handles.RangeLimitCtrl,0);
+	update_ui_val(handles.RangeLimitCtrl, handles.RangeLimit);
 	guidata(hObject, handles);
 	% CorrectionLimit
 	handles.CorrectionLimit = 'off';
 	handles.CorrectionLimitValue = 5;
-	update_ui_val(handles.CorrectionLimitCtrl, 0);
+	update_ui_val(handles.CorrectionLimitCtrl, handles.CorrectionLimit);
 	update_ui_str(handles.CorrectionLimitValCtrl, handles.CorrectionLimitValue);
 	if strcmpi(handles.CorrectionLimit, 'off')
 		disable_ui(handles.CorrectionLimitValCtrl);
@@ -247,7 +248,7 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	% SmoothEdges
 	handles.SmoothEdges= 'off';
 	handles.SmoothEdgesValue = [1 5];
-	update_ui_val(handles.SmoothEdgesCtrl, 0);
+	update_ui_val(handles.SmoothEdgesCtrl, handles.SmoothEdges);
 	update_ui_str(handles.SmoothEdgesValCtrl, ...
 											['[' num2str(handles.SmoothEdgesValue) ']']);
 	if strcmpi(handles.SmoothEdges, 'off')
@@ -267,6 +268,7 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	handles.SpectrumWindow = 512;
 	handles.ColorMap = 'gray';
 	guidata(hObject, handles);
+	
 	
 	%--------------------------------------------------
 	%--------------------------------------------------
@@ -322,8 +324,6 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	handles.OutputDevice = 'NIDAQ';
 	handles.IOpause = 0.5;
 	update_ui_val(handles.SoundCardButton, 0);
-	update_ui_val(handles.TDTButton, 0);
-	hide_uictrl(handles.TDTenable);	
 	update_ui_val(handles.NIDAQButton, 1);
 	guidata(hObject, handles);
 	
@@ -1399,19 +1399,17 @@ function FindPeakCtrl_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
 function SoundCardButton_Callback(hObject, eventdata, handles)
 	%--------------------------------------------------
-	% user selected the SoundCard IO
+	% user selected the SoundCard output
 	%--------------------------------------------------
 	% set signal output to WINSOUND
 	handles.OutputDevice = 'WINSOUND';
 	% make sure synth signal button is deselected
 	update_ui_val(handles.NIDAQButton, 0);
-	update_ui_val(handles.TDTButton, 0);
 	update_ui_val(handles.SoundCardButton, 1);
 	update_ui_str(handles.RawdBText, sprintf('Raw dB SPL: ---'));
 	update_ui_str(handles.AdjdBText, sprintf('Adj dB SPL: ---'));
 	hide_uictrl(handles.RawdBText);
 	hide_uictrl(handles.AdjdBText);
-	hide_uictrl(handles.TDTenable);
 %	handles.S.Fs = read_ui_str(handles.FsCtrl, 'n');
 	guidata(hObject, handles);
 	UpdateInputFilter(hObject, eventdata, handles);
@@ -1419,40 +1417,18 @@ function SoundCardButton_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
 function NIDAQButton_Callback(hObject, eventdata, handles)
 	%--------------------------------------------------
-	% user selected the NIDAQ IO
+	% user selected the NIDAQ output
 	%--------------------------------------------------
 	% set signal output to NIDAQ
 	handles.OutputDevice = 'NIDAQ';
 	% make sure synth signal button is deselected
 	update_ui_val(handles.NIDAQButton, 1);
-	update_ui_val(handles.TDTButton, 0);
 	update_ui_val(handles.SoundCardButton, 0);
 	show_uictrl(handles.RawdBText);
 	show_uictrl(handles.AdjdBText);
-	hide_uictrl(handles.TDTenable);
 	guidata(hObject, handles);
 	UpdateInputFilter(hObject, eventdata, handles);
 %------------------------------------------------------------------------------
-function TDTButton_Callback(hObject, eventdata, handles)
-	%--------------------------------------------------
-	% user selected the TDT IO
-	%--------------------------------------------------
-	% set signal output to TDT
-	handles.OutputDevice = 'TDT';
-	% make sure synth signal button is deselected
-	update_ui_val(handles.NIDAQButton, 0);
-	update_ui_val(handles.TDTButton, 1);
-	update_ui_val(handles.SoundCardButton, 0);
-	show_uictrl(handles.RawdBText);
-	show_uictrl(handles.AdjdBText);
-	show_uictrl(handles.TDTenable);
-	guidata(hObject, handles);
-	UpdateInputFilter(hObject, eventdata, handles);
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
-
-
-function TDTenable_Callback(hObject, eventdata, handles)
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
@@ -2254,6 +2230,7 @@ function SaveFigureMenuItem_Callback(hObject, eventdata, handles)
 		saveas(handles.axes1, figfile, 'fig');
 	end
 %-------------------------------------------------------------------------
+
 %-------------------------------------------------------------------------
 function IndividualPlotMenuItem_Callback(hObject, eventdata, handles)
 	% create new figure
@@ -2282,11 +2259,13 @@ function IndividualPlotMenuItem_Callback(hObject, eventdata, handles)
 	
 	title(tstr, 'Interpreter', 'none')
 %-------------------------------------------------------------------------
+
 %-------------------------------------------------------------------------
 function PrintMenuItem_Callback(hObject, eventdata, handles)
 %-------------------------------------------------------------------------
 	printdlg(handles.figure1)
 %-------------------------------------------------------------------------
+
 %-------------------------------------------------------------------------
 function QuitMenuItem_Callback(hObject, eventdata, handles)
 %-------------------------------------------------------------------------
@@ -2304,6 +2283,7 @@ function QuitMenuItem_Callback(hObject, eventdata, handles)
 % Cal Menu
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
+
 %-------------------------------------------------------------------------
 function LoadCalMenuItem_Callback(hObject, eventdata, handles)
 %-------------------------------------------------------------------------
@@ -2322,6 +2302,7 @@ function LoadCalMenuItem_Callback(hObject, eventdata, handles)
 	guidata(hObject, handles);
 	SmoothCalCtrl_Callback(hObject, eventdata, handles);
 %-------------------------------------------------------------------------
+
 %-------------------------------------------------------------------------
 function FlatCalMenuItem_Callback(hObject, eventdata, handles)
 %--------------------------------------------------
@@ -2340,6 +2321,7 @@ function FlatCalMenuItem_Callback(hObject, eventdata, handles)
 % Wav Menu
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
+
 %-------------------------------------------------------------------------
 function LoadWavMenuItem_Callback(hObject, eventdata, handles)
 %-------------------------------------------------------------------------
@@ -2351,6 +2333,7 @@ function LoadWavMenuItem_Callback(hObject, eventdata, handles)
 % Signal Menu
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
+
 %-------------------------------------------------------------------------
 function SaveAdjSignalMenuItem_Callback(hObject, eventdata, handles)
 %-------------------------------------------------------------------------
@@ -2378,6 +2361,7 @@ function SaveAdjSignalMenuItem_Callback(hObject, eventdata, handles)
 	end
 	guidata(hObject, handles);
 %-------------------------------------------------------------------------
+
 %-------------------------------------------------------------------------
 function SaveRawSignalMenuItem_Callback(hObject, eventdata, handles)
 %-------------------------------------------------------------------------
@@ -2401,6 +2385,7 @@ function SaveRawSignalMenuItem_Callback(hObject, eventdata, handles)
 		end
 	end
 %-------------------------------------------------------------------------
+
 %-------------------------------------------------------------------------
 function SaveAllSignalsMenuItem_Callback(hObject, eventdata, handles)
 %-------------------------------------------------------------------------
@@ -2427,6 +2412,7 @@ function SaveAllSignalsMenuItem_Callback(hObject, eventdata, handles)
 % SETTINGS Menu
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
+
 %-------------------------------------------------------------------------
 %-------------------------------------------------------------------------
 function MicSensitivityMenuItem_Callback(hObject, eventdata, handles)
@@ -2440,6 +2426,7 @@ function MicSensitivityMenuItem_Callback(hObject, eventdata, handles)
 	guidata(hObject, handles);
 %-------------------------------------------------------------------------
 %-------------------------------------------------------------------------
+
 %-------------------------------------------------------------------------
 %-------------------------------------------------------------------------
 function MicrophoneGainMenuItem_Callback(hObject, eventdata, handles)
@@ -2454,6 +2441,7 @@ function MicrophoneGainMenuItem_Callback(hObject, eventdata, handles)
 	guidata(hObject, handles);
 %-------------------------------------------------------------------------
 %-------------------------------------------------------------------------
+
 %-------------------------------------------------------------------------
 %-------------------------------------------------------------------------
 function InputFilterMenuItem_Callback(hObject, eventdata, handles)
@@ -2492,6 +2480,7 @@ function InputFilterMenuItem_Callback(hObject, eventdata, handles)
 	% store settings
 	guidata(hObject, handles);
 %-------------------------------------------------------------------------
+
 %-------------------------------------------------------------------------
 %-------------------------------------------------------------------------
 function SpectrumWindowMenuItem_Callback(hObject, eventdata, handles)
@@ -2511,6 +2500,8 @@ function SpectrumWindowMenuItem_Callback(hObject, eventdata, handles)
 	guidata(hObject, handles);
 	updatePlots(hObject, eventdata, handles);
 %-------------------------------------------------------------------------
+
+
 %-------------------------------------------------------------------------
 function RMSWindowMenuItem_Callback(hObject, eventdata, handles)
 	% get new spectrum window
@@ -2530,6 +2521,8 @@ function RMSWindowMenuItem_Callback(hObject, eventdata, handles)
 	updateDBplots(hObject, eventdata, handles)
 	guidata(hObject, handles);
 %-------------------------------------------------------------------------
+
+
 %-------------------------------------------------------------------------
 function PlotSpectrumMenuItem_Callback(hObject, eventdata, handles)
 	oldval = get(handles.PlotSpectrumMenuItem, 'Checked');
@@ -2541,6 +2534,9 @@ function PlotSpectrumMenuItem_Callback(hObject, eventdata, handles)
 	set(handles.PlotSpectrumMenuItem, 'Checked', handles.PlotSpectrum);
 	guidata(hObject, handles);
 %-------------------------------------------------------------------------
+
+
+
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
@@ -2692,5 +2688,13 @@ function PeakTimeAdjCtrl_CreateFcn(hObject, eventdata, handles)
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
+
+
+
+
+
+
+
+
 
 

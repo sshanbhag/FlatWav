@@ -125,22 +125,6 @@ elseif strcmpi(handles.OutputDevice, 'NIDAQ')
 		show_uictrl(handles.AdjdBText);		
 		enable_ui(hObject);
 	end
-
-elseif strcmpi(handles.OutputDevice, 'TDT')
-	% play selected sound, get response
-	if strcmpi(ButtonID, 'Play Raw') && ~isempty(handles.raw)
-		% play raw sound
-		disable_ui(hObject);
-		[resp, Fs] = TDTplaysignal(hObject, handles, handles.raw);
-		enable_ui(hObject);		
-	elseif strcmpi(ButtonID, 'Play Adj') && ~isempty(handles.adj)
-		% play adj sound
-		disable_ui(hObject);
-		[resp, Fs] = TDTplaysignal(hObject, handles, handles.adj);
-		show_uictrl(handles.AdjdBText);		
-		enable_ui(hObject);
-	end	
-	
 % ERROR
 else
 	errordlg(sprintf('unknown io device %s', handles.OutputDevice), 'FlatWav Error');
