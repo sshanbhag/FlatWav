@@ -318,7 +318,7 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	%--------------------------------------------------
 	% output settings
 	%--------------------------------------------------
-	% options for Output Device are 'winsound' and 'NI-DAQ'
+	% options for Output Device are 'winsound'  'NI-DAQ' 'TDT'
 	handles.OutputDevice = 'NIDAQ';
 	handles.IOpause = 0.5;
 	update_ui_val(handles.SoundCardButton, 0);
@@ -327,6 +327,36 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	update_ui_val(handles.NIDAQButton, 1);
 	guidata(hObject, handles);
 	
+	%--------------------------------------------------
+	%--------------------------------------------------
+	% TDT settings
+	%--------------------------------------------------
+	TDT.OutChanL = 1;
+	TDT.OutChanR = 2;
+	TDT.InChanL = 1;
+	TDT.InChanR = 2;
+
+	TDT.Circuit_Path = 'C:\TytoLogy\Toolboxes\TDTToolbox\Circuits\RZ6';
+	TDT.Circuit_Name = 'RZ6_CalibrateIO_softTrig.rcx';
+	TDT.Dnum = 1; % device number
+
+	% need to rework these functions!
+	TDT.RXinitFunc = @RZ6init;
+	% atten mode: 'PA5', 'RZ6', 'DIGITAL'
+	TDT.AttenMode = 'RZ6';
+	TDT.PA5initFunc = [];
+	TDT.RPloadFunc = @RPload;
+	TDT.RPrunFunc = @RPrun;
+	TDT.RPcheckstatusFunc = @RPcheckstatus;
+	TDT.RPsamplefreqFunc = @RPsamplefreq;
+	TDT.TDTsetFunc = @FlatWav_TDTsettings_RZ6;
+	TDT.setattenFunc = @RZ6setatten;
+	TDT.getattenFunc = @RZ6getatten;
+	TDT.ioFunc = @RZ6calibration_io;
+	TDT.PA5closeFunc = [];
+	TDT.RPcloseFunc = @RPclose;
+	handles.TDT = TDT;
+	guidata(hObject, handles);
 	%--------------------------------------------------
 	%--------------------------------------------------
 	% Mic settings
@@ -1453,6 +1483,58 @@ function TDTButton_Callback(hObject, eventdata, handles)
 
 
 function TDTenable_Callback(hObject, eventdata, handles)
+	val = read_ui_val(hObject);
+	if ( (handles.TDT.Enable == 1) && (val == 0) )
+		% stop TDT hardware
+		[outhandles, ~] = TDTclose(	handles.TDT.config, ...
+												handles.TDT.iodev, ...
+												handles.TDT.zBUS, ...
+												handles.TDT.PA5L, ...
+												handles.TDT.PA5R);
+		handles.TDT.iodev = outhandles.iodev;
+		handles.TDT.zBUS = outhandles.zBUS;
+		handles.TDT.PA5L = outhandles.PA5L;
+		handles.TDT.PA5R = outhandles.PA5R;
+		handles.TDT.Enable = 0;
+		update_ui_str(hObject, 'TDT Enable');
+		fprintf('TDT Hardware OFF');
+		
+	elseif ( (handles.TDT.Enable == 0) && (val == 1) )
+		% start TDT hardware
+		try
+			[outhandles, ~] = TDTopen(	handles.TDT.config, ...
+												handles.TDT.iodev);
+		catch ME
+			disp(ME.identifier)
+			disp(ME.message)
+			error('Cannot open TDT hardware');
+		end
+		handles.TDT.iodev = outhandles.indev;
+		handles.TDT.zBUS = outhandles.zBUS;
+		handles.TDT.PA5L = outhandles.PA5L;
+		handles.TDT.PA5R = outhandles.PA5R;
+		guidata(hObject, handles);
+% 		% settings
+% 		% opto_TDTsettings() passes settings from the device, tdt, stimulus,
+% 		% channels and optical structs on to tags in the running TDT circuits
+% 		% Fs is a 1X2 array of sample rates for indev and outdev - this is because
+% 		% the actual sample rates often differ from those specified in the software
+% 		% settings due to clock frequency divisor issues
+% 		Fs = TDTsettings(	handles.TDT.iodev, ...
+% 										handles.H.TDT.outdev, ...
+% 										handles.H.TDT, ...
+% 										handles.H.audio, ...
+% 										handles.H.TDT.channels, ...
+% 										handles.H.opto);		
+% 
+% 		handles.H.TDT.indev.Fs = Fs(1);
+% 		handles.H.TDT.outdev.Fs = Fs(2);
+		handles.TDT.Enable = 1;
+		update_ui_str(hObject, 'TDT Disable');
+		fprintf('TDT Hardware ON');
+		guidata(hObject, handles)
+	end
+	guidata(hObject, handles);
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
