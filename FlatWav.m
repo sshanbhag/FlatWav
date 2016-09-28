@@ -22,12 +22,7 @@ function varargout = FlatWav(varargin)
 
 % Edit the above text to modify the response to help FlatWav
 
-<<<<<<< HEAD
-% Last Modified by GUIDE v2.5 21-Aug-2014 16:40:14
-=======
-% Last Modified by GUIDE v2.5 26-Aug-2014 15:36:23
->>>>>>> evaluation
-
+% Last Modified by GUIDE v2.5 28-Sep-2016 16:01:20
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
@@ -81,12 +76,9 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 		% directory when using installed version:
 		pdir = ['C:\TytoLogy\TytoLogySettings\' getenv('USERNAME')];
 		% development tree
-<<<<<<< HEAD
-		% pdir = ['C:\Users\sshanbhag\Code\Matlab\TytoLogy\TytoLogySettings\' getenv('USERNAME')];
-=======
 		pdir = ['C:\Users\sshanbhag\Code\Matlab\TytoLogy\TytoLogySettings\' ...
 							getenv('USERNAME')];
->>>>>>> evaluation
+
 	else ismac
 		pdir = ['~/Work/Code/Matlab/dev/TytoLogy/TytoLogySettings/' ...
 							getenv('USER')];
@@ -182,10 +174,6 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	handles.IOfigure = [];
 	guidata(hObject, handles);
 	
-<<<<<<< HEAD
-	
-=======
->>>>>>> evaluation
 	%--------------------------------------------------
 	%--------------------------------------------------
 	% COMPENSATION SETTINGS
@@ -211,10 +199,12 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	% default LowCut options
 	handles.LowCut = 'off';
 	handles.LowCutFreq = read_ui_str(handles.LowCutFreqCtrl, 'n');
-	update_ui_val(handles.LowCutCtrl, handles.LowCut);
 	if strcmpi(handles.LowCut, 'off')
+		update_ui_val(handles.LowCutCtrl, 0);
 		disable_ui(handles.LowCutFreqText);
 		disable_ui(handles.LowCutFreqCtrl);
+	else
+		update_ui_val(handles.LowCutCtrl, 1);		
 	end
 	% target SPL
 	handles.TargetSPL = 65;
@@ -222,7 +212,11 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	% pre-filter range
 	handles.PreFilter = 'off';
 	handles.PreFilterRange = handles.CorrFrange;
-	update_ui_val(handles.PreFilterCtrl, handles.PreFilter);
+	if strcmpi(handles.PreFilter, 'off')
+		update_ui_val(handles.PreFilterCtrl, 0);
+	else
+		update_ui_val(handles.PreFilterCtrl, 0);
+	end	
 	update_ui_str(handles.PreFilterRangeCtrl, ...
 											['[' num2str(handles.PreFilterRange) ']']);
 	disable_ui(handles.PreFilterRangeCtrl);
@@ -230,12 +224,13 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	% post-filter range
 	handles.PostFilter = 'off';
 	handles.PostFilterRange = handles.CorrFrange;
-	update_ui_val(handles.PostFilterCtrl, handles.PostFilter);
 	update_ui_str(handles.PostFilterRangeCtrl, ...
 											['[' num2str(handles.PostFilterRange) ']']);
 	if strcmpi(handles.PostFilter, 'off')
+		update_ui_val(handles.PostFilterCtrl, 0);
 		disable_ui(handles.PostFilterRangeCtrl);
 	else
+		update_ui_val(handles.PostFilterCtrl, 1);
 		enable_ui(handles.PostFilterRangeCtrl);
 	end
 
@@ -301,15 +296,10 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	handles.cal = fake_caldata('freqs', 1:10:(handles.S.Fs / 2));
 	handles.cal.mag = 90 * handles.cal.mag;
 	guidata(hObject, handles);
-<<<<<<< HEAD
-	plot(handles.CalibrationAxes, 0.001*handles.cal.freq, handles.cal.mag(1, :), '.-');
-	ylim([0 100]);
-=======
 	plot(	handles.CalibrationAxes, ...
 			0.001*handles.cal.freq, ...
 			handles.cal.mag(1, :), '.-');
 	ylim(handles.CalibrationAxes, [0 100]);
->>>>>>> evaluation
 	
 	%--------------------------------------------------
 	%--------------------------------------------------
@@ -339,11 +329,7 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	handles.MicGain = invdb(handles.MicGaindB);
 	handles.VtoPa = (1/handles.MicGain) * (1/handles.MicSensitivity);
 	guidata(hObject, handles);
-<<<<<<< HEAD
 
-	
-=======
-		
 	%--------------------------------------------------
 	%--------------------------------------------------
 	% analysis settings
@@ -360,7 +346,7 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
->>>>>>> evaluation
+
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
@@ -533,11 +519,7 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 	end
 	
 	% check low freq cutoff setting
-<<<<<<< HEAD
-	if strcmp(handles.LowCut, 'off')
-=======
 	if strcmpi(handles.LowCut, 'off')
->>>>>>> evaluation
 		lowcut = 'off';
 	else
 		lowcut = handles.LowCutFreq;
@@ -662,6 +644,7 @@ function SaveSoundCtrl_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
 
 
+%{
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
@@ -748,6 +731,7 @@ function CalSmoothMethodCtrl_Callback(hObject, eventdata, handles)
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
 
+
 %------------------------------------------------------------------------------
 function SmoothVal1Ctrl_Callback(hObject, eventdata, handles)
 	tmp = read_ui_str(handles.SmoothVal1Ctrl, 'n');
@@ -779,6 +763,7 @@ function SmoothVal2Ctrl_Callback(hObject, eventdata, handles)
 	guidata(hObject, handles)
 %------------------------------------------------------------------------------
 
+
 %------------------------------------------------------------------------------
 function LoadCalCtrl_Callback(hObject, eventdata, handles)
 	% use the menu item callback
@@ -793,6 +778,7 @@ function LoadWavCtrl_Callback(hObject, eventdata, handles)
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
+%}
 
 %******************************************************************************
 %******************************************************************************
@@ -1672,11 +1658,7 @@ function updatePlots(hObject, eventdata, handles)
 	title(handles.RawSignalAxes, 'Signal (V)')
 	ylabel(handles.RawSignalAxes, 'Raw', 'Color', 'b')
 	set(handles.RawSignalAxes, 'XTickLabel', []);
-<<<<<<< HEAD
-	xlim([min(tvec) max(tvec)])
-=======
 	xlim(handles.RawSignalAxes, [min(tvec) max(tvec)])
->>>>>>> evaluation
 	% get ticks
 	time_ticks = get(handles.RawSignalAxes, 'XTick');
 	
@@ -1699,20 +1681,6 @@ function updatePlots(hObject, eventdata, handles)
 											[], ...
 											handles.SpectrumWindow, ...
 											handles.S.Fs	);
-<<<<<<< HEAD
-	save p.mat S F T P -MAT
-	P = 20*log10(P);
-	P(P == -Inf) = min(min(P(P ~= -Inf)));	
-	surf(1000*T, 0.001*F, P, 'edgecolor', 'none');
-	xlim([min(tvec) max(tvec)])
-	ylim(freqlim);
-	set(handles.RawSpectrumAxes, 'XTick', time_ticks)
-	view(0, 90);
-	title('Time vs. Freq (kHz) vs. dB')
-	set(handles.RawSpectrumAxes, 'XTickLabel', []);
-	colormap(handles.RawSpectrumAxes, handles.ColorMap)
-% 	caxis([0.5*min(min(P)) max(max(P))])
-=======
 	P = 20*log10(P);
 	P(P == -Inf) = min(min(P(P ~= -Inf)));	
 	surf(handles.RawSpectrumAxes, 1000*T, 0.001*F, P, 'edgecolor', 'none');
@@ -1723,23 +1691,15 @@ function updatePlots(hObject, eventdata, handles)
 	title(handles.RawSpectrumAxes, 'Time vs. Freq (kHz) vs. dB')
 	set(handles.RawSpectrumAxes, 'XTickLabel', []);
 	colormap(handles.RawSpectrumAxes, handles.ColorMap)
->>>>>>> evaluation
 	guidata(hObject, handles)
 	
 	% Update adj plots
 	% plot adj signal
 	tvec = 1000 * (0:(length(handles.adj)-1)) ./ handles.S.Fs;
-<<<<<<< HEAD
-	plot(tvec, handles.adj, 'r')
-	xlim([min(tvec) max(tvec)])
-	ylabel('Adj', 'Color', 'r')
-	xlabel('time (ms)')
-=======
 	plot(handles.AdjSignalAxes, tvec, handles.adj, 'r')
 	xlim(handles.AdjSignalAxes, [min(tvec) max(tvec)])
 	ylabel(handles.AdjSignalAxes, 'Adj', 'Color', 'r')
 	xlabel(handles.AdjSignalAxes, 'time (ms)')
->>>>>>> evaluation
 	
 	% plot adj mag spectrum
 	plot(handles.AdjMagAxes, 0.001*handles.fadj, handles.magadj, 'r');
@@ -1752,16 +1712,7 @@ function updatePlots(hObject, eventdata, handles)
 	xlim(handles.AdjPhaseAxes, freqlim);
 	xlabel(handles.AdjPhaseAxes, 'freq (kHz)');
 
-<<<<<<< HEAD
-	axes(handles.AdjSpectrumAxes)
-% 	[S, F, T, P] = spectrogram(	handles.adj, ...
-% 											handles.SpectrumWindow, ...
-% 											floor(0.95*handles.SpectrumWindow), ...
-% 											512, ...
-% 											handles.S.Fs	);
-=======
 	% plot adj spectrogram
->>>>>>> evaluation
 	[S, F, T, P] = spectrogram(	handles.adj, ...
 											handles.SpectrumWindow, ...
 											[], ...
@@ -1769,17 +1720,6 @@ function updatePlots(hObject, eventdata, handles)
 											handles.S.Fs	);
 	P = 20*log10(P);
 	P(P == -Inf) = min(min(P(P ~= -Inf)));	
-<<<<<<< HEAD
-	surf(1000*T, 0.001*F, P, 'edgecolor', 'none');
-	xlim([min(tvec) max(tvec)])
-	ylim(freqlim);
-	set(handles.AdjSpectrumAxes, 'XTick', time_ticks)	
-	view(0, 90);
-	xlabel('Time (ms)')
-	colormap(handles.AdjSpectrumAxes, handles.ColorMap)
-% 	caxis([min(min(P)) max(max(P))])
-
-=======
 	surf(handles.AdjSpectrumAxes, 1000*T, 0.001*F, P, 'edgecolor', 'none');
 	xlim(handles.AdjSpectrumAxes, [min(tvec) max(tvec)])
 	ylim(handles.AdjSpectrumAxes, freqlim);
@@ -1787,7 +1727,6 @@ function updatePlots(hObject, eventdata, handles)
 	view(handles.AdjSpectrumAxes, 0, 90);
 	xlabel(handles.AdjSpectrumAxes, 'Time (ms)')
 	colormap(handles.AdjSpectrumAxes, handles.ColorMap)
->>>>>>> evaluation
 	guidata(hObject, handles);
 	
 % 	dBPlotCtrl_Callback(hObject, eventdata, handles);
@@ -2466,14 +2405,9 @@ function LoadCalMenuItem_Callback(hObject, eventdata, handles)
 		plot(	handles.CalibrationAxes, ...
 				0.001*handles.cal.freq, ...
 				handles.cal.mag(1, :), '.-');
-<<<<<<< HEAD
-		ylim([0.9*min(handles.cal.mag(1, :)) 1.1*max(handles.cal.mag(1, :))]);
-		grid on
-=======
 		ylim(handles.CalibrationAxes, ...
 				[0.9*min(handles.cal.mag(1, :)) 1.1*max(handles.cal.mag(1, :))]);
 		grid(	handles.CalibrationAxes, 'on');
->>>>>>> evaluation
 	end
 	guidata(hObject, handles);
 	SmoothCalCtrl_Callback(hObject, eventdata, handles);
@@ -2711,20 +2645,12 @@ function RMSWindowMenuItem_Callback(hObject, eventdata, handles)
 %******************************************************************************
 function CompMethodCtrl_CreateFcn(hObject, eventdata, handles)
 	if ispc && isequal(get(hObject,'BackgroundColor'), ...
-			get(0,'defaultUicontrolBackgroundColor'))
-		  set(hObject,'BackgroundColor','white');
+		get(0,'defaultUicontrolBackgroundColor'))
+		set(hObject,'BackgroundColor','white');
 	end
-<<<<<<< HEAD
-	set(hObject, 'String', {'plot(rand(5))', 'plot(sin(1:0.01:25))', 'bar(1:.5:10)', 'plot(membrane)', 'surf(peaks)'});
-function WavFilenameCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-=======
-	set(hObject, 'String', {'plot(rand(5))', 'plot(sin(1:0.01:25))', ...
-		'bar(1:.5:10)', 'plot(membrane)', 'surf(peaks)'});
 function WavFilenameCtrl_CreateFcn(hObject, eventdata, handles)
 	if ispc && isequal(get(hObject,'BackgroundColor'), ...
 			get(0,'defaultUicontrolBackgroundColor'))
->>>>>>> evaluation
 		 set(hObject,'BackgroundColor','white');
 	end
 function SynthTypeCtrl_CreateFcn(hObject, eventdata, handles)
@@ -2852,32 +2778,6 @@ function PeakTimeAdjCtrl_CreateFcn(hObject, eventdata, handles)
 			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
-<<<<<<< HEAD
-function SmoothVal1Ctrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-		 set(hObject,'BackgroundColor','white');
-	end
-
-function CalSmoothMethodCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-		set(hObject,'BackgroundColor','white');
-	end
-function SmoothVal2Ctrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-	    set(hObject,'BackgroundColor','white');
-	end
-=======
->>>>>>> evaluation
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
-
-
-
-
-
-<<<<<<< HEAD
-
-
-=======
->>>>>>> evaluation
