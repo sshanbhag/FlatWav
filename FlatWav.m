@@ -331,14 +331,11 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	%--------------------------------------------------
 	% TDT settings
 	%--------------------------------------------------
+	TDT.Enable = 0;
 	TDT.OutChanL = 1;
 	TDT.OutChanR = 2;
 	TDT.InChanL = 1;
 	TDT.InChanR = 2;
-
-	TDT.Circuit_Path = 'C:\TytoLogy\Toolboxes\TDTToolbox\Circuits\RZ6';
-	TDT.Circuit_Name = 'RZ6_CalibrateIO_softTrig.rcx';
-	TDT.Dnum = 1; % device number
 
 	% need to rework these functions!
 	TDT.RXinitFunc = @RZ6init;
@@ -355,6 +352,16 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	TDT.ioFunc = @RZ6calibration_io;
 	TDT.PA5closeFunc = [];
 	TDT.RPcloseFunc = @RPclose;
+	TDT.iodev = struct(	'hardware', 'RZ6', ...
+								'C', [], ...
+								'handle', [], ...
+								'status', 0, ...
+								'Fs', 200000, ...
+								'Circuit_Path', ...
+									'C:\TytoLogy\Toolboxes\TDTToolbox\Circuits\RZ6', ...
+								'Circuit_Name', 'RZ6_CalibrateIO_softTrig', ...
+								'Dnum', 1	);
+	TDT.TDTLOCKFILE = fullfile(pwd, 'tdtlockfile.mat');
 	handles.TDT = TDT;
 	guidata(hObject, handles);
 	%--------------------------------------------------
@@ -1486,11 +1493,10 @@ function TDTenable_Callback(hObject, eventdata, handles)
 	val = read_ui_val(hObject);
 	if ( (handles.TDT.Enable == 1) && (val == 0) )
 		% stop TDT hardware
-		[outhandles, ~] = TDTclose(	handles.TDT.config, ...
+		[outhandles, ~] = TDTclose(	handles.TDT, ...
 												handles.TDT.iodev, ...
-												handles.TDT.zBUS, ...
-												handles.TDT.PA5L, ...
-												handles.TDT.PA5R);
+												[], ...
+												[]);
 		handles.TDT.iodev = outhandles.iodev;
 		handles.TDT.zBUS = outhandles.zBUS;
 		handles.TDT.PA5L = outhandles.PA5L;
@@ -1502,7 +1508,7 @@ function TDTenable_Callback(hObject, eventdata, handles)
 	elseif ( (handles.TDT.Enable == 0) && (val == 1) )
 		% start TDT hardware
 		try
-			[outhandles, ~] = TDTopen(	handles.TDT.config, ...
+			[outhandles, ~] = TDTopen(	handles.TDT, ...
 												handles.TDT.iodev);
 		catch ME
 			disp(ME.identifier)
