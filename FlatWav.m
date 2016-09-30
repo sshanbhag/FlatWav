@@ -401,7 +401,7 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 %------------------------------------------------------------------------------
 % --- Outputs from this function are returned to the command line.
 %------------------------------------------------------------------------------
-function varargout = FlatWav_OutputFcn(hObject, eventdata, handles)
+function varargout = FlatWav_OutputFcn(hObject, eventdata, handles) %#ok<*INUSL>
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -426,7 +426,7 @@ function varargout = FlatWav_OutputFcn(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
 % --- Executes on button press in UpdateSignalCtrl.
 %------------------------------------------------------------------------------
-function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
+function UpdateSignalCtrl_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
 %------------------------------------------------------------------------------
 % using settings from GUI, update the test signal, compensated signal, and
 % plots of the signals
@@ -609,7 +609,7 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 		
 	elseif strcmpi(handles.Normalize, 'off')
 		% kludge to deal with Normalize OFF vs. on
-		[handles.adj, tmp, handles.compcurve] = compensate_signal(	...
+		[handles.adj, ~, handles.compcurve] = compensate_signal(	...
 											handles.raw, ...
 											handles.cal.freq, ...
 											mags(1, :), ...
@@ -624,11 +624,9 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 											'Rangelimit', rangelimit, ...
 											'Corrlimit', corrlimit, ...
 											'SmoothEdges', smoothedges	);
-		clear tmp
-
 	else
 		% use normalization
-		[handles.adj, tmp, handles.compcurve] = compensate_signal(	...
+		[handles.adj, ~, handles.compcurve] = compensate_signal(	...
 											handles.raw, ...
 											handles.cal.freq, ...
 											mags(1, :), ...
@@ -643,7 +641,6 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 											'Rangelimit', rangelimit, ...
 											'Corrlimit', corrlimit, ...
 											'SmoothEdges', smoothedges	);
-		clear tmp
 	end
 	
 	if strcmpi(handles.SignalMode, 'SYNTH')
@@ -919,7 +916,7 @@ function SynthCtrl_Callback(hObject, eventdata, handles)
 	% get the tag of the selected object
 	tag = get(hObject, 'Tag');
 	tagnum = find(strcmpi(tag, handles.S.CtrlTags));
-	param = handles.S.Param{handles.SynthIndex}{tagnum};
+	param = handles.S.Param{handles.SynthIndex}{tagnum}; %#ok<FNDSB>
 	handles.synth.(param) = read_ui_str(hObject, 'n');
 	guidata(hObject, handles);
 	UpdateInputFilter(hObject, eventdata, handles);
@@ -939,11 +936,11 @@ function SynthCtrl_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
 function WavFilenameCtrl_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
-	[tmppath, tmpfile] = fileparts(handles.wavdata.datafile);
+	[tmppath, ~] = fileparts(handles.wavdata.datafile);
 	[wavfile, wavpath] = uigetfile( '*.wav', ...
 												'Load wav file...', ...
 												tmppath);
-	clear tmppath tmpfile
+	clear tmppath
 	if wavfile ~= 0
 		wavdata.datafile = fullfile(wavpath, wavfile);
 		[wavdata.raw, wavdata.Fs, wavdata.nbits, wavdata.opts] = ...
@@ -1113,6 +1110,8 @@ function PreFilterRangeCtrl_Callback(hObject, eventdata, handles)
 		end
 	catch err
 		fprintf('error in PreFilterRangeCtrl_Callback');
+		fprintf('identifier: %s\n', err.identifier);
+		fprintf('message: %s\n', err.message);
 	end
 %------------------------------------------------------------------------------
 
@@ -1145,6 +1144,8 @@ function PostFilterRangeCtrl_Callback(hObject, eventdata, handles)
 		end
 	catch err
 		fprintf('error in PostFilterRangeCtrl_Callback');
+		fprintf('identifier: %s\n', err.identifier);
+		fprintf('message: %s\n', err.message);
 	end
 %------------------------------------------------------------------------------
 
@@ -1188,6 +1189,8 @@ function CorrectionLimitValCtrl_Callback(hObject, eventdata, handles)
 		end
 	catch err
 		fprintf('error in CorrectionLimitValCtrl_Callback');
+		fprintf('identifier: %s\n', err.identifier);
+		fprintf('message: %s\n', err.message);
 	end
 %------------------------------------------------------------------------------
 
@@ -1220,6 +1223,8 @@ function SmoothEdgesValCtrl_Callback(hObject, eventdata, handles)
 		end
 	catch err
 		fprintf('error in SmoothEdgesValCtrl_Callback');
+		fprintf('identifier: %s\n', err.identifier);
+		fprintf('message: %s\n', err.message);
 	end
 %------------------------------------------------------------------------------
 
@@ -1630,7 +1635,7 @@ function updatePlots(hObject, eventdata, handles)
 		set(handles.RawPhaseAxes, 'XTickLabel', []);
 
 		% plot raw spectrogram
-		[S, F, T, P] = spectrogram(	handles.raw, ...
+		[~, F, T, P] = spectrogram(	handles.raw, ...
 												handles.SpectrumWindow, ...
 												[], ...
 												handles.SpectrumWindow, ...
@@ -1673,7 +1678,7 @@ function updatePlots(hObject, eventdata, handles)
 		xlabel(handles.AdjPhaseAxes, 'freq (kHz)');		
 		
 		% plot adj spectrogram
-		[S, F, T, P] = spectrogram(	handles.adj, ...
+		[~, F, T, P] = spectrogram(	handles.adj, ...
 												handles.SpectrumWindow, ...
 												[], ...
 												handles.SpectrumWindow, ...
@@ -1701,8 +1706,7 @@ function updatePlots(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
 function [atten_val] = figure_atten(spl_val, rms_val, caldata)
 %------------------------------------------------------------------------------
-	[n, m] = size(caldata.mag);
-
+	[n, ~] = size(caldata.mag);
 	atten_val(1) = caldata.mindbspl(1) + db(rms_val(1)) - spl_val(1);
 	if n == 2
 		atten_val(2) = caldata.mindbspl(2) + db(rms_val(2)) - spl_val(2);
@@ -1963,7 +1967,7 @@ function varargout = PlaySignal(hObject, eventdata, handles)
 				set(handles.P.rphi, 'XTickLabel', []);
 
 				subplot(handles.P.rspec)
-				[S, F, T, P] = spectrogram(	resp, ...
+				[~, F, T, P] = spectrogram(	resp, ...
 														handles.SpectrumWindow, ...
 														floor(0.98*handles.SpectrumWindow), ...
 														512, ...
@@ -2011,7 +2015,7 @@ function varargout = PlaySignal(hObject, eventdata, handles)
 				xlabel(handles.P.aphi, 'freq (kHz)');
 
 				subplot(handles.P.aspec)
-				[S, F, T, P] = spectrogram(	resp, ...
+				[~, F, T, P] = spectrogram(	resp, ...
 														handles.SpectrumWindow, ...
 														floor(0.98*handles.SpectrumWindow), ...
 														512, ...
@@ -2083,7 +2087,7 @@ function [dBFigure, dBAxes] = updateDBplots(hObject, eventdata, handles)
 	if any(	[	isempty(handles.respFs) ...
 					(isempty(handles.rawresp) && isempty(handles.adjresp))	])
 		warning('FlatWav:Data', 'No data for db analysis');
-		dBFigure = [];
+		dBFigure = []; %#ok<NASGU>
 		dBAxes = [];
 	end
 	%------------------------------------------------------------------------	
@@ -2109,6 +2113,7 @@ function [dBFigure, dBAxes] = updateDBplots(hObject, eventdata, handles)
 		dBAxes.rawdb = handles.P.rawdb;
 		dBAxes.adjdb = handles.P.adjdb;
 	end
+	%{
 	%------------------------------------------------------------------------
 	% compute rmsbins window
 	%------------------------------------------------------------------------
@@ -2117,6 +2122,7 @@ function [dBFigure, dBAxes] = updateDBplots(hObject, eventdata, handles)
 	else
 		error('updateDBplots: handles.respFs is empty!\n\n');
 	end
+	%}
 	%------------------------------------------------------------------------
 	% compute rms of raw response, plot
 	%------------------------------------------------------------------------
@@ -2201,12 +2207,12 @@ function varargout = plotSignalAnddB(signal, rmswin, Fs, varargin)
 
 				% set dB trace color
 				case 'DBCOLOR'
-					dbColor = varargin{aindex + 1};
+					dbColor = varargin{aindex + 1}; %#ok<NASGU>
 					aindex = aindex + 2;				
 					
 				% set db trace style
 				case 'DBSTYLE'
-					dbStyle = varargin{aindex + 1};
+					dbStyle = varargin{aindex + 1}; %#ok<NASGU>
 					aindex = aindex + 2;				
 				
 				% set db trace line width
@@ -2354,7 +2360,7 @@ function IndividualPlotMenuItem_Callback(hObject, eventdata, handles)
 	
 	if isfield(handles.caldata, 'settings')
 		if isfield(handles.caldata.settings, 'calfile')
-			[pname, fname, tmp] = fileparts(handles.caldata.settings.calfile);
+			[~, fname, ~] = fileparts(handles.caldata.settings.calfile);
 		else
 			fname = {};
 		end
@@ -2495,15 +2501,15 @@ function SaveAllSignalsMenuItem_Callback(hObject, eventdata, handles)
 	[matfile, matpath] = uiputfile(	'*.mat', ...
 												'Save signals to mat file...');
 	if matfile ~= 0
-		raw = handles.raw;
-		adj = handles.adj;
-		S = handles.S;
+		raw = handles.raw; %#ok<NASGU>
+		adj = handles.adj; %#ok<NASGU>
+		S = handles.S; %#ok<NASGU>
 		if strcmpi(handles.SignalMode, 'WAV')
-			wavdata = handles.wavdata;
+			wavdata = handles.wavdata; %#ok<NASGU>
 			save(fullfile(matpath, matfile), 'raw', 'adj', 'S', 'wavdata', '-MAT');
 			clear raw adj S wavdata;
 		else
-			synth = handles.synth;
+			synth = handles.synth; %#ok<NASGU>
 			save(fullfile(matpath, matfile), 'raw', 'adj', 'Fs', 'synth', '-MAT');
 			clear raw adj S synth;
 		end
@@ -2640,7 +2646,7 @@ function PlotSpectrumMenuItem_Callback(hObject, eventdata, handles)
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
-function CompMethodCtrl_CreateFcn(hObject, eventdata, handles)
+function CompMethodCtrl_CreateFcn(hObject, eventdata, handles) %#ok<*INUSD>
 	if ispc && isequal(get(hObject,'BackgroundColor'), ...
 			get(0,'defaultUicontrolBackgroundColor'))
 		  set(hObject,'BackgroundColor','white');
