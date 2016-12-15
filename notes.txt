@@ -1,0 +1,65 @@
+to do:
+
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+rename compensate_signal.m to compensate_signal_FFT.m
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+	function performing amplitude compensation of signal using
+	an FFT-based method
+	In principle, this works, but requires taking FFT of entire signal, 
+	which is memory-intensive for high sample rates (i.e., those of 
+	ultrasonic signals!).
+	Also, compensation for sharp notches/peaks in system magnitude response
+   can result in spectral "smearing".
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+create: compensate_signal_invFilter.m
+------------------------------------------------------------------------
+Input Arguments:
+	
+	s					signal to be calibrated (NX1 or 1XN only!)
+	Fs					sample rate for signal s, samples/second
+	invFilter		inverse filter with fields
+							b, a		filter coefficients
+							s			impulse response (required for 'conv'
+										compensation method
+							Fs			sample rate for filter design, samples/second
+
+	Options:
+
+		'Method'		'filtfilt' (default) | 'filt' | 'conv'
+		
+		'Normalize'	'on' | 'off' | <value>
+		
+		Lowcut		'off' | <value>
+		
+
+		Prefilter	[minf maxf]
+
+		Postfilter	[minf maxf]
+
+Output Arguments:
+	sadj				compensated verion of vector s
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+create: build_inverse_filter.m
+------------------------------------------------------------------------
+Function to 
+------------------------------------------------------------------------
+Input Arguments:
+
+
+
+Output Arguments:
+
+
+------------------------------------------------------------------------
+
+
