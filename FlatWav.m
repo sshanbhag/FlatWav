@@ -22,15 +22,7 @@ function varargout = FlatWav(varargin)
 
 % Edit the above text to modify the response to help FlatWav
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-% Last Modified by GUIDE v2.5 21-Aug-2014 16:40:14
-=======
-% Last Modified by GUIDE v2.5 26-Aug-2014 15:36:23
->>>>>>> evaluation
-=======
 % Last Modified by GUIDE v2.5 17-Dec-2015 13:32:48
->>>>>>> 64bitmatlab_12Jan
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -85,12 +77,7 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 		% directory when using installed version:
 		pdir = ['C:\TytoLogy\TytoLogySettings\' getenv('USERNAME')];
 		% development tree
-<<<<<<< HEAD
 		% pdir = ['C:\Users\sshanbhag\Code\Matlab\TytoLogy\TytoLogySettings\' getenv('USERNAME')];
-=======
-		pdir = ['C:\Users\sshanbhag\Code\Matlab\TytoLogy\TytoLogySettings\' ...
-							getenv('USERNAME')];
->>>>>>> evaluation
 	else ismac
 		pdir = ['~/Work/Code/Matlab/dev/TytoLogy/TytoLogySettings/' ...
 							getenv('USER')];
@@ -186,10 +173,6 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	handles.IOfigure = [];
 	guidata(hObject, handles);
 	
-<<<<<<< HEAD
-	
-=======
->>>>>>> evaluation
 	%--------------------------------------------------
 	%--------------------------------------------------
 	% COMPENSATION SETTINGS
@@ -341,15 +324,10 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	handles.cal = fake_caldata('freqs', 1:10:(handles.S.Fs / 2));
 	handles.cal.mag = 90 * handles.cal.mag;
 	guidata(hObject, handles);
-<<<<<<< HEAD
-	plot(handles.CalibrationAxes, 0.001*handles.cal.freq, handles.cal.mag(1, :), '.-');
-	ylim([0 100]);
-=======
 	plot(	handles.CalibrationAxes, ...
 			0.001*handles.cal.freq, ...
 			handles.cal.mag(1, :), '.-');
 	ylim(handles.CalibrationAxes, [0 100]);
->>>>>>> evaluation
 	
 	%--------------------------------------------------
 	%--------------------------------------------------
@@ -381,10 +359,6 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	handles.MicGain = invdb(handles.MicGaindB);
 	handles.VtoPa = (1/handles.MicGain) * (1/handles.MicSensitivity);
 	guidata(hObject, handles);
-<<<<<<< HEAD
-
-	
-=======
 		
 	%--------------------------------------------------
 	%--------------------------------------------------
@@ -402,7 +376,6 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
->>>>>>> evaluation
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
@@ -584,11 +557,7 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
 	end
 	
 	% check low freq cutoff setting
-<<<<<<< HEAD
-	if strcmp(handles.LowCut, 'off')
-=======
 	if strcmpi(handles.LowCut, 'off')
->>>>>>> evaluation
 		lowcut = 'off';
 	else
 		lowcut = handles.LowCutFreq;
@@ -1170,11 +1139,6 @@ function WavFilenameCtrl_Callback(hObject, eventdata, handles)
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
 
-%------------------------------------------------------------------------------
-function LoadWavCtrl_Callback(hObject, eventdata, handles)
-	WavFilenameCtrl_Callback(hObject, eventdata, handles)
-%------------------------------------------------------------------------------
-
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
@@ -1737,60 +1701,11 @@ function updatePlots(hObject, eventdata, handles)
 	title(handles.RawSignalAxes, 'Signal (V)')
 	ylabel(handles.RawSignalAxes, 'Raw', 'Color', 'b')
 	set(handles.RawSignalAxes, 'XTickLabel', []);
-<<<<<<< HEAD
-	xlim([min(tvec) max(tvec)])
-=======
 	xlim(handles.RawSignalAxes, [min(tvec) max(tvec)])
->>>>>>> evaluation
 	% get ticks
 	time_ticks = get(handles.RawSignalAxes, 'XTick');
 	
-<<<<<<< HEAD
-	% plot raw magnitude
-	plot(handles.RawMagAxes, 0.001*handles.fraw, handles.magraw);
-	title(handles.RawMagAxes, 'Magnitude (dB)')
-	ylim(handles.RawMagAxes, dblim);
-	xlim(handles.RawMagAxes, freqlim);
-	set(handles.RawMagAxes, 'XTickLabel', []);
-	
-	% plot raw phase
-	plot(handles.RawPhaseAxes, 0.001*handles.fraw, unwrap(handles.phiraw));
-	title(handles.RawPhaseAxes, 'Phase (rad)')
-	xlim(handles.RawPhaseAxes, freqlim);
-	set(handles.RawPhaseAxes, 'XTickLabel', []);
-	
-% 	plot raw spectrogram
-	[S, F, T, P] = spectrogram(	handles.raw, ...
-											handles.SpectrumWindow, ...
-											[], ...
-											handles.SpectrumWindow, ...
-											handles.S.Fs	);
-<<<<<<< HEAD
-	save p.mat S F T P -MAT
-	P = 20*log10(P);
-	P(P == -Inf) = min(min(P(P ~= -Inf)));	
-	surf(1000*T, 0.001*F, P, 'edgecolor', 'none');
-	xlim([min(tvec) max(tvec)])
-	ylim(freqlim);
-	set(handles.RawSpectrumAxes, 'XTick', time_ticks)
-	view(0, 90);
-	title('Time vs. Freq (kHz) vs. dB')
-	set(handles.RawSpectrumAxes, 'XTickLabel', []);
-	colormap(handles.RawSpectrumAxes, handles.ColorMap)
-% 	caxis([0.5*min(min(P)) max(max(P))])
-=======
-	P = 20*log10(P);
-	P(P == -Inf) = min(min(P(P ~= -Inf)));	
-	surf(handles.RawSpectrumAxes, 1000*T, 0.001*F, P, 'edgecolor', 'none');
-	xlim(handles.RawSpectrumAxes, [min(tvec) max(tvec)])
-	ylim(handles.RawSpectrumAxes, freqlim);
-	set(handles.RawSpectrumAxes, 'XTick', time_ticks)
-	view(handles.RawSpectrumAxes, 0, 90);
-	title(handles.RawSpectrumAxes, 'Time vs. Freq (kHz) vs. dB')
-	set(handles.RawSpectrumAxes, 'XTickLabel', []);
-	colormap(handles.RawSpectrumAxes, handles.ColorMap)
->>>>>>> evaluation
-=======
+	% 	plot raw spectrogram 
 	if strcmpi(handles.PlotSpectrum, 'on')
 		% plot raw magnitude
 		plot(handles.RawMagAxes, 0.001*handles.fraw, handles.magraw);
@@ -1826,73 +1741,16 @@ function updatePlots(hObject, eventdata, handles)
 		cla(handles.RawPhaseAxes);
 		cla(handles.RawSpectrumAxes);
 	end
->>>>>>> 64bitmatlab_12Jan
 	guidata(hObject, handles)
 	
 	% Update adj plots
 	% plot adj signal
 	tvec = 1000 * (0:(length(handles.adj)-1)) ./ handles.S.Fs;
-<<<<<<< HEAD
-	plot(tvec, handles.adj, 'r')
-	xlim([min(tvec) max(tvec)])
-	ylabel('Adj', 'Color', 'r')
-	xlabel('time (ms)')
-=======
 	plot(handles.AdjSignalAxes, tvec, handles.adj, 'r')
 	xlim(handles.AdjSignalAxes, [min(tvec) max(tvec)])
 	ylabel(handles.AdjSignalAxes, 'Adj', 'Color', 'r')
 	xlabel(handles.AdjSignalAxes, 'time (ms)')
->>>>>>> evaluation
 	
-<<<<<<< HEAD
-	% plot adj mag spectrum
-	plot(handles.AdjMagAxes, 0.001*handles.fadj, handles.magadj, 'r');
-	ylim(handles.AdjMagAxes, dblim);
-	xlim(handles.AdjMagAxes, freqlim);
-	xlabel(handles.AdjMagAxes, 'freq (kHz)');
-	
-	% plot adj phase spectrum
-	plot(handles.AdjPhaseAxes, 0.001*handles.fadj, unwrap(handles.phiadj), 'r');
-	xlim(handles.AdjPhaseAxes, freqlim);
-	xlabel(handles.AdjPhaseAxes, 'freq (kHz)');
-
-<<<<<<< HEAD
-	axes(handles.AdjSpectrumAxes)
-% 	[S, F, T, P] = spectrogram(	handles.adj, ...
-% 											handles.SpectrumWindow, ...
-% 											floor(0.95*handles.SpectrumWindow), ...
-% 											512, ...
-% 											handles.S.Fs	);
-=======
-	% plot adj spectrogram
->>>>>>> evaluation
-	[S, F, T, P] = spectrogram(	handles.adj, ...
-											handles.SpectrumWindow, ...
-											[], ...
-											handles.SpectrumWindow, ...
-											handles.S.Fs	);
-	P = 20*log10(P);
-	P(P == -Inf) = min(min(P(P ~= -Inf)));	
-<<<<<<< HEAD
-	surf(1000*T, 0.001*F, P, 'edgecolor', 'none');
-	xlim([min(tvec) max(tvec)])
-	ylim(freqlim);
-	set(handles.AdjSpectrumAxes, 'XTick', time_ticks)	
-	view(0, 90);
-	xlabel('Time (ms)')
-	colormap(handles.AdjSpectrumAxes, handles.ColorMap)
-% 	caxis([min(min(P)) max(max(P))])
-
-=======
-	surf(handles.AdjSpectrumAxes, 1000*T, 0.001*F, P, 'edgecolor', 'none');
-	xlim(handles.AdjSpectrumAxes, [min(tvec) max(tvec)])
-	ylim(handles.AdjSpectrumAxes, freqlim);
-	set(handles.AdjSpectrumAxes, 'XTick', time_ticks)	
-	view(handles.AdjSpectrumAxes, 0, 90);
-	xlabel(handles.AdjSpectrumAxes, 'Time (ms)')
-	colormap(handles.AdjSpectrumAxes, handles.ColorMap)
->>>>>>> evaluation
-=======
 	if strcmpi(handles.PlotSpectrum, 'on')
 		% plot adj mag spectrum
 		plot(handles.AdjMagAxes, 0.001*handles.fadj, handles.magadj, 'r');
@@ -1925,7 +1783,6 @@ function updatePlots(hObject, eventdata, handles)
 		cla(handles.AdjPhaseAxes);
 		cla(handles.AdjSpectrumAxes);
 	end
->>>>>>> 64bitmatlab_12Jan
 	guidata(hObject, handles);
 	
 % 	dBPlotCtrl_Callback(hObject, eventdata, handles);
@@ -2641,14 +2498,9 @@ function LoadCalMenuItem_Callback(hObject, eventdata, handles)
 		plot(	handles.CalibrationAxes, ...
 				0.001*handles.cal.freq, ...
 				handles.cal.mag(1, :), '.-');
-<<<<<<< HEAD
-		ylim([0.9*min(handles.cal.mag(1, :)) 1.1*max(handles.cal.mag(1, :))]);
-		grid on
-=======
 		ylim(handles.CalibrationAxes, ...
 				[0.9*min(handles.cal.mag(1, :)) 1.1*max(handles.cal.mag(1, :))]);
 		grid(	handles.CalibrationAxes, 'on');
->>>>>>> evaluation
 	end
 	guidata(hObject, handles);
 	SmoothCalCtrl_Callback(hObject, eventdata, handles);
@@ -2915,17 +2767,11 @@ function CompMethodCtrl_CreateFcn(hObject, eventdata, handles) %#ok<*INUSD>
 			get(0,'defaultUicontrolBackgroundColor'))
 		  set(hObject,'BackgroundColor','white');
 	end
-<<<<<<< HEAD
-	set(hObject, 'String', {'plot(rand(5))', 'plot(sin(1:0.01:25))', 'bar(1:.5:10)', 'plot(membrane)', 'surf(peaks)'});
-function WavFilenameCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-=======
 	set(hObject, 'String', {'plot(rand(5))', 'plot(sin(1:0.01:25))', ...
 		'bar(1:.5:10)', 'plot(membrane)', 'surf(peaks)'});
 function WavFilenameCtrl_CreateFcn(hObject, eventdata, handles)
 	if ispc && isequal(get(hObject,'BackgroundColor'), ...
 			get(0,'defaultUicontrolBackgroundColor'))
->>>>>>> evaluation
 		 set(hObject,'BackgroundColor','white');
 	end
 function SynthTypeCtrl_CreateFcn(hObject, eventdata, handles)
@@ -3053,40 +2899,6 @@ function PeakTimeAdjCtrl_CreateFcn(hObject, eventdata, handles)
 			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
 	end
-<<<<<<< HEAD
-function SmoothVal1Ctrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-		 set(hObject,'BackgroundColor','white');
-	end
-
-function CalSmoothMethodCtrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-		set(hObject,'BackgroundColor','white');
-	end
-function SmoothVal2Ctrl_CreateFcn(hObject, eventdata, handles)
-	if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-	    set(hObject,'BackgroundColor','white');
-	end
-=======
->>>>>>> evaluation
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
-
-
-
-
-
-<<<<<<< HEAD
-<<<<<<< HEAD
-
-
-=======
->>>>>>> evaluation
-=======
-
-
-
-
-
->>>>>>> 64bitmatlab_12Jan
