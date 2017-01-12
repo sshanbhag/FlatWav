@@ -23,10 +23,14 @@ function varargout = FlatWav(varargin)
 % Edit the above text to modify the response to help FlatWav
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 % Last Modified by GUIDE v2.5 21-Aug-2014 16:40:14
 =======
 % Last Modified by GUIDE v2.5 26-Aug-2014 15:36:23
 >>>>>>> evaluation
+=======
+% Last Modified by GUIDE v2.5 17-Dec-2015 13:32:48
+>>>>>>> 64bitmatlab_12Jan
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -106,10 +110,10 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	% SYNTH SETTINGS
 	%--------------------------------------------------
 	%--------------------------------------------------
-	% set output signal to synth (vs. wav) and update GUI
-	handles.SignalMode = 'SYNTH';
-	update_ui_val(handles.SynthSignalButton, 1);
-	update_ui_val(handles.WavSignalButton, 0);
+	% set output signal to wav (vs. SYNTH) and update GUI
+	handles.SignalMode = 'WAV';
+	update_ui_val(handles.SynthSignalButton, 0);
+	update_ui_val(handles.WavSignalButton, 1);
 	% initialize S synth parameter structure
 	handles.S = FlatWav_buildS;
 	guidata(hObject, handles);
@@ -211,10 +215,14 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	% default LowCut options
 	handles.LowCut = 'off';
 	handles.LowCutFreq = read_ui_str(handles.LowCutFreqCtrl, 'n');
-	update_ui_val(handles.LowCutCtrl, handles.LowCut);
 	if strcmpi(handles.LowCut, 'off')
 		disable_ui(handles.LowCutFreqText);
 		disable_ui(handles.LowCutFreqCtrl);
+    	update_ui_val(handles.LowCutCtrl,0);
+    else
+		enable_ui(handles.LowCutFreqText);
+		enable_ui(handles.LowCutFreqCtrl);
+    	update_ui_val(handles.LowCutCtrl,1);
 	end
 	% target SPL
 	handles.TargetSPL = 65;
@@ -222,7 +230,11 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	% pre-filter range
 	handles.PreFilter = 'off';
 	handles.PreFilterRange = handles.CorrFrange;
-	update_ui_val(handles.PreFilterCtrl, handles.PreFilter);
+	if strcmpi(handles.PreFilter, 'off')
+		update_ui_val(handles.PreFilterCtrl, 1);
+	else
+		update_ui_val(handles.PreFilterCtrl, 0);
+	end
 	update_ui_str(handles.PreFilterRangeCtrl, ...
 											['[' num2str(handles.PreFilterRange) ']']);
 	disable_ui(handles.PreFilterRangeCtrl);
@@ -230,7 +242,11 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	% post-filter range
 	handles.PostFilter = 'off';
 	handles.PostFilterRange = handles.CorrFrange;
-	update_ui_val(handles.PostFilterCtrl, handles.PostFilter);
+	if strcmpi(handles.PostFilter, 'off')
+		update_ui_val(handles.PostFilterCtrl, 1);
+	else
+		update_ui_val(handles.PostFilterCtrl, 0);
+	end
 	update_ui_str(handles.PostFilterRangeCtrl, ...
 											['[' num2str(handles.PostFilterRange) ']']);
 	if strcmpi(handles.PostFilter, 'off')
@@ -242,12 +258,20 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	guidata(hObject, handles);
 	% range limit
 	handles.RangeLimit = 'off';
-	update_ui_val(handles.RangeLimitCtrl, handles.RangeLimit);
+	if strcmpi(handles.RangeLimit, 'off')
+		update_ui_val(handles.RangeLimitCtrl, 1);
+	else
+		update_ui_val(handles.RangeLimitCtrl, 0);
+	end
 	guidata(hObject, handles);
 	% CorrectionLimit
 	handles.CorrectionLimit = 'off';
 	handles.CorrectionLimitValue = 5;
-	update_ui_val(handles.CorrectionLimitCtrl, handles.CorrectionLimit);
+	if strcmpi(handles.CorrectionLimit, 'off')
+		update_ui_val(handles.CorrectionLimitCtrl, 1);
+	else
+		update_ui_val(handles.CorrectionLimitCtrl, 0);
+	end
 	update_ui_str(handles.CorrectionLimitValCtrl, handles.CorrectionLimitValue);
 	if strcmpi(handles.CorrectionLimit, 'off')
 		disable_ui(handles.CorrectionLimitValCtrl);
@@ -260,7 +284,11 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	% SmoothEdges
 	handles.SmoothEdges= 'off';
 	handles.SmoothEdgesValue = [1 5];
-	update_ui_val(handles.SmoothEdgesCtrl, handles.SmoothEdges);
+	if strcmpi(handles.SmoothEdges, 'off')
+		update_ui_val(handles.SmoothEdgesCtrl, 1);
+	else
+		update_ui_val(handles.SmoothEdgesCtrl, 0);
+	end
 	update_ui_str(handles.SmoothEdgesValCtrl, ...
 											['[' num2str(handles.SmoothEdgesValue) ']']);
 	if strcmpi(handles.SmoothEdges, 'off')
@@ -275,8 +303,20 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	% spectrum settings
 	%--------------------------------------------------
 	%--------------------------------------------------
+	handles.PlotSpectrum = 'off';
+	set(handles.PlotSpectrumMenuItem, 'Checked', handles.PlotSpectrum);
 	handles.SpectrumWindow = 512;
 	handles.ColorMap = 'gray';
+	guidata(hObject, handles);
+	
+	
+	%--------------------------------------------------
+	%--------------------------------------------------
+	% input filter settings
+	%--------------------------------------------------
+	handles.HPFc = 100; 
+	handles.LPFc = 100000;
+	handles.FilterOrder = 3;
 	guidata(hObject, handles);
 	
 	%--------------------------------------------------
@@ -326,8 +366,10 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	% output settings
 	%--------------------------------------------------
 	% options for Output Device are 'winsound' and 'NI-DAQ'
-	handles.OutputDevice = 'winsound';
+	handles.OutputDevice = 'NIDAQ';
 	handles.IOpause = 0.5;
+	update_ui_val(handles.SoundCardButton, 0);
+	update_ui_val(handles.NIDAQButton, 1);
 	guidata(hObject, handles);
 	
 	%--------------------------------------------------
@@ -372,7 +414,7 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 %------------------------------------------------------------------------------
 % --- Outputs from this function are returned to the command line.
 %------------------------------------------------------------------------------
-function varargout = FlatWav_OutputFcn(hObject, eventdata, handles)
+function varargout = FlatWav_OutputFcn(hObject, eventdata, handles) %#ok<*INUSL>
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -397,7 +439,7 @@ function varargout = FlatWav_OutputFcn(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
 % --- Executes on button press in UpdateSignalCtrl.
 %------------------------------------------------------------------------------
-function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
+function UpdateSignalCtrl_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
 %------------------------------------------------------------------------------
 % using settings from GUI, update the test signal, compensated signal, and
 % plots of the signals
@@ -410,11 +452,20 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 		
 		case 'WAV'
 			% load wav file
-			[wavdata.raw, wavdata.Fs, wavdata.nbits, wavdata.opts] = ...
-														wavread(handles.wavdata.datafile);
+			if verLessThan('matlab', 'R2015b')
+				[wavdata.raw, wavdata.Fs, wavdata.nbits, wavdata.opts] = ...
+									wavread(handles.wavdata.datafile); %#ok<DWVRD>
+
+			else
+				tmp = audioinfo(handles.wavdata.datafile);
+				wavdata.Fs = tmp.SampleRate;
+				wavdata.nbits = tmp.BitsPerSample';
+				wavdata.opts = tmp;
+				wavdata.raw = audioread(handles.wavdata.datafile);
+			end
+			wavdata.datafile = handles.wavdata.datafile;
 			% apply ramp (short, just to ensure zeros at beginning and end of
 			% stimulus)
-			wavdata.datafile = handles.wavdata.datafile;
 			wavdata.raw = sin2array(wavdata.raw', 0.5, wavdata.Fs);
 			% store raw vector in handles.
 			handles.raw = wavdata.raw;
@@ -598,7 +649,7 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles)
 											'Postfilter', postfilter, ...
 											'Rangelimit', rangelimit, ...
 											'Corrlimit', corrlimit, ...
-											'SmoothEdges', smoothedges	);
+											'SmoothEdges', smoothedges	); %#ok<*ASGLU>
 		clear tmp
 
 	else
@@ -1055,7 +1106,7 @@ function SynthCtrl_Callback(hObject, eventdata, handles)
 	% get the tag of the selected object
 	tag = get(hObject, 'Tag');
 	tagnum = find(strcmpi(tag, handles.S.CtrlTags));
-	param = handles.S.Param{handles.SynthIndex}{tagnum};
+	param = handles.S.Param{handles.SynthIndex}{tagnum}; %#ok<FNDSB>
 	handles.synth.(param) = read_ui_str(hObject, 'n');
 	guidata(hObject, handles);
 	UpdateInputFilter(hObject, eventdata, handles);
@@ -1075,16 +1126,26 @@ function SynthCtrl_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
 function WavFilenameCtrl_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
-	[tmppath, tmpfile] = fileparts(handles.wavdata.datafile);
+	[tmppath, tmpfile] = fileparts(handles.wavdata.datafile); 
 	[wavfile, wavpath] = uigetfile( '*.wav', ...
-												'Load wav file...', ...
-												tmppath);
+									'Load wav file...', ...
+									tmppath);
 	clear tmppath tmpfile
 	if wavfile ~= 0
 		wavdata.datafile = fullfile(wavpath, wavfile);
-		[wavdata.raw, wavdata.Fs, wavdata.nbits, wavdata.opts] = ...
-																	wavread(wavdata.datafile);
+		% load wav file
+		if verLessThan('matlab', 'R2015b')
+			[wavdata.raw, wavdata.Fs, wavdata.nbits, wavdata.opts] = ...
+													wavread(wavdata.datafile); %#ok<DWVRD>
+		else
+			tmp = audioinfo(wavdata.datafile);
+			wavdata.Fs = tmp.SampleRate;
+			wavdata.nbits = tmp.BitsPerSample';
+			wavdata.opts = tmp;
+			wavdata.raw = audioread(wavdata.datafile);
+		end
 		handles.wavdata = wavdata;
+		guidata(hObject, handles);
 		update_ui_str(handles.WavFilenameCtrl, handles.wavdata.datafile);
 		ostr = sprintf('Fs: %.2f\nnbits: %d\n', wavdata.Fs, wavdata.nbits);
 		update_ui_str(handles.WaveInfoCtrl, ostr);
@@ -1247,8 +1308,9 @@ function PreFilterRangeCtrl_Callback(hObject, eventdata, handles)
 			handles.PreFilterRange = newVal;
 			guidata(hObject, handles);
 		end
-	catch err
-		fprintf('error in PreFilterRangeCtrl_Callback');
+	catch err %#ok<NASGU>
+		fprintf('error in PreFilterRangeCtrl_Callback\n');
+		disp err
 	end
 %------------------------------------------------------------------------------
 
@@ -1279,8 +1341,9 @@ function PostFilterRangeCtrl_Callback(hObject, eventdata, handles)
 			handles.PostFilterRange = newVal;
 			guidata(hObject, handles);
 		end
-	catch err
-		fprintf('error in PostFilterRangeCtrl_Callback');
+	catch err %#ok<NASGU>
+		fprintf('error in PostFilterRangeCtrl_Callback\n');
+		disp err
 	end
 %------------------------------------------------------------------------------
 
@@ -1322,8 +1385,9 @@ function CorrectionLimitValCtrl_Callback(hObject, eventdata, handles)
 			handles.CorrectionLimitValue = newVal;
 			guidata(hObject, handles);
 		end
-	catch err
-		fprintf('error in CorrectionLimitValCtrl_Callback');
+	catch err %#ok<NASGU>
+		fprintf('error in CorrectionLimitValCtrl_Callback\n');
+		disp err
 	end
 %------------------------------------------------------------------------------
 
@@ -1354,8 +1418,9 @@ function SmoothEdgesValCtrl_Callback(hObject, eventdata, handles)
 			handles.SmoothEdgesValue = newVal;
 			guidata(hObject, handles);
 		end
-	catch err
-		fprintf('error in SmoothEdgesValCtrl_Callback');
+	catch err %#ok<NASGU>
+		fprintf('error in SmoothEdgesValCtrl_Callback\n');
+		disp err
 	end
 %------------------------------------------------------------------------------
 
@@ -1390,7 +1455,7 @@ function PlotCompensationCurveCtrl_Callback(hObject, eventdata, handles)
 %******************************************************************************
 function update_analysis(hObject, eventdata, handles)
 	if ~isempty(handles.respFs)
-		rmsbins = ms2samples(handles.PeakRMSWindow, handles.respFs);
+		rmsbins = ms2samples(handles.PeakRMSWindow, handles.respFs); %#ok<NASGU>
 	else
 		fprintf('\n\nupdate_analysis: handles.respFs is empty!\n\n');
 		return
@@ -1680,6 +1745,7 @@ function updatePlots(hObject, eventdata, handles)
 	% get ticks
 	time_ticks = get(handles.RawSignalAxes, 'XTick');
 	
+<<<<<<< HEAD
 	% plot raw magnitude
 	plot(handles.RawMagAxes, 0.001*handles.fraw, handles.magraw);
 	title(handles.RawMagAxes, 'Magnitude (dB)')
@@ -1724,6 +1790,43 @@ function updatePlots(hObject, eventdata, handles)
 	set(handles.RawSpectrumAxes, 'XTickLabel', []);
 	colormap(handles.RawSpectrumAxes, handles.ColorMap)
 >>>>>>> evaluation
+=======
+	if strcmpi(handles.PlotSpectrum, 'on')
+		% plot raw magnitude
+		plot(handles.RawMagAxes, 0.001*handles.fraw, handles.magraw);
+		title(handles.RawMagAxes, 'Magnitude (dB)')
+		ylim(handles.RawMagAxes, dblim);
+		xlim(handles.RawMagAxes, freqlim);
+		set(handles.RawMagAxes, 'XTickLabel', []);
+
+		% plot raw phase
+		plot(handles.RawPhaseAxes, 0.001*handles.fraw, unwrap(handles.phiraw));
+		title(handles.RawPhaseAxes, 'Phase (rad)')
+		xlim(handles.RawPhaseAxes, freqlim);
+		set(handles.RawPhaseAxes, 'XTickLabel', []);
+
+		% plot raw spectrogram
+		[S, F, T, P] = spectrogram(	handles.raw, ...
+												handles.SpectrumWindow, ...
+												[], ...
+												handles.SpectrumWindow, ...
+												handles.S.Fs	);
+		P = 20*log10(P);
+		P(P == -Inf) = min(min(P(P ~= -Inf)));	
+		surf(handles.RawSpectrumAxes, 1000*T, 0.001*F, P, 'edgecolor', 'none');
+		xlim(handles.RawSpectrumAxes, [min(tvec) max(tvec)])
+		ylim(handles.RawSpectrumAxes, freqlim);
+		set(handles.RawSpectrumAxes, 'XTick', time_ticks)
+		view(handles.RawSpectrumAxes, 0, 90);
+		title(handles.RawSpectrumAxes, 'Time vs. Freq (kHz) vs. dB')
+		set(handles.RawSpectrumAxes, 'XTickLabel', []);
+		colormap(handles.RawSpectrumAxes, handles.ColorMap)
+	else
+		cla(handles.RawMagAxes);
+		cla(handles.RawPhaseAxes);
+		cla(handles.RawSpectrumAxes);
+	end
+>>>>>>> 64bitmatlab_12Jan
 	guidata(hObject, handles)
 	
 	% Update adj plots
@@ -1741,6 +1844,7 @@ function updatePlots(hObject, eventdata, handles)
 	xlabel(handles.AdjSignalAxes, 'time (ms)')
 >>>>>>> evaluation
 	
+<<<<<<< HEAD
 	% plot adj mag spectrum
 	plot(handles.AdjMagAxes, 0.001*handles.fadj, handles.magadj, 'r');
 	ylim(handles.AdjMagAxes, dblim);
@@ -1788,6 +1892,40 @@ function updatePlots(hObject, eventdata, handles)
 	xlabel(handles.AdjSpectrumAxes, 'Time (ms)')
 	colormap(handles.AdjSpectrumAxes, handles.ColorMap)
 >>>>>>> evaluation
+=======
+	if strcmpi(handles.PlotSpectrum, 'on')
+		% plot adj mag spectrum
+		plot(handles.AdjMagAxes, 0.001*handles.fadj, handles.magadj, 'r');
+		ylim(handles.AdjMagAxes, dblim);
+		xlim(handles.AdjMagAxes, freqlim);
+		xlabel(handles.AdjMagAxes, 'freq (kHz)');
+
+		% plot adj phase spectrum
+		plot(handles.AdjPhaseAxes, 0.001*handles.fadj, unwrap(handles.phiadj), 'r');
+		xlim(handles.AdjPhaseAxes, freqlim);
+		xlabel(handles.AdjPhaseAxes, 'freq (kHz)');		
+		
+		% plot adj spectrogram
+		[S, F, T, P] = spectrogram(	handles.adj, ...
+												handles.SpectrumWindow, ...
+												[], ...
+												handles.SpectrumWindow, ...
+												handles.S.Fs	);
+		P = 20*log10(P);
+		P(P == -Inf) = min(min(P(P ~= -Inf)));	
+		surf(handles.AdjSpectrumAxes, 1000*T, 0.001*F, P, 'edgecolor', 'none');
+		xlim(handles.AdjSpectrumAxes, [min(tvec) max(tvec)])
+		ylim(handles.AdjSpectrumAxes, freqlim);
+		set(handles.AdjSpectrumAxes, 'XTick', time_ticks)	
+		view(handles.AdjSpectrumAxes, 0, 90);
+		xlabel(handles.AdjSpectrumAxes, 'Time (ms)')
+		colormap(handles.AdjSpectrumAxes, handles.ColorMap)
+	else
+		cla(handles.AdjMagAxes);
+		cla(handles.AdjPhaseAxes);
+		cla(handles.AdjSpectrumAxes);
+	end
+>>>>>>> 64bitmatlab_12Jan
 	guidata(hObject, handles);
 	
 % 	dBPlotCtrl_Callback(hObject, eventdata, handles);
@@ -1966,10 +2104,10 @@ function varargout = PlaySignal(hObject, eventdata, handles)
 		resp_RMS = rms(resp(bin(1):bin(2)));
 		% compute dB SPL
 		resp_dBSPL = dbspl(handles.VtoPa*resp_RMS);
-		% take fft of raw and adj response data
-		[fresp, magresp, phiresp] = daqdbfullfft(	resp(bin(1):bin(2)), ...
-																Fs, ...
-																length(resp(bin(1):bin(2))) );
+% 		% take fft of raw and adj response data
+% 		[fresp, magresp, phiresp] = daqdbfullfft(	resp(bin(1):bin(2)), ...
+% 																Fs, ...
+% 																length(resp(bin(1):bin(2))) );
 		%--------------------------------------------------
 		% assign data to handles containers, update display
 		%--------------------------------------------------
@@ -1977,9 +2115,21 @@ function varargout = PlaySignal(hObject, eventdata, handles)
 			handles.rawresp = resp;
 			handles.rawRMS = resp_RMS;
 			handles.rawdBSPL = resp_dBSPL;
-			handles.rawfresp = fresp;
-			handles.rawmag = magresp;
-			handles.rawphi = phiresp;
+			if strcmpi(handles.PlotSpectrum, 'on')
+				% take fft of raw response data
+				[handles.rawfresp, handles.rawmag, handles.rawphi] = ...
+											daqdbfullfft(	resp(bin(1):bin(2)), ...
+																Fs, ...
+																length(resp(bin(1):bin(2))) );
+				% set limits for Mag and Phase plots
+				dblim = [min(handles.rawmag) max(handles.rawmag)];
+				freqlim = 0.001*[0 Fs/2];
+
+			else
+				handles.rawfresp = [];
+				handles.rawmag = [];
+				handles.rawphi = [];
+			end
 			% update display
 			dbtext = sprintf('Raw dB SPL: %.2f  [%d - %d]\n', ...
 																handles.rawdBSPL, ...
@@ -1993,9 +2143,21 @@ function varargout = PlaySignal(hObject, eventdata, handles)
 			handles.adjresp = resp;
 			handles.adjRMS = resp_RMS;
 			handles.adjdBSPL = resp_dBSPL;
-			handles.adjfresp = fresp;
-			handles.adjmag = magresp;
-			handles.adjphi = phiresp;
+			if strcmp(handles.PlotSpectrum, 'on')
+				% take fft of response data
+				[handles.adjfresp, handles.adjmag, handles.adjphi] = ...
+											daqdbfullfft(	resp(bin(1):bin(2)), ...
+																Fs, ...
+																length(resp(bin(1):bin(2))) );
+				% set limits for Mag and Phase plots
+				dblim = [min(handles.adjmag) max(handles.adjmag)];
+				freqlim = 0.001*[0 Fs/2];
+
+			else
+				handles.adjfresp = [];
+				handles.adjmag = [];
+				handles.adjphi = [];
+			end
 			% update display
 			dbtext = sprintf('Adj dB SPL: %.2f  [%d - %d]\n', ...
 																handles.adjdBSPL, ...
@@ -2011,10 +2173,6 @@ function varargout = PlaySignal(hObject, eventdata, handles)
 		%-----------------------------------------------------------------------
 		% plot data
 		%-----------------------------------------------------------------------
-		% set limits for Mag and Phase plots
-		dblim = [min(magresp) max(magresp)];
-		freqlim = 0.001*[0 Fs/2];
-
 		if strcmpi(ButtonID, 'Play Raw')
 			% raw plots
 			subplot(handles.P.rsig)
@@ -2024,33 +2182,42 @@ function varargout = PlaySignal(hObject, eventdata, handles)
 			ylabel(handles.P.rsig, 'Raw', 'Color', 'b')
 			set(handles.P.rsig, 'XTickLabel', []);
 
-			subplot(handles.P.rmag)
-			plot(handles.P.rmag, 0.001*fresp, magresp);
-			title(handles.P.rmag, 'Magnitude (dB)')
-			ylim(handles.P.rmag, dblim);
-			xlim(handles.P.rmag, freqlim);
-			set(handles.P.rmag, 'XTickLabel', []);
+			if strcmpi(handles.PlotSpectrum, 'on')
+				subplot(handles.P.rmag)
+				plot(handles.P.rmag, 0.001*handles.rawfresp, handles.magraw);
+				title(handles.P.rmag, 'Magnitude (dB)')
+				ylim(handles.P.rmag, dblim);
+				xlim(handles.P.rmag, freqlim);
+				set(handles.P.rmag, 'XTickLabel', []);
 
-			subplot(handles.P.rphi)
-			plot(handles.P.rphi, 0.001*fresp, unwrap(phiresp));
-			title(handles.P.rphi, 'Phase (rad)')
-			xlim(handles.P.rphi, freqlim);
-			set(handles.P.rphi, 'XTickLabel', []);
+				subplot(handles.P.rphi)
+				plot(handles.P.rphi, 0.001*handles.rawfresp, unwrap(handles.rawphi));
+				title(handles.P.rphi, 'Phase (rad)')
+				xlim(handles.P.rphi, freqlim);
+				set(handles.P.rphi, 'XTickLabel', []);
 
-			subplot(handles.P.rspec)
-			[S, F, T, P] = spectrogram(	resp, ...
-													handles.SpectrumWindow, ...
-													floor(0.98*handles.SpectrumWindow), ...
-													512, ...
-													Fs	);
-			surf(handles.P.rspec, 1000*T, 0.001*F, 20*log10(P), 'edgecolor', 'none');
-			ylim(handles.P.rspec, freqlim);
-			axis(handles.P.rspec, 'tight');
-			view(handles.P.rspec, 0, 90);
-			title(handles.P.rspec, 'Time vs. Freq (kHz) vs. dB')
-			set(handles.P.rspec, 'XTickLabel', []);
-			colormap(handles.P.rspec, handles.ColorMap)
+				subplot(handles.P.rspec)
+				[S, F, T, P] = spectrogram(	resp, ...
+														handles.SpectrumWindow, ...
+														floor(0.98*handles.SpectrumWindow), ...
+														512, ...
+														Fs	);
+				surf(handles.P.rspec, 1000*T, 0.001*F, 20*log10(P), ...
+							'edgecolor', 'none');
+				ylim(handles.P.rspec, freqlim);
+				axis(handles.P.rspec, 'tight');
+				view(handles.P.rspec, 0, 90);
+				title(handles.P.rspec, 'Time vs. Freq (kHz) vs. dB')
+				set(handles.P.rspec, 'XTickLabel', []);
+				colormap(handles.P.rspec, handles.ColorMap);
+			else
+				cla(handles.P.rmag);
+				cla(handles.P.rphi);
+				cla(handles.P.rspec);
+			end
 			guidata(hObject, handles);
+			drawnow
+			
 			updateDBplots(hObject, eventdata, handles);
 			if handles.dBPlot
 				updateDBplots(hObject, eventdata, handles);
@@ -2065,30 +2232,38 @@ function varargout = PlaySignal(hObject, eventdata, handles)
 			ylabel(handles.P.asig, 'Adj', 'Color', 'r')
 			xlabel(handles.P.asig, 'time (ms)')
 
-			subplot(handles.P.amag)
-			plot(handles.P.amag, 0.001*fresp, magresp, 'r');
-			ylim(handles.P.amag, dblim);
-			xlim(handles.P.amag, freqlim);
-			xlabel(handles.P.amag, 'freq (kHz)');
+			if strcmpi(handles.PlotSpectrum, 'on')
+				subplot(handles.P.amag)
+				plot(handles.P.amag, 0.001*handles.adjfresp, handles.adjmag, 'r');
+				ylim(handles.P.amag, dblim);
+				xlim(handles.P.amag, freqlim);
+				xlabel(handles.P.amag, 'freq (kHz)');
 
-			subplot(handles.P.aphi)
-			plot(handles.P.aphi, 0.001*fresp, unwrap(phiresp), 'r');
-			xlim(handles.P.aphi, freqlim);
-			xlabel(handles.P.aphi, 'freq (kHz)');
+				subplot(handles.P.aphi)
+				plot(handles.P.aphi, 0.001*handles.adjfresp, unwrap(handles.adjphi), 'r');
+				xlim(handles.P.aphi, freqlim);
+				xlabel(handles.P.aphi, 'freq (kHz)');
 
-			subplot(handles.P.aspec)
-			[S, F, T, P] = spectrogram(	resp, ...
-													handles.SpectrumWindow, ...
-													floor(0.98*handles.SpectrumWindow), ...
-													512, ...
-													Fs	);
-			surf(handles.P.aspec, 1000*T, 0.001*F, 20*log10(P), 'edgecolor', 'none');
-			ylim(handles.P.aspec, freqlim);
-			axis(handles.P.aspec, 'tight')
-			view(handles.P.aspec, 0, 90);
-			xlabel(handles.P.aspec, 'Time (ms)')
-			colormap(handles.P.aspec, handles.ColorMap);
+				subplot(handles.P.aspec)
+				[S, F, T, P] = spectrogram(	resp, ...
+														handles.SpectrumWindow, ...
+														floor(0.98*handles.SpectrumWindow), ...
+														512, ...
+														Fs	);
+				surf(handles.P.aspec, 1000*T, 0.001*F, 20*log10(P), 'edgecolor', 'none');
+				ylim(handles.P.aspec, freqlim);
+				axis(handles.P.aspec, 'tight')
+				view(handles.P.aspec, 0, 90);
+				xlabel(handles.P.aspec, 'Time (ms)')
+				colormap(handles.P.aspec, handles.ColorMap);
+			else
+				cla(handles.P.amag);
+				cla(handles.P.aphi);
+				cla(handles.P.aspec);
+			end
 			guidata(hObject, handles);
+			drawnow
+			
 			if handles.dBPlot
 				dBPlotCtrl_Callback(hObject, eventdata, handles);
 			end
@@ -2142,7 +2317,7 @@ function [dBFigure, dBAxes] = updateDBplots(hObject, eventdata, handles)
 	if any(	[	isempty(handles.respFs) ...
 					(isempty(handles.rawresp) && isempty(handles.adjresp))	])
 		warning('FlatWav:Data', 'No data for db analysis');
-		dBFigure = [];
+		dBFigure = []; %#ok<NASGU>
 		dBAxes = [];
 	end
 	%------------------------------------------------------------------------	
@@ -2172,7 +2347,7 @@ function [dBFigure, dBAxes] = updateDBplots(hObject, eventdata, handles)
 	% compute rmsbins window
 	%------------------------------------------------------------------------
 	if ~isempty(handles.respFs)
-		rmsbins = ms2samples(handles.PeakRMSWindow, handles.respFs);
+		rmsbins = ms2samples(handles.PeakRMSWindow, handles.respFs); %#ok<NASGU>
 	else
 		error('updateDBplots: handles.respFs is empty!\n\n');
 	end
@@ -2260,12 +2435,12 @@ function varargout = plotSignalAnddB(signal, rmswin, Fs, varargin)
 
 				% set dB trace color
 				case 'DBCOLOR'
-					dbColor = varargin{aindex + 1};
+					dbColor = varargin{aindex + 1}; %#ok<NASGU>
 					aindex = aindex + 2;				
 					
 				% set db trace style
 				case 'DBSTYLE'
-					dbStyle = varargin{aindex + 1};
+					dbStyle = varargin{aindex + 1}; %#ok<NASGU>
 					aindex = aindex + 2;				
 				
 				% set db trace line width
@@ -2528,15 +2703,26 @@ function SaveAdjSignalMenuItem_Callback(hObject, eventdata, handles)
 		peakval = max(handles.adj);
 		if peakval >= 1
 			fprintf('!!!!!!!\nPoints in adj are >= 1\nFile will be normalized\n');
-			wavwrite(0.9*normalize(handles.adj), handles.S.Fs, datafile);
+			save_audio(0.9*normalize(handles.adj), handles.S.Fs, datafile);
 % 			peakfile = [datafile(1:(end-4)) '_PeakVal.txt'];
 % 			save(peakfile, peakval, '-ascii');
 		else
-			wavwrite(handles.adj, handles.S.Fs, datafile);
+			save_audio(handles.adj, handles.S.Fs, datafile);
 		end
 	end
 	guidata(hObject, handles);
 %-------------------------------------------------------------------------
+
+%-------------------------------------------------------------------------
+function save_audio(audiodata, Fs, audiofile)
+%-------------------------------------------------------------------------
+	if verLessThan('matlab', 'R2015b')
+		wavwrite(audiodata, Fs, audiofile); %#ok<DWVWR>
+	else
+		audiowrite(audiofile, audiodata, Fs);
+	end
+%-------------------------------------------------------------------------
+
 
 %-------------------------------------------------------------------------
 function SaveRawSignalMenuItem_Callback(hObject, eventdata, handles)
@@ -2553,11 +2739,11 @@ function SaveRawSignalMenuItem_Callback(hObject, eventdata, handles)
 		peakval = max(handles.raw);
 		if peakval >= 1
 			fprintf('!!!!!!!\nPoints in raw are >= 1\nFile will be normalized\n');
-			wavwrite(0.9*normalize(handles.raw), handles.S.Fs, datafile);
-			peakfile = [datafile(1:(end-4)) '_PeakVal.txt'];
-			save(peakfile, peakval, '-ascii');
+			save_audio(0.9*normalize(handles.raw), handles.S.Fs, datafile);
+% 			peakfile = [datafile(1:(end-4)) '_PeakVal.txt'];
+% 			save(peakfile, peakval, '-ascii');
 		else
-			wavwrite(handles.raw, handles.S.Fs, datafile);
+			save_audio(handles.raw, handles.S.Fs, datafile);
 		end
 	end
 %-------------------------------------------------------------------------
@@ -2568,15 +2754,15 @@ function SaveAllSignalsMenuItem_Callback(hObject, eventdata, handles)
 	[matfile, matpath] = uiputfile(	'*.mat', ...
 												'Save signals to mat file...');
 	if matfile ~= 0
-		raw = handles.raw;
-		adj = handles.adj;
-		S = handles.S;
+		raw = handles.raw; %#ok<NASGU>
+		adj = handles.adj; %#ok<NASGU>
+		S = handles.S; %#ok<NASGU>
 		if strcmpi(handles.SignalMode, 'WAV')
-			wavdata = handles.wavdata;
+			wavdata = handles.wavdata; %#ok<NASGU>
 			save(fullfile(matpath, matfile), 'raw', 'adj', 'S', 'wavdata', '-MAT');
 			clear raw adj S wavdata;
 		else
-			synth = handles.synth;
+			synth = handles.synth; %#ok<NASGU>
 			save(fullfile(matpath, matfile), 'raw', 'adj', 'Fs', 'synth', '-MAT');
 			clear raw adj S synth;
 		end
@@ -2674,7 +2860,7 @@ function SpectrumWindowMenuItem_Callback(hObject, eventdata, handles)
 		handles.SpectrumWindow = newVal;
 	end
 	guidata(hObject, handles);
-	updatePlots(hObject, handles);
+	updatePlots(hObject, eventdata, handles);
 %-------------------------------------------------------------------------
 
 
@@ -2698,6 +2884,21 @@ function RMSWindowMenuItem_Callback(hObject, eventdata, handles)
 	guidata(hObject, handles);
 %-------------------------------------------------------------------------
 
+
+%-------------------------------------------------------------------------
+function PlotSpectrumMenuItem_Callback(hObject, eventdata, handles)
+	oldval = get(handles.PlotSpectrumMenuItem, 'Checked');
+	if strcmp(oldval, 'on')
+		handles.PlotSpectrum = 'off';
+	else
+		handles.PlotSpectrum = 'on';
+	end
+	set(handles.PlotSpectrumMenuItem, 'Checked', handles.PlotSpectrum);
+	guidata(hObject, handles);
+%-------------------------------------------------------------------------
+
+
+
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
@@ -2709,7 +2910,7 @@ function RMSWindowMenuItem_Callback(hObject, eventdata, handles)
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
-function CompMethodCtrl_CreateFcn(hObject, eventdata, handles)
+function CompMethodCtrl_CreateFcn(hObject, eventdata, handles) %#ok<*INUSD>
 	if ispc && isequal(get(hObject,'BackgroundColor'), ...
 			get(0,'defaultUicontrolBackgroundColor'))
 		  set(hObject,'BackgroundColor','white');
@@ -2877,7 +3078,15 @@ function SmoothVal2Ctrl_CreateFcn(hObject, eventdata, handles)
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 
 =======
 >>>>>>> evaluation
+=======
+
+
+
+
+
+>>>>>>> 64bitmatlab_12Jan
