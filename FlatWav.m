@@ -82,9 +82,8 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 		pdir = ['~/Work/Code/Matlab/dev/TytoLogy/TytoLogySettings/' ...
 							getenv('USER')];
 	end
-			
 	if isempty(which('ms2samples'))
-		% could not find the RPload.m function (which is in TytoLogy
+		% could not find the ms2samples.m function (which is in TytoLogy
 		% toolbox) which suggests that the paths are not set or are 
 		% incorrect for this setup.  load the paths using the tytopaths program.
 		run(fullfile(pdir, 'tytopaths'))
@@ -291,7 +290,6 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	handles.SpectrumWindow = 512;
 	handles.ColorMap = 'gray';
 	guidata(hObject, handles);
-	
 	
 	%--------------------------------------------------
 	%--------------------------------------------------
