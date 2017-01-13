@@ -680,12 +680,12 @@ function SaveSoundCtrl_Callback(hObject, eventdata, handles)
 	% use the menu item callback
 	SaveAdjSignalMenuItem_Callback(hObject, eventdata, handles);
 %------------------------------------------------------------------------------
-
-
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
 
+
+%{
 %******************************************************************************
 %******************************************************************************
 %******************************************************************************
@@ -798,6 +798,7 @@ function SmoothVal2Ctrl_Callback(hObject, eventdata, handles)
 	CalSmoothMethodCtrl_Callback(hObject, eventdata, handles);
 	guidata(hObject, handles)
 %------------------------------------------------------------------------------
+%}
 
 %------------------------------------------------------------------------------
 function LoadCalCtrl_Callback(hObject, eventdata, handles)
@@ -2895,6 +2896,11 @@ function PeakTimeRawCtrl_CreateFcn(hObject, eventdata, handles)
 		 set(hObject,'BackgroundColor','white');
 	end
 function PeakTimeAdjCtrl_CreateFcn(hObject, eventdata, handles)
+	if ispc && isequal(get(hObject,'BackgroundColor'), ...
+			get(0,'defaultUicontrolBackgroundColor'))
+		 set(hObject,'BackgroundColor','white');
+	end
+function CalDisplayCtrl_CreateFcn(hObject, eventdata, handles)
 	if ispc && isequal(get(hObject,'BackgroundColor'), ...
 			get(0,'defaultUicontrolBackgroundColor'))
 		 set(hObject,'BackgroundColor','white');
