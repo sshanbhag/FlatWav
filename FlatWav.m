@@ -75,12 +75,14 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	disp([mfilename ': checking paths'])
 	if ispc
 		% directory when using installed version:
-		pdir = ['C:\TytoLogy\TytoLogySettings\' getenv('USERNAME')];
+		pdir = ['C:\TytoLogy\Toolboxes\TytoLogySettings\' getenv('USERNAME')];
 		% development tree
 		% pdir = ['C:\Users\sshanbhag\Code\Matlab\TytoLogy\TytoLogySettings\' getenv('USERNAME')];
-	else ismac
+	elseif ismac
 		pdir = ['~/Work/Code/Matlab/dev/TytoLogy/TytoLogySettings/' ...
 							getenv('USER')];
+	else
+		error('System is neither ispc or ismac');
 	end
 	if isempty(which('ms2samples'))
 		% could not find the ms2samples.m function (which is in TytoLogy
