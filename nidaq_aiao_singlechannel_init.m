@@ -164,7 +164,7 @@ elseif strcmpi(iface, 'NI-SESSION')
 		return
 	end
 	% set outputs to 0
-	outputSingleScan(NI.S, [0 0]);
+	outputSingleScan(NI.S, zeros(1, length(NI.chO)));
 
 %------------------------------------------------------------------------
 %------------------------------------------------------------------------

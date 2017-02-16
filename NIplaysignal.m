@@ -72,6 +72,7 @@ catch errMsg
 	disp(errMsg.message)
 	disp(errMsg.cause)
 	disp(errMsg.stack)
+	
 	return
 end
 
@@ -117,11 +118,9 @@ if handles.DAQSESSION
 	% send ramped data to hardware and play it
 	%-------------------------------------------------------
 	% load stimulus onto NI memory
-	queueOutputData(iodev.NI.S, sin2array(outputsignal, 1, handles.S.Fs));
+	queueOutputData(iodev.NI.S, sin2array(outputsignal, 1, handles.S.Fs)');
 	% START ACQUIRING
-	[rawdata, timestamps, triggertime] = startForeground(iodev.NI.S); %#ok<ASGLU>
-	% reformat output into cell (legacy)
-	resp{1} = rawdata(:, 1)';
+	[resp, timestamps, triggertime] = startForeground(iodev.NI.S); %#ok<ASGLU>
 	% pause
 	pause(handles.IOpause);
 	%-----------------------------------------------------------------------
