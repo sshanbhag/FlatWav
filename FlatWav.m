@@ -76,8 +76,6 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	if ispc
 		% directory when using installed version:
 		pdir = ['C:\TytoLogy\Toolboxes\TytoLogySettings\' getenv('USERNAME')];
-		% development tree
-		% pdir = ['C:\Users\sshanbhag\Code\Matlab\TytoLogy\TytoLogySettings\' getenv('USERNAME')];
 	elseif ismac
 		pdir = ['~/Work/Code/Matlab/dev/TytoLogy/TytoLogySettings/' ...
 							getenv('USER')];
@@ -92,7 +90,22 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	else
 		disp([mfilename ': paths ok, launching programn'])
 	end
-
+	%----------------------------------------------------------
+	%----------------------------------------------------------
+	% check for version compatability
+	%----------------------------------------------------------
+	%----------------------------------------------------------
+	tmp = textscan(version, '%s');
+	tmp = tmp{1};
+	handles.MATversion = tmp{1};
+	if str2double(handles.MATversion(1)) < 8
+		warning('Using legacy interface');
+		handles.DAQSESSION = 0;
+	else
+		fprintf('Using DAQ Toolbox Session Interface\n');
+		handles.DAQSESSION = 1;
+	end
+	guidata(hObject, handles);
 	%--------------------------------------------------
 	%--------------------------------------------------
 	% SYNTH SETTINGS
@@ -105,22 +118,22 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	% initialize S synth parameter structure
 	handles.S = FlatWav_buildS;
 	guidata(hObject, handles);
-	% initialize tone, noise, sweep structs
+	% initialize default tone, noise, sweep structs for each of the types
 	typenum = 1;
 	handles.Tone.type = handles.S.Types{typenum};
-	for n = 1:handles.S.Nparam(typenum);
+	for n = 1:handles.S.Nparam(typenum)
 		handles.Tone.(handles.S.Param{typenum}{n}) = ...
 															handles.S.DefaultVals{typenum}(n);
 	end
 	typenum = 2;
 	handles.Noise.type = handles.S.Types{typenum};
-	for n = 1:handles.S.Nparam(typenum);
+	for n = 1:handles.S.Nparam(typenum)
 		handles.Noise.(handles.S.Param{typenum}{n}) = ...
 															handles.S.DefaultVals{typenum}(n);
 	end
 	typenum = 3;
 	handles.Sweep.type = handles.S.Types{typenum};
-	for n = 1:handles.S.Nparam(typenum);
+	for n = 1:handles.S.Nparam(typenum)
 		handles.Sweep.(handles.S.Param{typenum}{n}) = ...
 															handles.S.DefaultVals{typenum}(n);
 	end
@@ -128,7 +141,6 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	handles.synth = handles.Noise;
 	handles.SynthIndex = 2;
 	handles.SynthType = handles.S.Types{handles.SynthIndex};
-
 	guidata(hObject, handles);
 	
 	%--------------------------------------------------
@@ -422,7 +434,7 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
 	% Signal Mode is either WAV (.wav file) or SYNTH (synthesized)
 	%--------------------------------------------------------------------
 	switch handles.SignalMode
-		
+		%------------------WAV----------------------------------
 		case 'WAV'
 			% load wav file
 			if verLessThan('matlab', 'R2015b')
@@ -445,7 +457,7 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
 			handles.S.Fs = wavdata.Fs;
 			handles.wavdata = wavdata;
 			update_ui_str(handles.FsCtrl, handles.S.Fs);
-			
+		%------------------SYNTH----------------------------------
 		case 'SYNTH'
 			% update Synth data (handles.synth) from GUI
 			updateSynthFromGui(hObject, handles);
@@ -461,7 +473,6 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
 														handles.S.Fs, ...
 														synth.freq, ...
 														synth.amp, 0);
-
 				case 'noise'
 					% create noise
 					handles.raw = synmononoise_fft(	synth.dur, ...
@@ -471,7 +482,6 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
 																synth.amp, 0);
 					% kludge to scale amplitude properly
 					handles.raw = synth.amp * normalize(handles.raw);
-					
 				case 'sweep'
 					% create FM sweep (via wrapper around chirp() matlab
 					% function)
@@ -481,7 +491,6 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
 															synth.fmax, ...
 															synth.amp, 0);
 			end	% END switch synth.type
-			
 	end	% END switch handles.SignalMode
 	
 	% update analysis window
@@ -497,14 +506,12 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
 	if bin(1) == 0
 		bin(1) = 1;
 	end
-	
 	% take fft of raw data
 	[handles.fraw, handles.magraw, handles.phiraw] = ...
 									daqdbfullfft(	handles.raw(bin(1):bin(2)), ...
 														handles.S.Fs, ...
 														length(handles.raw(bin(1):bin(2))));
 	guidata(hObject, handles);
-	
 	%--------------------------------------------------------------------
 	% next, check the calibration curve and smooth if necessary
 	%--------------------------------------------------------------------
@@ -537,7 +544,6 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
 		% use unsmoothed mags
 		mags = handles.cal.mag;
 	end
-	
 	%--------------------------------------------------------------------
 	% apply compensation method
 	% CompMethod is value of 1, 2, 3, 4 (value of CompMethodCtrl) which 
@@ -555,7 +561,6 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
 		case 5
 			method = 'COMPRESS';
 	end
-	
 	% check low freq cutoff setting
 	if strcmpi(handles.LowCut, 'off')
 		lowcut = 'off';
@@ -597,11 +602,9 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
 	if strcmpi(method, 'NONE')
 		% no compensation, just copy raw to adj
 		handles.adj = handles.raw;
-	
 	elseif strcmpi(method, 'NORMALIZE')
 		% normalize only, using Normalize Value
 		handles.adj = handles.NormalizeValue * normalize(handles.raw);
-		
 	elseif strcmpi(handles.Normalize, 'off')
 		% kludge to deal with Normalize OFF vs. on
 		[handles.adj, tmp, handles.compcurve] = compensate_signal(	...
@@ -620,7 +623,6 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
 											'Corrlimit', corrlimit, ...
 											'SmoothEdges', smoothedges	); %#ok<*ASGLU>
 		clear tmp
-
 	else
 		% use normalization
 		[handles.adj, tmp, handles.compcurve] = compensate_signal(	...
@@ -640,14 +642,13 @@ function UpdateSignalCtrl_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
 											'SmoothEdges', smoothedges	);
 		clear tmp
 	end
-	
+	% apply ramp to stimulus if it was synthesized	
 	if strcmpi(handles.SignalMode, 'SYNTH')
-		% apply ramp to stimuli if it was synthesized
+		% apply ramp to stimulus if it was synthesized
 		handles.raw = sin2array(handles.raw, synth.ramp, handles.S.Fs);
 		handles.adj = sin2array(handles.adj, synth.ramp, handles.S.Fs);
 	end
 	guidata(hObject, handles);
-		
 	% take fft of adj data
 	[handles.fadj, handles.magadj, handles.phiadj] = ...
 									daqdbfullfft(	handles.adj(bin(1):bin(2)), ...
@@ -1158,7 +1159,6 @@ function CompMethodCtrl_Callback(hObject, eventdata, handles)
 	handles.CompMethod = read_ui_val(handles.CompMethodCtrl);
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
-
 %------------------------------------------------------------------------------
 function TargetSPLCtrl_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
@@ -1172,7 +1172,6 @@ function TargetSPLCtrl_Callback(hObject, eventdata, handles)
 	end
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
-
 %------------------------------------------------------------------------------
 function NormalizeCtrl_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
@@ -1189,7 +1188,6 @@ function NormalizeCtrl_Callback(hObject, eventdata, handles)
 	end
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
-
 %------------------------------------------------------------------------------
 function NormalizePeakCtrl_Callback(hObject, eventdata, handles)
 %------------------------------------------------------------------------------
@@ -1202,7 +1200,6 @@ function NormalizePeakCtrl_Callback(hObject, eventdata, handles)
 	end
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
-
 %------------------------------------------------------------------------------
 function LowCutCtrl_Callback(hObject, eventdata, handles)
 %-------------------------------------------------------------------
@@ -1219,14 +1216,12 @@ function LowCutCtrl_Callback(hObject, eventdata, handles)
 	end
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
-
 %------------------------------------------------------------------------------
 function LowCutFreqCtrl_Callback(hObject, eventdata, handles)
 %-------------------------------------------------------------------
 	handles.LowCutFreq = read_ui_str(hObject, 'n');
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
-
 %------------------------------------------------------------------------------
 function CorrFminCtrl_Callback(hObject, eventdata, handles)
 %-------------------------------------------------------------------
@@ -1235,7 +1230,6 @@ function CorrFminCtrl_Callback(hObject, eventdata, handles)
 	handles.CorrFrange(1) = newVal;
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
-
 %------------------------------------------------------------------------------
 function CorrFmaxCtrl_Callback(hObject, eventdata, handles)
 %-------------------------------------------------------------------
@@ -1244,7 +1238,6 @@ function CorrFmaxCtrl_Callback(hObject, eventdata, handles)
 	handles.CorrFrange(2) = newVal;
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
-
 %------------------------------------------------------------------------------
 function PreFilterCtrl_Callback(hObject, eventdata, handles)
 %-------------------------------------------------------------------
@@ -1259,7 +1252,6 @@ function PreFilterCtrl_Callback(hObject, eventdata, handles)
 	end
 	guidata(hObject, handles)
 %------------------------------------------------------------------------------
-
 %------------------------------------------------------------------------------
 function PreFilterRangeCtrl_Callback(hObject, eventdata, handles)
 %-------------------------------------------------------------------
@@ -1278,7 +1270,6 @@ function PreFilterRangeCtrl_Callback(hObject, eventdata, handles)
 		disp err
 	end
 %------------------------------------------------------------------------------
-
 %------------------------------------------------------------------------------
 function PostFilterCtrl_Callback(hObject, eventdata, handles)
 	newVal = read_ui_val(handles.PostFilterCtrl);
@@ -1292,7 +1283,6 @@ function PostFilterCtrl_Callback(hObject, eventdata, handles)
 	end
 	guidata(hObject, handles)
 %------------------------------------------------------------------------------
-
 %------------------------------------------------------------------------------
 function PostFilterRangeCtrl_Callback(hObject, eventdata, handles)
 %-------------------------------------------------------------------
@@ -1311,7 +1301,6 @@ function PostFilterRangeCtrl_Callback(hObject, eventdata, handles)
 		disp err
 	end
 %------------------------------------------------------------------------------
-
 %------------------------------------------------------------------------------
 function RangeLimitCtrl_Callback(hObject, eventdata, handles)
 %-------------------------------------------------------------------
@@ -1323,7 +1312,6 @@ function RangeLimitCtrl_Callback(hObject, eventdata, handles)
 	end
 	guidata(hObject, handles);
 %------------------------------------------------------------------------------
-
 %------------------------------------------------------------------------------
 function CorrectionLimitCtrl_Callback(hObject, eventdata, handles)
 %-------------------------------------------------------------------
@@ -1337,7 +1325,6 @@ function CorrectionLimitCtrl_Callback(hObject, eventdata, handles)
 	end
 	guidata(hObject, handles)
 %------------------------------------------------------------------------------
-
 %------------------------------------------------------------------------------
 function CorrectionLimitValCtrl_Callback(hObject, eventdata, handles)
 %-------------------------------------------------------------------
@@ -1355,7 +1342,6 @@ function CorrectionLimitValCtrl_Callback(hObject, eventdata, handles)
 		disp err
 	end
 %------------------------------------------------------------------------------
-
 %------------------------------------------------------------------------------
 function SmoothEdgesCtrl_Callback(hObject, eventdata, handles)
 %-------------------------------------------------------------------
@@ -1369,7 +1355,6 @@ function SmoothEdgesCtrl_Callback(hObject, eventdata, handles)
 	end
 	guidata(hObject, handles)
 %------------------------------------------------------------------------------
-
 %------------------------------------------------------------------------------
 function SmoothEdgesValCtrl_Callback(hObject, eventdata, handles)
 %-------------------------------------------------------------------
@@ -1388,7 +1373,6 @@ function SmoothEdgesValCtrl_Callback(hObject, eventdata, handles)
 		disp err
 	end
 %------------------------------------------------------------------------------
-
 %------------------------------------------------------------------------------
 function PlotCompensationCurveCtrl_Callback(hObject, eventdata, handles)
 	if ~isfield(handles, 'cal')
@@ -1679,7 +1663,7 @@ function updateSynthFromGui(hObject, handles)
 	sindx = read_ui_val(handles.SynthTypeCtrl);
 	handles.SynthIndex = sindx;
 	handles.synth.type = handles.S.Types{sindx};
-	for n = 1:handles.S.Nparam(sindx);
+	for n = 1:handles.S.Nparam(sindx)
 		handles.synth.(handles.S.Param{sindx}{n}) = ...
 									read_ui_str(handles.(handles.S.CtrlTags{n}), 'n');
 	end
