@@ -76,7 +76,63 @@ catch errMsg
 end
 
 if handles.DAQSESSION
+	%-----------------------------------------------------------------------
+	% set sample rate to value specified in cal settings
+	%-----------------------------------------------------------------------
+	iodev.NI.S.Rate = handles.S.Fs;
+	% check actual rate for mismatch
+	ActualRate = iodev.NI.S.Rate;
+	if handles.S.Fs ~= ActualRate
+		warning('FlatWav:NIDAQ', 'Requested ai Fs (%f) ~= ActualRate (%f)', ...
+						handles.S.Fs, ActualRate);
+	end
+	% store actual rate
+	iodev.Fs = ActualRate;
+	handles.S.Fs = ActualRate;
+	%-----------------------------------------------------------------------
+	% input, output channel properties
+	%-----------------------------------------------------------------------
+	% range needs to be in [RangeMin RangeMax] format
+	for n = 1:length(iodev.NI.chI)
+		% set analog input range
+		iodev.NI.chI(n).Range = aiRange;
+		% set input TerminalConfig to 'SingleEnded' (default is
+		% 'Differential')
+		iodev.NI.chI(n).TerminalConfig = 'SingleEnded';
+	end
+	% set analog output range
+	for n = 1:length(iodev.NI.chO)
+		iodev.NI.ao.chO(n).Range = aoRange;
+	end
+	%------------------------------------------------------------------------
+	% HARDWARE TRIGGERING
+	%------------------------------------------------------------------------
+	% only 1 "sweep" per trigger event 
+	iodev.NI.S.TriggersPerRun = 1;
 
+	%------------------------------------------------------------------------
+	% I/O 
+	%------------------------------------------------------------------------
+	%-------------------------------------------------------
+	% send ramped data to hardware and play it
+	%-------------------------------------------------------
+	% load stimulus onto NI memory
+	queueOutputData(iodev.NI.S, sin2array(outputsignal, 1, handles.S.Fs));
+	% START ACQUIRING
+	[rawdata, timestamps, triggertime] = startForeground(iodev.NI.S); %#ok<ASGLU>
+	% reformat output into cell (legacy)
+	resp{1} = rawdata(:, 1)';
+	% pause
+	pause(handles.IOpause);
+	%-----------------------------------------------------------------------
+	% Clean up the NI Device
+	%-----------------------------------------------------------------------
+	% stop session
+	stop(iodev.NI.S);
+	% release hardware
+	release(iodev.NI.S);
+	% reset
+	daqreset
 
 else
 	%-----------------------------------------------------------------------
