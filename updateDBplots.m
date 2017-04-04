@@ -1,4 +1,4 @@
-function updateDBplots(hObject, eventdata, handles)
+function updateDBplots(hObject, eventdata, handles) %#ok<INUSL>
 
 
 	if any(	[	isempty(handles.respFs) ...
@@ -68,7 +68,7 @@ function updateDBplots(hObject, eventdata, handles)
 		ylim(handles.P.rawdb, [min(yresp) 1.05*max(y)])
 		grid(handles.P.rawdb, 'on')
 		% get ticks
-		time_ticks = get(handles.P.rawdb, 'XTick');	
+		time_ticks = get(handles.P.rawdb, 'XTick');	 %#ok<NASGU>
 		guidata(hObject, handles);
 	end
 	
@@ -116,7 +116,7 @@ function updateDBplots(hObject, eventdata, handles)
 		ylim(handles.P.adjdb, [min(yresp) 1.05*max(y)])
 		grid(handles.P.adjdb, 'on')
 		% get ticks
-		time_ticks = get(handles.P.adjdb, 'XTick');	
+		time_ticks = get(handles.P.adjdb, 'XTick');	 %#ok<NASGU>
 		guidata(hObject, handles);
 	end
 	
