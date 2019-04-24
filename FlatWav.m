@@ -338,7 +338,7 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 	TDT.InChanR = 2;
 
 	% need to rework these functions!
-	TDT.RXinitFunc = @RZ6init;
+	% TDT.RXinitFunc = @RZ6init;
 	% atten mode: 'PA5', 'RZ6', 'DIGITAL'
 	TDT.AttenMode = 'RZ6';
 	TDT.PA5initFunc = [];
@@ -360,8 +360,9 @@ function FlatWav_OpeningFcn(hObject, eventdata, handles, varargin)
 								'Circuit_Path', ...
 									'C:\TytoLogy\Toolboxes\TDTToolbox\Circuits\RZ6', ...
 								'Circuit_Name', 'RZ6_CalibrateIO_softTrig', ...
-								'Dnum', 1	);
+								'Dnum', 1);
 	TDT.TDTLOCKFILE = fullfile(pwd, 'tdtlockfile.mat');
+	TDT.CONFIGNAME = 'RZ6_IO';
 	handles.TDT = TDT;
 	guidata(hObject, handles);
 	%--------------------------------------------------
@@ -1520,7 +1521,7 @@ function TDTenable_Callback(hObject, eventdata, handles)
 			disp(ME.message)
 			error('Cannot open TDT hardware');
 		end
-		handles.TDT.iodev = outhandles.indev;
+		handles.TDT.iodev = outhandles.iodev;
 		handles.TDT.zBUS = outhandles.zBUS;
 		handles.TDT.PA5L = outhandles.PA5L;
 		handles.TDT.PA5R = outhandles.PA5R;
