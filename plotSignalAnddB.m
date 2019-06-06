@@ -1,19 +1,44 @@
 function varargout = plotSignalAnddB(signal, rmswin, Fs, varargin)
 %-------------------------------------------------------------------------
-% varargout = plotSignalAnddB(signal, rmswin, Fs, varargin)
+% [dBFigure, dBAxes, out] = plotSignalAnddB(signal, rmswin, ...
+% 																			Fs, 'axes', axH)
+%-------------------------------------------------------------------------
+%  TytoLogy:PlotTools
 %-------------------------------------------------------------------------
 % Plots signal along with dbSPL in windows
 %------------------------------------------------------------------------
 % Input Arguments:
-%	signal
-% 	rmswin
-% 	Fs
+%	signal		vector of data to plot
+% 	rmswin		time window (milliseconds) for computing RMS and dB SPL
+% 	Fs				sampling rate for signal (samples/s)
 % 	
 % 	Optional:
-% 		'axes'
-% 		
+% 		'axes'			<axis handle>	specify axis handle for plotting
+% 		'dBSPL'			<Volts to Pa conversion factor>
+% 		'SIGNALNAME'	<signal trace name>
+% 		'SIGNALCOLOR'			<signal trace color>
+% 		'SIGNALSTYLE'			<signal trace style>
+% 		'DBCOLOR'				<dB trace color>
+% 		'DBSTYLE'				<db trace style>
+% 		'DBLINEWIDTH'			<db trace line width>
+% 		'DBMARKER'				<db peak marker symbol>
+% 		'DBMARKERSIZE'			<db peak marker size (points)>
+% 		'DBMARKERCOLOR'		<db peak marker size (points)>
+%
 % Output Arguments:
-%   
+%	dBFigure		figure handle of plot
+%	dbAxex		axis handle of plot
+%	out			output struct with fields:
+% 		dB_max		peak dB (or dB SPL value if dBSPL option set)
+% 		rms_max		peak RMS value = maxval;
+% 		max_bin		index of RMS window for peak dB
+% 		max_time		time of peak dB window
+% 		rms_vals		vector of rms values
+% 		dBSPL			vector of dB SPL values (if dBSPL option set)
+% 		dB				vector of dB values (if dBSPL conversion not provided)
+%	   
+%------------------------------------------------------------------------
+% See Also: plot, dbspl, db
 %------------------------------------------------------------------------
 
 %-------------------------------------------------------------------------
@@ -24,12 +49,17 @@ function varargout = plotSignalAnddB(signal, rmswin, Fs, varargin)
 % 				pulled out of FlatWav.m
 % 
 % Revisions:
+%	6 Jun 2019 (SJS):
+%		- updated comments
+%		- added out struct
+%		- moving to PlotTools
 %-------------------------------------------------------------------------
 
 %-------------------------------------------------------------------------
-% definitions
+% definitions/defaults
 %-------------------------------------------------------------------------
 VtoPa = 0;
+rmswin = 5;
 sigName = '';
 sigColor = 'b';
 sigStyle = '-';
@@ -209,7 +239,23 @@ set(th,	'FontSize', 12, ...
 %-------------------------------------------------------------------------
 % assign outputs
 %-------------------------------------------------------------------------
-if nargout
+if nargout > 0
 	varargout{1} = dBFigure;
 	varargout{2} = dBAxes;
+
+	out.dB_max = sigdBSPL;
+	out.rms_max = maxval;
+	out.max_bin = maxindx;
+	out.max_time = xval;
+	out.rms_vals = raw_rms;
+	if VtoPa
+		% dbSPL vals
+		out.dBSPL = dbspl(VtoPa*raw_rms);
+		out.dB = [];
+	else
+		% just use dB
+		out.dB = db(VtoPa*raw_rms);
+		out.dBSPL = [];
+	end
+	varargout{3} = out;
 end
