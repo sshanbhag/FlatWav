@@ -232,7 +232,7 @@ if strcmpi(handles.OutputDevice, 'NIDAQ')
 	% set limits for Mag and Phase plots
 	dblim = [min(magresp) max(magresp)];
 	freqlim = 0.001*[0 Fs/2];
-
+	freqlim = 0.001*[0 110000];
 	if strcmpi(ButtonID, 'Play Raw')
 		% raw plots
 		subplot(handles.P.rsig)

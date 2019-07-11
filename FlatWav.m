@@ -1677,7 +1677,7 @@ function updatePlots(hObject, eventdata, handles)
 	dblim = [dbmin dbmax];
 	% limit freq to 110 kHz
 % 	freqlim = 0.001*[0 handles.S.Fs/2];
-	freqlim = 0.001*[0 110000/2];
+	freqlim = 0.001*[0 110000];
 	
 	% update raw plots
 	% plot raw signal
@@ -2129,6 +2129,7 @@ function dBPlotCtrl_Callback(hObject, eventdata, handles)
 % displays dB level along with response signal
 	handles.dBPlot = read_ui_val(handles.dBPlotCtrl);
 	guidata(hObject, handles);
+	
 	if handles.dBPlot
 		[dBfigure, dBaxes] = updateDBplots(hObject, eventdata, handles);
 		% store returned handles
@@ -2206,7 +2207,7 @@ function [dBFigure, dBAxes] = updateDBplots(hObject, eventdata, handles)
 								'dBSPL', handles.VtoPa, ...
 								'SignalName', 'Raw', ...
 								'SignalColor', 'b', ...
-								'dBMarkerColor', 'b');		
+								'dBMarkerColor', 'b');
 	end
 	%------------------------------------------------------------------------	
 	% compute rms of adj response, plot
