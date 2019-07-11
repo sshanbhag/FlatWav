@@ -121,7 +121,7 @@ hold off
 % append _pad to name
 tmpfile = [basestr '_PAD' extstr];
 
-[newfile, newpath] = uiputfile( tmpfile, ...
+[newfile, newpath] = uiputfile( fullfile(calpath, tmpfile), ...
 									'Write padded calibration data to file...');
 if newfile ~=0	
 	% remove unnecessary fields
