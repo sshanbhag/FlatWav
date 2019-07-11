@@ -1675,7 +1675,9 @@ function updatePlots(hObject, eventdata, handles)
 	dbmax = 0;
 	dbmin = min([min(handles.magraw) min(handles.magadj)]);
 	dblim = [dbmin dbmax];
-	freqlim = 0.001*[0 handles.S.Fs/2];
+	% limit freq to 110 kHz
+% 	freqlim = 0.001*[0 handles.S.Fs/2];
+	freqlim = 0.001*[0 110000/2];
 	
 	% update raw plots
 	% plot raw signal
